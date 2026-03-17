@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/payment}
+    username: ${USERNAME}
+    password: ${PASSWORD}
+
+toss:
+  payment:
+    uri: https://api.tosspayments.com/v1/payments/confirm
+    secret: test_sk_pP2YxJ4K87B69Y72a5mvrRGZwXLO
+    content-type: application/json
+    timeout: 60
