@@ -1,5 +1,6 @@
 package com.v_payment.pay.payment.entity;
 
+import com.v_payment.pay.payment.controller.dto.req.PaymentCreateReq;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -9,10 +10,13 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Getter
 @Entity
@@ -28,10 +32,13 @@ public class Payment {
     private Provider provider;
 
     @Enumerated(EnumType.STRING)
-    private PaymentMethod method;
+    private PaymentMethod paymentMethod;
 
-    @Embedded
-    private PaymentPayload paymentPayload;
+    private String orderId;
+
+    private String paymentKey;
+
+    private Long requestedAmount;
 
     private Long approvedAmount;
 
@@ -44,27 +51,45 @@ public class Payment {
 
     private String receiptUrl;
 
+    @Builder
     public Payment(Provider provider,
-                   PaymentMethod method,
+                   PaymentMethod paymentMethod,
                    String orderId,
                    String paymentKey,
                    Long requestedAmount,
                    Long approvedAmount,
                    PaymentStatus paymentStatus,
-                   LocalDateTime approvedAt,
                    LocalDateTime requestedAt,
+                   LocalDateTime approvedAt,
                    String receiptUrl) {
         this.provider = provider;
-        this.method = method;
-        this.paymentPayload = new PaymentPayload(orderId, paymentKey, requestedAmount);
+        this.paymentMethod = paymentMethod;
+        this.orderId = orderId;
+        this.paymentKey = paymentKey;
+        this.requestedAmount = requestedAmount;
         this.approvedAmount = approvedAmount;
         this.paymentStatus = paymentStatus;
-        this.approvedAt = approvedAt;
         this.requestedAt = requestedAt;
+        this.approvedAt = approvedAt;
         this.receiptUrl = receiptUrl;
     }
 
     public PaymentPayload getPaymentPayload() {
-        return paymentPayload.toBuilder().build();
+        return PaymentPayload.create(orderId, paymentKey, requestedAmount);
+    }
+
+    public static Payment create(PaymentCreateReq paymentCreateReq, Clock clock) {
+        return Payment.builder()
+                .provider(Provider.TOSS)
+                .paymentMethod(paymentCreateReq.paymentMethod())
+                .orderId(UUID.randomUUID().toString())
+                .paymentKey(null)
+                .requestedAmount(paymentCreateReq.requestedAmount())
+                .approvedAmount(null)
+                .paymentStatus(PaymentStatus.PENDING)
+                .requestedAt(LocalDateTime.now(clock))
+                .approvedAt(null)
+                .receiptUrl(null)
+                .build();
     }
 }

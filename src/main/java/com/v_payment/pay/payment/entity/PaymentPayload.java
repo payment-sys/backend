@@ -1,25 +1,28 @@
 package com.v_payment.pay.payment.entity;
 
 import jakarta.persistence.Embeddable;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
+import java.util.UUID;
 
 @Getter
-@Embeddable
-@NoArgsConstructor
-@Builder(toBuilder = true)
 public class PaymentPayload {
-    private String orderId;
+    private final String orderId;
+    private final String paymentKey;
+    private final Long requestedAmount;
 
-    private String paymentKey;
-
-    private Long requestedAmount;
-
+    @Builder
     public PaymentPayload(String orderId, String paymentKey, Long requestedAmount) {
         this.orderId = orderId;
         this.paymentKey = paymentKey;
         this.requestedAmount = requestedAmount;
+    }
+
+    public static PaymentPayload create(String orderId, String paymentKey, Long requestedAmount) {
+        return PaymentPayload.builder()
+                .orderId(orderId)
+                .paymentKey(paymentKey)
+                .requestedAmount(requestedAmount)
+                .build();
     }
 }
