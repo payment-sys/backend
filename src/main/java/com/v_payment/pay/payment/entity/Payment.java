@@ -1,8 +1,10 @@
 package com.v_payment.pay.payment.entity;
 
+import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.controller.dto.req.PaymentCreateReq;
+import com.v_payment.pay.payment.infra.FailedResult;
+import com.v_payment.pay.payment.infra.SuccessResult;
 import jakarta.persistence.Column;
-import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -29,27 +31,29 @@ public class Payment {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    private Provider provider;
+    private Provider provider;                      //생성 시
 
     @Enumerated(EnumType.STRING)
-    private PaymentMethod paymentMethod;
+    private PaymentMethod paymentMethod;            //생성 시
 
-    private String orderId;
+    private String orderId;                         //생성 시
 
-    private String paymentKey;
+    private String paymentKey;                      //검증 시
 
-    private Long requestedAmount;
+    private Long requestedAmount;                   //생성 시
 
-    private Long approvedAmount;
+    private Long approvedAmount;                    //성공 시
 
     @Enumerated(EnumType.STRING)
-    private PaymentStatus paymentStatus;
+    private PaymentStatus paymentStatus;            //전체
 
-    private LocalDateTime requestedAt;
+    private LocalDateTime requestedAt;              //생성 시
 
-    private LocalDateTime approvedAt;
+    private LocalDateTime approvedAt;               //성공 시
 
-    private String receiptUrl;
+    private String receiptUrl;                      //성공 시
+
+    private String failedMessage;                   //실패 시
 
     @Builder
     public Payment(Provider provider,
@@ -76,6 +80,40 @@ public class Payment {
 
     public PaymentPayload getPaymentPayload() {
         return PaymentPayload.create(orderId, paymentKey, requestedAmount);
+    }
+
+    public boolean isSameRequestedAmount(Long requestedAmount) {
+        return this.requestedAmount.equals(requestedAmount);
+    }
+
+    public boolean isSameMethod(PaymentMethod paymentMethod) {
+        return this.paymentMethod == paymentMethod;
+    }
+
+    public boolean isSameProvider(Provider provider) {
+        return this.provider.equals(provider);
+    }
+
+    public void completeValidate(ApprovalReq approvalReq) {
+        this.paymentStatus = PaymentStatus.APPROVING;
+        this.paymentKey = approvalReq.paymentKey();
+    }
+
+    public void success(SuccessResult successResult) {
+        this.paymentStatus = PaymentStatus.APPROVED;
+        this.approvedAmount = successResult.totalAmount();
+        this.approvedAt = successResult.approvedAt();
+        this.receiptUrl = successResult.receipt().url();
+    }
+
+    public void failed(FailedResult failedResult) {
+        this.failedMessage = failedResult.message();
+        this.paymentStatus = PaymentStatus.REJECTED;
+    }
+
+    public void retryFailed() {
+        this.failedMessage = "retryFailed : 알 수 없는 에러";
+        this.paymentStatus = PaymentStatus.REJECTED;
     }
 
     public static Payment create(PaymentCreateReq paymentCreateReq, Clock clock) {
