@@ -24,7 +24,7 @@ public class PaymentController {
     }
 
     @PostMapping("/approvals")
-    public void approveV2(
+    public void approve(
             @RequestBody ApprovalReq approvalReq
     ) {
         paymentService.approve(approvalReq);

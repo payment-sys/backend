@@ -10,7 +10,7 @@ public record SuccessResult(
         String orderId,
         String paymentKey,
         String status,
-        BigDecimal totalAmount,
+        Long totalAmount,
         LocalDateTime approvedAt,
         Receipt receipt
 ) implements Result {

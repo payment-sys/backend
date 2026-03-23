@@ -1,6 +1,8 @@
 package com.v_payment.pay.payment.entity;
 
 import com.v_payment.pay.payment.controller.dto.req.PaymentCreateReq;
+import com.v_payment.pay.payment.infra.SuccessResult;
+import com.v_payment.pay.payment.infra.SuccessResult.Receipt;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -10,6 +12,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -91,5 +94,12 @@ public class Payment {
                 .approvedAt(null)
                 .receiptUrl(null)
                 .build();
+    }
+
+    public void success(SuccessResult successResult) {
+        this.paymentStatus = PaymentStatus.APPROVED;
+        this.approvedAmount = successResult.totalAmount();
+        this.approvedAt = successResult.approvedAt();
+        this.receiptUrl = successResult.receipt().url();
     }
 }
