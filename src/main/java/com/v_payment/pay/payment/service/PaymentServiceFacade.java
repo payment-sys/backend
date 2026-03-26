@@ -9,8 +9,10 @@ import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.infra.PaymentError;
 import com.v_payment.pay.payment.infra.Result;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j(topic = "API_LOGGER")
 @Component
 @RequiredArgsConstructor
 public class PaymentServiceFacade {
@@ -23,6 +25,7 @@ public class PaymentServiceFacade {
 
         Payment finishedPayment = paymentService.finalizePaymentPayload(approveResult);
 
+        log.info("승인 성공");
         return ApprovalRes.from(finishedPayment);
     }
 

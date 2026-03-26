@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+  <property
+    name="API_LOG_PATTERN"
+    value="[%d{yyyy-MM-dd HH:mm:ss.SSS}][API][%-5level][%X{TRACE_ID}] %X{METHOD} %X{PATH} %msg%n%ex"
+  />
+
+  <property
+    name="SCHEDULER_LOG_PATTERN"
+    value="[%d{yyyy-MM-dd HH:mm:ss.SSS}][SCHEDULER][%-5level][%X{orderId}] %msg%n%ex"
+  />
+
+  <property name="LOG_PATH" value="./logs" />
+
+  <appender name="API_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_PATH}/api.log</file>
+    <encoder>
+      <pattern>${API_LOG_PATTERN}</pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_PATH}/api.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+      <maxFileSize>50MB</maxFileSize>
+      <maxHistory>30</maxHistory>
+      <totalSizeCap>2GB</totalSizeCap>
+    </rollingPolicy>
+  </appender>
+
+  <appender name="SCHEDULER_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_PATH}/scheduler.log</file>
+    <encoder>
+      <pattern>${SCHEDULER_LOG_PATTERN}</pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_PATH}/scheduler.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+      <maxFileSize>50MB</maxFileSize>
+      <maxHistory>30</maxHistory>
+      <totalSizeCap>2GB</totalSizeCap>
+    </rollingPolicy>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+
+  <logger name="SCHEDULER_LOGGER" level="INFO" additivity="true">
+    <appender-ref ref="SCHEDULER_APPENDER"/>
+  </logger>
+
+  <logger name="API_LOGGER" level="INFO" additivity="true">
+    <appender-ref ref="API_APPENDER"/>
+  </logger>
+</configuration>

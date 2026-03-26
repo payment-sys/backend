@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+
+toss:
+  payment:
+    uri: https://api.tosspayments.com/v1/payments/confirm
+    secret: test-secret
+    content-type: application/json
+    timeout: 60
