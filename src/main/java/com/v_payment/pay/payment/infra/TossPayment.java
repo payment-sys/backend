@@ -20,7 +20,7 @@ public class TossPayment {
     private final RestClient tossPaymentClient;
     private final TossPaymentProperties tossPaymentProperties;
 
-    public Result approve(PaymentPayload paymentPayload) {
+    public Result call(PaymentPayload paymentPayload) {
         try{
             return exchangeRequestToResponse(paymentPayload);
         } catch (ResourceAccessException e) {

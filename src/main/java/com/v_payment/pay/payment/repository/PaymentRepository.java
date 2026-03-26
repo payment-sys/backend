@@ -1,7 +1,15 @@
 package com.v_payment.pay.payment.repository;
 
+import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.entity.Payment;
+import com.v_payment.pay.payment.entity.PaymentStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 
-public interface PaymentRepository extends JpaRepository<Payment, Integer> {
+import java.util.Optional;
+
+public interface PaymentRepository extends JpaRepository<Payment, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Payment> findByOrderIdAndPaymentStatus(String orderId, PaymentStatus paymentStatus);
 }
