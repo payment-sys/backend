@@ -102,7 +102,7 @@ public class Payment {
     public void success(SuccessResult successResult) {
         this.paymentStatus = PaymentStatus.APPROVED;
         this.approvedAmount = successResult.totalAmount();
-        this.approvedAt = successResult.approvedAt();
+        this.approvedAt = successResult.approvedAt().toLocalDateTime();
         this.receiptUrl = successResult.receipt().url();
     }
 

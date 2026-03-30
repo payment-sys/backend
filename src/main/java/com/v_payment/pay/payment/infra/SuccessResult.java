@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record SuccessResult(
@@ -11,7 +12,7 @@ public record SuccessResult(
         String paymentKey,
         String status,
         Long totalAmount,
-        LocalDateTime approvedAt,
+        OffsetDateTime approvedAt,
         Receipt receipt
 ) implements Result {
     @JsonIgnoreProperties(ignoreUnknown = true)
