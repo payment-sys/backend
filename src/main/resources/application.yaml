@@ -1,7 +1,7 @@
 toss:
   payment:
     uri: https://api.tosspayments.com/v1/payments/confirm
-    secret: test_sk_pP2YxJ4K87B69Y72a5mvrRGZwXLO
+    secret: test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R
     content-type: application/json
     timeout: 60
 
