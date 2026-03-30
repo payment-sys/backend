@@ -1,6 +1,15 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/payment}
-    username: ${USERNAME}
-    password: ${PASSWORD}
+    url: jdbc:mysql://mysql:3306/payment?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: payment
+    password: payment
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: payment-backend
