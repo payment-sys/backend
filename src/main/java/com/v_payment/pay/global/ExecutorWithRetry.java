@@ -5,7 +5,9 @@ import lombok.RequiredArgsConstructor;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.function.Predicate;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 public class ExecutorWithRetry<T> {
     private Callable<T> task;
@@ -21,13 +23,16 @@ public class ExecutorWithRetry<T> {
         T lastResult = null;
         Exception exception = null;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            log.info("승인 재시도 = {}", attempt);
             try {
                 lastResult = task.call();
                 T finalLastResult = lastResult;
                 boolean isContinue = continueConditions.stream().anyMatch(cond -> cond.test(finalLastResult));
                 if (!isContinue) return lastResult;
             } catch (Exception e) {
+                log.warn("알 수 없는 예외가 발생했습니다.");
                 exception = e;
+                throw new RuntimeException(exception);
             }
             if (attempt < maxAttempts) sleep(delayMillis);
         }
