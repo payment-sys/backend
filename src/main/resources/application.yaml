@@ -4,10 +4,23 @@ spring:
     url: ${MYSQL_URL:jdbc:mysql://localhost:3306/payment}
     username: ${USERNAME}
     password: ${PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
 
 toss:
   payment:
-    uri: https://api.tosspayments.com/v1/payments/confirm
-    secret: test_sk_pP2YxJ4K87B69Y72a5mvrRGZwXLO
+    #uri: https://api.tosspayments.com/v1/payments/confirm
+    uri: http://payment-api-server:8080/v1/payments/confirm
+    secret: ${TOSS_PAYMENT_SECRET}
     content-type: application/json
     timeout: 60
+
+management:
+  server:
+    port: 8082
+
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
