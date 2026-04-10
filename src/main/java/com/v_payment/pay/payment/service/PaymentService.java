@@ -52,7 +52,7 @@ public class PaymentService {
     }
 
     public Result approve(PaymentPayload paymentPayload) {
-        log.info("Toss Payment 호출 전 승인 예정 금액 = {}", paymentPayload.getRequestedAmount());
+        log.info("Toss Payment 호출 전 승인 예정 금액 = {}", paymentPayload.getAmount());
         return tossPayment.call(paymentPayload);
     }
 
@@ -68,6 +68,7 @@ public class PaymentService {
         throw new BusinessException(UNKNOWN_ERROR);
     }
 
+    @Transactional
     public void recoverApproveFailed(PaymentPayload paymentPayload) {
         Payment retryFailedPayment = paymentRepository.findByOrderIdAndPaymentStatus(paymentPayload.getOrderId(),
                 PaymentStatus.APPROVING).orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
