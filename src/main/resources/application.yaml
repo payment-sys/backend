@@ -1,3 +1,12 @@
+server:
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+      max-queue-capacity: 100
+    mbeanregistry:
+      enabled: true
+
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -24,3 +33,9 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: payment-backend
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
