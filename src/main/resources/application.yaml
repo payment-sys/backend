@@ -20,7 +20,7 @@ spring:
 toss:
   payment:
     #uri: https://api.tosspayments.com/v1/payments/confirm
-    uri: http://127.0.0.1:8080/v1/payments/confirm
+    uri: http://125.180.230.38:8080/v1/payments/confirm
     secret: ${TOSS_PAYMENT_SECRET}
     content-type: application/json
     timeout: 60
