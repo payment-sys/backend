@@ -2,6 +2,7 @@ package com.v_payment.pay.payment.infra;
 
 import com.v_payment.pay.payment.config.TossPaymentProperties;
 import com.v_payment.pay.payment.entity.PaymentPayload;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
@@ -20,6 +21,7 @@ public class TossPayment {
     private final RestClient tossPaymentClient;
     private final TossPaymentProperties tossPaymentProperties;
 
+    @Timed(value = "pay.api")
     public Result call(PaymentPayload paymentPayload) {
         try{
             return exchangeRequestToResponse(paymentPayload);
