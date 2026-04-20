@@ -8,6 +8,7 @@ import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.infra.PaymentError;
 import com.v_payment.pay.payment.infra.Result;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 public class PaymentServiceFacade {
     private final PaymentService paymentService;
 
+    @Timed(value = "payment.tx.approve")
     public ApprovalRes approvePipeline(ApprovalReq approvalReq) {
         PaymentPayload paymentPayload = paymentService.validateApprovalReq(approvalReq);
 

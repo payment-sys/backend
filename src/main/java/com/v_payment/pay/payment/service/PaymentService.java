@@ -12,6 +12,7 @@ import com.v_payment.pay.payment.infra.Result;
 import com.v_payment.pay.payment.infra.SuccessResult;
 import com.v_payment.pay.payment.infra.TossPayment;
 import com.v_payment.pay.payment.repository.PaymentRepository;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,7 @@ public class PaymentService {
         return PaymentCreateRes.from(savedPayment);
     }
 
+    @Timed(value = "payment.tx.validate")
     @Transactional
     public PaymentPayload validateApprovalReq(ApprovalReq approvalReq) {
         Payment payment = paymentRepository.findByOrderIdAndPaymentStatus(approvalReq.orderId(), PaymentStatus.PENDING)
@@ -51,11 +53,13 @@ public class PaymentService {
         return payment.getPaymentPayload();
     }
 
+    @Timed(value = "payment.tx.appove2")
     public Result approve(PaymentPayload paymentPayload) {
         log.info("Toss Payment 호출 전 승인 예정 금액 = {}", paymentPayload.getAmount());
         return tossPayment.call(paymentPayload);
     }
 
+    @Timed(value = "payment.tx.finalize")
     @Transactional
     public Payment finalizePaymentPayload(Result approveResult) {
         if(approveResult instanceof SuccessResult successResult) {
@@ -68,6 +72,7 @@ public class PaymentService {
         throw new BusinessException(UNKNOWN_ERROR);
     }
 
+    @Timed(value = "payment.tx.recover")
     @Transactional
     public void recoverApproveFailed(PaymentPayload paymentPayload) {
         Payment retryFailedPayment = paymentRepository.findByOrderIdAndPaymentStatus(paymentPayload.getOrderId(),
