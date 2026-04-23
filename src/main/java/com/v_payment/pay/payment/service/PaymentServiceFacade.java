@@ -9,6 +9,8 @@ import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.infra.PaymentError;
 import com.v_payment.pay.payment.infra.Result;
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -18,14 +20,43 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PaymentServiceFacade {
     private final PaymentService paymentService;
+    private final MeterRegistry meterRegistry;
 
     @Timed(value = "payment.tx.approve")
     public ApprovalRes approvePipeline(ApprovalReq approvalReq) {
-        PaymentPayload paymentPayload = paymentService.validateApprovalReq(approvalReq);
+        PaymentPayload paymentPayload;
+        Result approveResult;
+        Payment finishedPayment;
 
-        Result approveResult = getApproveResult(paymentPayload);
+        Timer.Sample validateSample = Timer.start(meterRegistry);
+        try {
+            paymentPayload = paymentService.validateApprovalReq(approvalReq);
+        } finally {
+            validateSample.stop(
+                    Timer.builder("payment.tx.validate")
+                            .register(meterRegistry)
+            );
+        }
 
-        Payment finishedPayment = paymentService.finalizePaymentPayload(approveResult);
+        Timer.Sample pgSample = Timer.start(meterRegistry);
+        try {
+            approveResult = getApproveResult(paymentPayload);
+        } finally {
+            pgSample.stop(
+                    Timer.builder("payment.external.pg")
+                            .register(meterRegistry)
+            );
+        }
+
+        Timer.Sample finalizeSample = Timer.start(meterRegistry);
+        try {
+            finishedPayment = paymentService.finalizePaymentPayload(approveResult);
+        } finally {
+            finalizeSample.stop(
+                    Timer.builder("payment.tx.finalize")
+                            .register(meterRegistry)
+            );
+        }
 
         log.info("승인 성공");
         return ApprovalRes.from(finishedPayment);
