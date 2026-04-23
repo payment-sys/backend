@@ -33,7 +33,7 @@ public class PaymentServiceFacade {
             paymentPayload = paymentService.validateApprovalReq(approvalReq);
         } finally {
             validateSample.stop(
-                    Timer.builder("payment.tx.validate")
+                    Timer.builder("payment.tx.validate1")
                             .register(meterRegistry)
             );
         }
@@ -53,7 +53,7 @@ public class PaymentServiceFacade {
             finishedPayment = paymentService.finalizePaymentPayload(approveResult);
         } finally {
             finalizeSample.stop(
-                    Timer.builder("payment.tx.finalize")
+                    Timer.builder("payment.tx.finalize1")
                             .register(meterRegistry)
             );
         }
