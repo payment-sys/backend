@@ -30,7 +30,10 @@ public class PaymentServiceFacade {
 
         Timer.Sample validateSample = Timer.start(meterRegistry);
         try {
+            long s = System.currentTimeMillis();
             paymentPayload = paymentService.validateApprovalReq(approvalReq);
+            long e = System.currentTimeMillis();
+            log.info("validate 실행시간 = {}", e - s);
         } finally {
             validateSample.stop(
                     Timer.builder("payment.tx.validate1")
