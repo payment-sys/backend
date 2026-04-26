@@ -44,6 +44,7 @@ public class PaymentServiceFacade {
         Timer.Sample pgSample = Timer.start(meterRegistry);
         try {
             approveResult = getApproveResult(paymentPayload);
+            log.info("Toss Payment 호출 성공");
         } finally {
             pgSample.stop(
                     Timer.builder("payment.external.pg")
