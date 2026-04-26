@@ -13,25 +13,24 @@ spring:
     url: ${MYSQL_URL:jdbc:mysql://localhost:3306/payment}
     username: ${USERNAME}
     password: ${PASSWORD}
+    hikari:
+      maximum-pool-size: 15
+      minimum-idle: 15
+
+      connection-timeout: 3000
+      validation-timeout: 1000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      keepalive-time: 120000
+
+      auto-commit: true
+      read-only: false
+
+      leak-detection-threshold: 2000
+      register-mbeans: true
   jpa:
     hibernate:
       ddl-auto: update
-
-  hikari:
-    maximum-pool-size: 15
-    minimum-idle: 15
-
-    connection-timeout: 3000
-    validation-timeout: 1000
-    idle-timeout: 600000
-    max-lifetime: 1800000
-    keepalive-time: 120000
-
-    auto-commit: true
-    read-only: false
-
-    leak-detection-threshold: 2000
-    register-mbeans: true
 
 toss:
   payment:
