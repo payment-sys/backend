@@ -1,6 +1,7 @@
 package com.v_payment.pay.payment.service;
 
 import com.v_payment.pay.global.BusinessException;
+import com.v_payment.pay.global.ConnMonitor;
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.controller.dto.req.PaymentCreateReq;
 import com.v_payment.pay.payment.controller.dto.res.PaymentCreateRes;
@@ -34,13 +35,12 @@ public class PaymentService {
     public PaymentCreateRes create(PaymentCreateReq paymentCreateReq) {
         Payment newPayment = Payment.create(paymentCreateReq, clock);
         Payment savedPayment = paymentRepository.save(newPayment);
-        log.info("저장된 금액 = {}, 상태 = {}", savedPayment.getRequestedAmount(), savedPayment.getPaymentStatus());
         return PaymentCreateRes.from(savedPayment);
     }
 
-    @Timed(value = "payment.tx.validate")
     @Transactional
     public PaymentPayload validateApprovalReq(ApprovalReq approvalReq) {
+        ConnMonitor.logConnectionStatus("validateApprovalReq() 트랜잭션 시작");
         Payment payment = paymentRepository.findByOrderIdAndPaymentStatus(approvalReq.orderId(), PaymentStatus.PENDING)
                 .orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
 
@@ -49,43 +49,36 @@ public class PaymentService {
         if(!payment.isSameProvider(approvalReq.provider())) throw new  BusinessException(PAYMENT_INVALID);
 
         payment.completeValidate(approvalReq);
-        log.info("검증 성공 상태 = {}", payment.getPaymentStatus());
+
         return payment.getPaymentPayload();
     }
 
-    @Timed(value = "payment.tx.appove2")
     public Result approve(PaymentPayload paymentPayload) {
-        log.info("Toss Payment 호출 전 승인 예정 금액 = {}", paymentPayload.getAmount());
         return tossPayment.call(paymentPayload);
     }
 
-    @Timed(value = "payment.tx.finalize")
     @Transactional
     public Payment finalizePaymentPayload(Result approveResult) {
+        ConnMonitor.logConnectionStatus("finishedPayment() 트랜잭션 시작");
         if(approveResult instanceof SuccessResult successResult) {
-            log.info("Toss Payment 호출 성공");
             return applySuccessResult(successResult);
         } else if (approveResult instanceof FailedResult failedResult) {
-            log.info("Toss Payment 호출 실패");
             return applyFailedResult(failedResult);
         }
         throw new BusinessException(UNKNOWN_ERROR);
     }
 
-    @Timed(value = "payment.tx.recover")
     @Transactional
     public void recoverApproveFailed(PaymentPayload paymentPayload) {
         Payment retryFailedPayment = paymentRepository.findByOrderIdAndPaymentStatus(paymentPayload.getOrderId(),
                 PaymentStatus.APPROVING).orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
         retryFailedPayment.retryFailed();
-        log.info("재시도 실패 상태 = {}", retryFailedPayment.getPaymentStatus());
     }
 
     private Payment applySuccessResult(SuccessResult successResult) {
         Payment successedPayment = paymentRepository.findByOrderIdAndPaymentStatus(successResult.orderId(),
                 PaymentStatus.APPROVING).orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
         successedPayment.success(successResult);
-        log.info("승인 금액 = {} 상태 = {}", successedPayment.getApprovedAmount(), successedPayment.getPaymentStatus());
         return successedPayment;
     }
 
@@ -93,7 +86,6 @@ public class PaymentService {
         Payment failedPayment = paymentRepository.findByOrderIdAndPaymentStatus(failedResult.orderId(),
                 PaymentStatus.APPROVING).orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
         failedPayment.failed(failedResult);
-        log.info("실패 메시지 = {} 실패 상태 = {}", failedPayment.getFailedMessage(), failedPayment.getPaymentStatus());
         return failedPayment;
     }
 }
