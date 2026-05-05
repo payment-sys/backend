@@ -16,7 +16,10 @@ import java.util.UUID;
 @Getter
 @Entity
 @NoArgsConstructor
-@Table(name = "payment")
+@Table(name = "payment",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_payment_order_id", columnNames = "orderId")
+        })
 public class Payment {
     @Id
     @Column(name = "payment_id")
