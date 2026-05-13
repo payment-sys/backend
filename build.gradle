@@ -30,6 +30,7 @@ dependencies {
 	implementation 'org.springframework.retry:spring-retry:2.0.12'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'io.micrometer:micrometer-registry-prometheus'
+	runtimeOnly 'io.micrometer:micrometer-java21'
 
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.aspectj:aspectjweaver'
