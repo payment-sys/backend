@@ -24,7 +24,7 @@ public class ThreadCheckFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        if (request.getRequestURI().contains("/approve")) {
+        if (request.getRequestURI().contains("/approvals")) {
             Thread t = Thread.currentThread();
 
             log.info("[THREAD-CHECK][START] uri={} threadName={} virtual={} thread={}",
