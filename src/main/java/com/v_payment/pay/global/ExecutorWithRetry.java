@@ -23,7 +23,7 @@ public class ExecutorWithRetry<T> {
         T lastResult = null;
         Exception exception = null;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            log.info("승인 재시도 = {}", attempt);
+            if(attempt > 1) log.info("승인 재시도 = {}", attempt);
             try {
                 lastResult = task.call();
                 T finalLastResult = lastResult;

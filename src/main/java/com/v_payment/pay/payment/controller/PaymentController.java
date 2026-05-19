@@ -33,12 +33,9 @@ public class PaymentController {
     public ApprovalRes approve(
             @RequestBody ApprovalReq approvalReq
     ) {
-        long startTime = LTimer.getCurrTime();
-
+        log.info("approve api 요청 시작 orderId = {}", approvalReq.orderId());
         ApprovalRes approvalRes = paymentServiceFacade.approvePipeline(approvalReq);
-
-        log.debug("승인 API [{}] latency = {}", approvalRes.orderId(), LTimer.getDiff(startTime));
-
+        log.info("approve api 응답 끝 orderId = {}", approvalRes.orderId());
         return approvalRes;
     }
 }
