@@ -29,7 +29,9 @@ public class TossPayment {
         long callStartTime = LTimer.getCurrTime();
 
         try{
-            return exchangeRequestToResponse(paymentPayload);
+            Result result = exchangeRequestToResponse(paymentPayload);
+            log.info("승인 API 호출 성공. orderId = {} elapsedMs = {}", paymentPayload.getOrderId(), LTimer.getDiff(callStartTime));
+            return result;
         } catch (ResourceAccessException e) {
             log.warn("승인 API 호출 실패. orderId = {} elapsedMs = {}", paymentPayload.getOrderId(), LTimer.getDiff(callStartTime), e);
             return new FailedResult(paymentPayload.getOrderId(), PaymentError.NETWORK_TIMEOUT, e.getMessage());
