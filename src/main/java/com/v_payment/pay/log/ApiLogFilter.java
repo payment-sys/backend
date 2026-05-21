@@ -16,7 +16,7 @@ import java.io.IOException;
 
 import static com.v_payment.pay.log.ApiLogContext.*;
 
-@Slf4j
+@Slf4j(topic = "API_LOGGER")
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ApiLogFilter extends OncePerRequestFilter {
