@@ -1,4 +1,4 @@
-package com.v_payment.pay.payment.service;
+package com.v_payment.pay.payment.service.outbox;
 
 import com.v_payment.pay.payment.infra.Result;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +22,17 @@ public class PaymentScheduler {
         List<Long> ids = paymentOutboxService.findIds(200);
 
         for (Long id : ids) {
-            executorService.submit(() -> {
-                Result result = paymentOutboxService.approve(id);
-                paymentOutboxService.finalizePaymentPayload(id, result);
-            });
+            executorService.submit(() -> approvePipeline(id));
+        }
+    }
+
+    private void approvePipeline(Long id) {
+        try{
+            paymentOutboxService.updateOutboxProcessing(id);
+            Result result = paymentOutboxService.approve(id);
+            paymentOutboxService.finalizePayment(result, id);
+        } catch (Exception e){
+            log.error("알 수 없는 에러가 발생했습니다.", e);
         }
     }
 }

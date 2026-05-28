@@ -8,16 +8,18 @@ import com.v_payment.pay.payment.controller.dto.res.PaymentCreateRes;
 import com.v_payment.pay.payment.entity.*;
 import com.v_payment.pay.payment.exception.PaymentException;
 import com.v_payment.pay.payment.infra.*;
-import com.v_payment.pay.payment.repository.PaymentLedgerRepository;
 import com.v_payment.pay.payment.repository.PaymentOutboxRepository;
 import com.v_payment.pay.payment.repository.PaymentRepository;
+import com.v_payment.pay.payment.service.ledger.PaymentLedgerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.LocalDateTime;
 
 import static com.v_payment.pay.payment.exception.PaymentException.*;
 
@@ -26,15 +28,17 @@ import static com.v_payment.pay.payment.exception.PaymentException.*;
 @RequiredArgsConstructor
 public class PaymentService {
     private final Clock clock;
-    private final TossPayment tossPayment;
     private final PaymentRepository paymentRepository;
-    private final PaymentLedgerRepository paymentLedgerRepository;
     private final PaymentOutboxRepository paymentOutboxRepository;
+    private final PaymentLedgerService paymentLedgerService;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public PaymentCreateRes create(PaymentCreateReq paymentCreateReq) {
         Payment newPayment = Payment.create(paymentCreateReq, clock);
         Payment savedPayment = paymentRepository.save(newPayment);
+
+        paymentLedgerService.insertPaymentLedgerPENDING(savedPayment);
         return PaymentCreateRes.from(savedPayment);
     }
 
@@ -52,11 +56,12 @@ public class PaymentService {
         }
 
         //Payment 원장 테이블 저장
-        PaymentLedger paymentLedger = PaymentLedger.createApprovePaymentLedger(payment);
-        paymentLedgerRepository.save(paymentLedger);
+        paymentLedgerService.insertPaymentLedgerAPPROVING(payment);
 
         //Payment 아웃박스 테이블 저장
-        PaymentOutbox paymentOutbox = PaymentOutbox.create(payment);
+        PaymentOutbox paymentOutbox = PaymentOutbox.create(payment, LocalDateTime.now(clock));
         paymentOutboxRepository.save(paymentOutbox);
+
+        applicationEventPublisher.publishEvent(paymentOutbox.getPaymentPayload());
     }
 }
