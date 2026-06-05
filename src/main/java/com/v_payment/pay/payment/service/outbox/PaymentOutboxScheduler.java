@@ -15,15 +15,31 @@ import java.util.concurrent.Executors;
 @Component
 @RequiredArgsConstructor
 public class PaymentOutboxScheduler {
+    private static final int MIN_BATCH_SIZE = 20;
+    private static final int MAX_BATCH_SIZE = 100;
+
+    private final ApproveLimiter approveLimiter;
     private final PaymentOutboxService paymentOutboxService;
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
     @Scheduled(fixedDelay = 500)
     public void schedulePaymentOutbox() {
-        List<Long> ids = paymentOutboxService.loadApproves(200);
+        int batchableSize = Math.min(approveLimiter.getAvailableCount(), MAX_BATCH_SIZE);
+        if (batchableSize < MIN_BATCH_SIZE) return;
+        approveLimiter.acquire(batchableSize);
+
+        List<Long> ids = paymentOutboxService.loadApproves(batchableSize);
+        int unusedCount = batchableSize - ids.size();
+        if (unusedCount > 0) approveLimiter.release(unusedCount);
 
         for (Long id : ids) {
-            executorService.submit(() -> approvePipeline(id));
+            executorService.submit(() -> {
+                try{
+                    approvePipeline(id);
+                } finally {
+                    approveLimiter.release();
+                }
+            });
         }
     }
 
