@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.Semaphore;
 
 @Component
-public class ApproveLimiter {
+public class PaymentOutboxLimiter {
     private static final Semaphore semaphore = new Semaphore(200);
 
     public void acquire(int count) {

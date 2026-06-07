@@ -18,26 +18,27 @@ public class PaymentOutboxScheduler {
     private static final int MIN_BATCH_SIZE = 20;
     private static final int MAX_BATCH_SIZE = 100;
 
-    private final ApproveLimiter approveLimiter;
+    private final PaymentOutboxLimiter paymentOutboxLimiter;
     private final PaymentOutboxService paymentOutboxService;
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
     @Scheduled(fixedDelay = 500)
     public void schedulePaymentOutbox() {
-        int batchableSize = Math.min(approveLimiter.getAvailableCount(), MAX_BATCH_SIZE);
+        int batchableSize = Math.min(paymentOutboxLimiter.getAvailableCount(), MAX_BATCH_SIZE);
         if (batchableSize < MIN_BATCH_SIZE) return;
-        approveLimiter.acquire(batchableSize);
+        paymentOutboxLimiter.acquire(batchableSize);
 
         List<Long> ids = paymentOutboxService.loadApproves(batchableSize);
         int unusedCount = batchableSize - ids.size();
-        if (unusedCount > 0) approveLimiter.release(unusedCount);
+
+        if (unusedCount > 0) paymentOutboxLimiter.release(unusedCount);
 
         for (Long id : ids) {
             executorService.submit(() -> {
                 try{
                     approvePipeline(id);
                 } finally {
-                    approveLimiter.release();
+                    paymentOutboxLimiter.release();
                 }
             });
         }

@@ -9,11 +9,14 @@ import com.v_payment.pay.payment.entity.outbox.PaymentOutbox;
 import com.v_payment.pay.payment.repository.PaymentOutboxRepository;
 import com.v_payment.pay.payment.repository.PaymentRepository;
 import com.v_payment.pay.payment.service.ledger.PaymentLedgerService;
+import com.v_payment.pay.payment.service.outbox.PaymentOutboxMetric;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -57,5 +60,12 @@ public class PaymentService {
         //Payment 아웃박스 테이블 저장
         PaymentOutbox paymentOutbox = PaymentOutbox.create(payment, LocalDateTime.now(clock));
         paymentOutboxRepository.save(paymentOutbox);
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                PaymentOutboxMetric.incrementEnqueued();
+            }
+        });
     }
 }
