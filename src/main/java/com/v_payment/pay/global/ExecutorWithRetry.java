@@ -7,7 +7,7 @@ import java.util.concurrent.Callable;
 import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
+@Slf4j(topic = "API_LOGGER")
 @RequiredArgsConstructor
 public class ExecutorWithRetry<T> {
     private Callable<T> task;
@@ -23,7 +23,7 @@ public class ExecutorWithRetry<T> {
         T lastResult = null;
         Exception exception = null;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            log.info("승인 재시도 = {}", attempt);
+            if(attempt > 1) log.info("승인 재시도 = {}", attempt);
             try {
                 lastResult = task.call();
                 T finalLastResult = lastResult;
