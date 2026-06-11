@@ -47,7 +47,7 @@ public class PaymentLedgerService {
                 payment.getOrderId(),
                 payment.getPaymentKey(),
                 payment.getProvider().name(),
-                fromStatus.name(),
+                fromStatus == null ? null : fromStatus.name(),
                 toStatus.name(),
                 failedCode,
                 failedMessage,
