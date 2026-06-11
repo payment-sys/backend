@@ -12,6 +12,8 @@ import com.v_payment.pay.payment.infra.TossPayment;
 import com.v_payment.pay.payment.repository.PaymentOutboxRepository;
 import com.v_payment.pay.payment.repository.PaymentRepository;
 import com.v_payment.pay.payment.service.ledger.PaymentLedgerService;
+import com.v_payment.pay.payment.service.outbox.exception.PaymentNotFoundException;
+import com.v_payment.pay.payment.service.outbox.exception.PaymentOutboxNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -55,7 +57,8 @@ public class PaymentOutboxService {
 
     //2. 가상쓰레드를 사용하여, 각각의 엔티티 로딩
     public PaymentPayload preApprove(Long id) {
-        PaymentOutbox paymentOutbox = paymentOutboxRepository.findById(id).get();
+        PaymentOutbox paymentOutbox = paymentOutboxRepository.findByIdAndStatus(id, PaymentOutboxStatus.PROCESSING)
+                .orElseThrow(() -> new PaymentOutboxNotFoundException("PROCESSING 상태의 outbox를 찾을 수 없습니다."));
         return paymentOutbox.getPaymentPayload();
     }
 
@@ -77,11 +80,12 @@ public class PaymentOutboxService {
 
     //4-1. 성공 처리
     private void applySuccessResult(SuccessResult successResult, Long id) {
-        PaymentOutbox paymentOutbox = paymentOutboxRepository.findById(id).get();
+        PaymentOutbox paymentOutbox = paymentOutboxRepository.findByIdAndStatus(id, PaymentOutboxStatus.PROCESSING)
+                .orElseThrow(() -> new PaymentOutboxNotFoundException("PROCESSING 상태의 outbox를 찾을 수 없습니다."));
         paymentOutbox.success();
 
-        Payment payment = paymentRepository.findByOrderIdAndPaymentStatus(paymentOutbox.getOrderId(),
-                PaymentStatus.APPROVING).get();
+        Payment payment = paymentRepository.findByOrderIdAndPaymentStatus(paymentOutbox.getOrderId(), PaymentStatus.APPROVING)
+                .orElseThrow(() -> new PaymentNotFoundException("APPROVING 상태의 Payment를 찾을 수 없습니다."));
         payment.success(successResult);
 
         paymentLedgerService.insertPaymentLedgerAPPROVED(payment, successResult);
@@ -96,7 +100,8 @@ public class PaymentOutboxService {
 
     //4-2. 실패 처리
     private void applyFailedResult(FailedResult failedResult, Long id) {
-        PaymentOutbox paymentOutbox = paymentOutboxRepository.findById(id).get();
+        PaymentOutbox paymentOutbox = paymentOutboxRepository.findByIdAndStatus(id,  PaymentOutboxStatus.PROCESSING)
+                .orElseThrow(() -> new PaymentOutboxNotFoundException("Processing 상태의 outbox를 찾을 수 없습니다."));
 
         if (!isRetryable(failedResult) || paymentOutbox.getAttemptCount() >= MAX_ATTEMPT_COUNT) {
             applyDeadResult(failedResult, paymentOutbox); return;
@@ -116,8 +121,8 @@ public class PaymentOutboxService {
     private void applyDeadResult(FailedResult failedResult, PaymentOutbox paymentOutbox) {
         paymentOutbox.dead(failedResult);
 
-        Payment payment = paymentRepository.findByOrderIdAndPaymentStatus(failedResult.orderId(),
-                PaymentStatus.APPROVING).get();
+        Payment payment = paymentRepository.findByOrderIdAndPaymentStatus(failedResult.orderId(), PaymentStatus.APPROVING)
+                .orElseThrow(() -> new PaymentNotFoundException("APPROVING 상태의 Payment를 찾을 수 없습니다."));
         payment.failed(failedResult);
 
         paymentLedgerService.insertPaymentLedgerREJECTED(payment, failedResult);

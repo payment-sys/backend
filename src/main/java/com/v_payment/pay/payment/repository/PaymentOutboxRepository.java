@@ -1,6 +1,7 @@
 package com.v_payment.pay.payment.repository;
 
 import com.v_payment.pay.payment.entity.outbox.PaymentOutbox;
+import com.v_payment.pay.payment.entity.outbox.PaymentOutboxStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.NativeQuery;
@@ -8,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Long> {
 
@@ -31,4 +33,6 @@ public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Lo
     AND status = 'READY'
     """)
     int markProcessing(@Param("ids") List<Long> ids);
+
+    Optional<PaymentOutbox> findByIdAndStatus(Long id, PaymentOutboxStatus paymentOutboxStatus);
 }
