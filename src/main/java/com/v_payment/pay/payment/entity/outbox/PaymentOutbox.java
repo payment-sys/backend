@@ -11,10 +11,14 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "payment_outbox")
+@Table(
+        name = "payment_outbox",
+        indexes = @Index(
+                name = "idx_payment_outbox_publish",
+                columnList = "status, next_attempt_time"
+        )
+)
 public class PaymentOutbox {
-    private static final int MAX_ATTEMPT_COUNT = 3;
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "payment_outbox_id")
