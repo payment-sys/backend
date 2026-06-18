@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
         name = "payment_outbox",
         indexes = @Index(
                 name = "idx_payment_outbox_publish",
-                columnList = "status, next_attempt_time"
+                columnList = "status, next_attempt_time, payment_outbox_id"
         )
 )
 public class PaymentOutbox {
