@@ -7,6 +7,10 @@
           name="LOG_PATTERN"
           value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSSXXX}","level":"%level","traceId":"%X{TRACE_ID}","method":"%X{METHOD}","path":"%X{PATH}","message":"%msg","elapsed_ms":%X{ELAPSED_MS:-0},exception":"%ex"}%n'
   />
+  <property
+          name="SCHEDULER_LOG_PATTERN"
+          value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSSXXX}","level":"%level","type":"scheduler","thread":"%thread","logger":"%logger{40}","message":"%msg","exception":"%ex"}%n'
+  />
   <property name="LOG_PATH" value="./logs" />
 
   <appender name="API_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -40,6 +44,19 @@
     </rollingPolicy>
   </appender>
 
+  <appender name="SCHEDULER_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_PATH}/scheduler.log</file>
+    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+      <pattern>${SCHEDULER_LOG_PATTERN}</pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_PATH}/scheduler.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+      <maxFileSize>50MB</maxFileSize>
+      <maxHistory>30</maxHistory>
+      <totalSizeCap>2GB</totalSizeCap>
+    </rollingPolicy>
+  </appender>
+
   <root level="INFO">
     <appender-ref ref="CONSOLE"/>
     <appender-ref ref="ERROR_APPENDER"/>
@@ -47,6 +64,10 @@
 
   <logger name="API_LOGGER" level="INFO" additivity="false">
     <appender-ref ref="API_APPENDER"/>
+  </logger>
+
+  <logger name="SCHEDULER_LOGGER" level="INFO" additivity="false">
+    <appender-ref ref="SCHEDULER_APPENDER"/>
   </logger>
 
 </configuration>

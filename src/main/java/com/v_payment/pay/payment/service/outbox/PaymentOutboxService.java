@@ -25,7 +25,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Slf4j
+@Slf4j(topic = "SCHEDULER_LOGGER")
 @Service
 @RequiredArgsConstructor
 public class PaymentOutboxService {

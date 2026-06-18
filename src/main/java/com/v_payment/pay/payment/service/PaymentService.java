@@ -48,12 +48,7 @@ public class PaymentService {
                 approvalReq.orderId(), PaymentStatus.PENDING, approvalReq.requestedAmount(), approvalReq.provider(),
                 approvalReq.method()).orElseThrow(() -> new BusinessException(PAYMENT_INVALID));
 
-        try{
-            payment.completeValidate(approvalReq);
-            paymentRepository.flush();
-        } catch (OptimisticLockingFailureException e) {
-            throw new BusinessException(PAYMENT_INVALID);
-        }
+        payment.completeValidate(approvalReq);
 
         //Payment 원장 테이블 저장
         paymentLedgerService.insertPaymentLedgerAPPROVING(payment);
