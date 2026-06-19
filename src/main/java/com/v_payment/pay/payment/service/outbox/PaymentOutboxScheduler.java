@@ -19,14 +19,13 @@ import java.util.concurrent.RejectedExecutionException;
 @Component
 @RequiredArgsConstructor
 public class PaymentOutboxScheduler {
-    private static final int MIN_BATCH_SIZE = 20;
-    private static final int MAX_BATCH_SIZE = 100;
-
+    private static final int MIN_BATCH_SIZE = 10;
+    private static final int MAX_BATCH_SIZE = 15;
     private final PaymentOutboxLimiter paymentOutboxLimiter;
     private final PaymentOutboxService paymentOutboxService;
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
-    @Scheduled(fixedDelay = 500)
+    @Scheduled(fixedDelay = 25)
     public void schedulePaymentOutbox() {
         int batchableSize = Math.min(paymentOutboxLimiter.getAvailableCount(), MAX_BATCH_SIZE);
 
