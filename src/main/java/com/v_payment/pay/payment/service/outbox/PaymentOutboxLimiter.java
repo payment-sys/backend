@@ -6,7 +6,7 @@ import java.util.concurrent.Semaphore;
 
 @Component
 public class PaymentOutboxLimiter {
-    private static final Semaphore semaphore = new Semaphore(200);
+    private static final Semaphore semaphore = new Semaphore(1000);
 
     public void acquire(int count) {
         semaphore.acquireUninterruptibly(count);
