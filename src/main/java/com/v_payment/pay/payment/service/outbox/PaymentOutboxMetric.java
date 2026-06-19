@@ -1,6 +1,7 @@
 package com.v_payment.pay.payment.service.outbox;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +14,7 @@ public class PaymentOutboxMetric {
     private static Counter completedCounter;
     private static Counter discardedCounter;
 
-    public PaymentOutboxMetric(MeterRegistry meterRegistry) {
+    public PaymentOutboxMetric(MeterRegistry meterRegistry, PaymentOutboxLimiter paymentOutboxLimiter) {
         enqueuedCounter = Counter.builder("payment_outbox_enqueued")
                 .description("Total number of payment outbox commands enqueued")
                 .register(meterRegistry);
@@ -32,6 +33,18 @@ public class PaymentOutboxMetric {
 
         discardedCounter = Counter.builder("payment_outbox_discarded")
                 .description("Total number of payment outbox commands discarded or moved to DLQ")
+                .register(meterRegistry);
+
+        Gauge.builder("payment_outbox_running_tasks", paymentOutboxLimiter, PaymentOutboxLimiter::getRunningCount)
+                .description("Current number of payment outbox virtual-thread tasks in progress")
+                .register(meterRegistry);
+
+        Gauge.builder("payment_outbox_available_slots", paymentOutboxLimiter, PaymentOutboxLimiter::getAvailableCount)
+                .description("Current number of available payment outbox processing slots")
+                .register(meterRegistry);
+
+        Gauge.builder("payment_outbox_max_concurrent_tasks", paymentOutboxLimiter, PaymentOutboxLimiter::getMaxConcurrentTasks)
+                .description("Maximum number of concurrent payment outbox processing tasks")
                 .register(meterRegistry);
     }
 

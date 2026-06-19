@@ -6,7 +6,8 @@ import java.util.concurrent.Semaphore;
 
 @Component
 public class PaymentOutboxLimiter {
-    private static final Semaphore semaphore = new Semaphore(1000);
+    private static final int MAX_CONCURRENT_TASKS = 1000;
+    private static final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_TASKS);
 
     public void acquire(int count) {
         semaphore.acquireUninterruptibly(count);
@@ -22,5 +23,13 @@ public class PaymentOutboxLimiter {
 
     public int getAvailableCount() {
         return semaphore.availablePermits();
+    }
+
+    public int getRunningCount() {
+        return MAX_CONCURRENT_TASKS - semaphore.availablePermits();
+    }
+
+    public int getMaxConcurrentTasks() {
+        return MAX_CONCURRENT_TASKS;
     }
 }
