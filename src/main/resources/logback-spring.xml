@@ -66,4 +66,8 @@
     <appender-ref ref="API_APPENDER"/>
   </logger>
 
+  <logger name="SCHEDULER_LOGGER" level="INFO" additivity="false">
+    <appender-ref ref="SCHEDULER_APPENDER"/>
+  </logger>
+
 </configuration>
