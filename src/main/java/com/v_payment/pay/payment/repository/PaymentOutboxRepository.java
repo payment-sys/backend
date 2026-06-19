@@ -15,7 +15,10 @@ public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Lo
 
     //todo: FOR UPDATE SKIP LOCKED 필요
     @NativeQuery("""
-    SELECT po.payment_outbox_id
+    SELECT po.payment_outbox_id AS paymentOutboxId,
+           po.order_id AS orderId,
+           po.payment_key AS paymentKey,
+           po.amount AS amount
     FROM payment_outbox po
     WHERE po.next_attempt_time <= :now
     AND po.status = :status
@@ -23,7 +26,9 @@ public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Lo
     LIMIT :count
     FOR UPDATE SKIP LOCKED
     """)
-    List<Long> findForPublish(@Param("status") String status, @Param("now") LocalDateTime now, @Param("count") int count);
+    List<PaymentOutboxPublishProjection> findForPublish(@Param("status") String status,
+                                                        @Param("now") LocalDateTime now,
+                                                        @Param("count") int count);
 
     @Modifying
     @NativeQuery("""

@@ -10,6 +10,7 @@ import com.v_payment.pay.payment.infra.Result;
 import com.v_payment.pay.payment.infra.SuccessResult;
 import com.v_payment.pay.payment.infra.TossPayment;
 import com.v_payment.pay.payment.repository.PaymentOutboxRepository;
+import com.v_payment.pay.payment.repository.PaymentOutboxPublishProjection;
 import com.v_payment.pay.payment.repository.PaymentRepository;
 import com.v_payment.pay.payment.service.ledger.PaymentLedgerService;
 import com.v_payment.pay.payment.service.outbox.exception.PaymentNotFoundException;
@@ -40,9 +41,12 @@ public class PaymentOutboxService {
 
     //1. Batch로 처리해야할 이벤트들을 찾아온다.
     @Transactional
-    public List<Long> loadApproves(int count) {
-        List<Long> ids = paymentOutboxRepository.findForPublish(PaymentOutboxStatus.READY.name(), LocalDateTime.now(clock), count);
-        if(ids.isEmpty()) return ids;
+    public List<PaymentOutboxTask> loadApproves(int count) {
+        List<PaymentOutboxPublishProjection> outboxes = paymentOutboxRepository.findForPublish(
+                PaymentOutboxStatus.READY.name(), LocalDateTime.now(clock), count);
+        if(outboxes.isEmpty()) return List.of();
+
+        List<Long> ids = outboxes.stream().map(PaymentOutboxPublishProjection::getPaymentOutboxId).toList();
         int cnt = paymentOutboxRepository.markProcessing(ids);
 
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -52,14 +56,12 @@ public class PaymentOutboxService {
             }
         });
 
-        return ids;
-    }
-
-    //2. 가상쓰레드를 사용하여, 각각의 엔티티 로딩
-    public PaymentPayload preApprove(Long id) {
-        PaymentOutbox paymentOutbox = paymentOutboxRepository.findByIdAndStatus(id, PaymentOutboxStatus.PROCESSING)
-                .orElseThrow(() -> new PaymentOutboxNotFoundException("PROCESSING 상태의 outbox를 찾을 수 없습니다."));
-        return paymentOutbox.getPaymentPayload();
+        return outboxes.stream()
+                .map(outbox -> new PaymentOutboxTask(
+                        outbox.getPaymentOutboxId(),
+                        PaymentPayload.create(outbox.getOrderId(), outbox.getPaymentKey(), outbox.getAmount())
+                ))
+                .toList();
     }
 
     //3. 외부 API 호출

@@ -31,41 +31,41 @@ public class PaymentOutboxScheduler {
 
         if (batchableSize < MIN_BATCH_SIZE) return;
 
-        List<Long> ids = pollPaymentOutboxIds(batchableSize);
+        List<PaymentOutboxTask> tasks = pollPaymentOutboxTasks(batchableSize);
 
-        ids.forEach(this::submitTaskToVirtualThread);
+        tasks.forEach(this::submitTaskToVirtualThread);
     }
 
-    private List<Long> pollPaymentOutboxIds(int batchableSize) {
+    private List<PaymentOutboxTask> pollPaymentOutboxTasks(int batchableSize) {
         try{
-            List<Long> ids = paymentOutboxService.loadApproves(batchableSize);
-            paymentOutboxLimiter.acquire(ids.size());
-            return ids;
+            List<PaymentOutboxTask> tasks = paymentOutboxService.loadApproves(batchableSize);
+            paymentOutboxLimiter.acquire(tasks.size());
+            return tasks;
         } catch (DataAccessException e) {
             log.warn("PaymentOutbox를 가져오는데 실패했습니다.", e);
             return List.of();    //예외를 무시하고 빈 List를 던짐으로 빠르게 마무리
         }
     }
 
-    private void submitTaskToVirtualThread(Long id) {
+    private void submitTaskToVirtualThread(PaymentOutboxTask task) {
         try{
-            executorService.submit(() -> approvePipeline(id));
+            executorService.submit(() -> approvePipeline(task));
         } catch (RejectedExecutionException e) {
-            log.warn("가상 쓰레드 작업 제출 실패하였습니다. id = {}", id);
+            log.warn("가상 쓰레드 작업 제출 실패하였습니다. id = {}", task.id());
         }
     }
 
-    private void approvePipeline(Long id) {
+    private void approvePipeline(PaymentOutboxTask task) {
         try{
-            PaymentPayload paymentPayload = paymentOutboxService.preApprove(id);
+            PaymentPayload paymentPayload = task.paymentPayload();
 
             Result result = paymentOutboxService.approve(paymentPayload);
 
-            paymentOutboxService.postApprove(result, id);
+            paymentOutboxService.postApprove(result, task.id());
         } catch (DataAccessException e){
-            log.warn("approvePipeLine을 수행할 수 없습니다. id = {}", id, e);
+            log.warn("approvePipeLine을 수행할 수 없습니다. id = {}", task.id(), e);
         } catch (PaymentNotFoundException | PaymentOutboxNotFoundException e) {
-            log.warn("{}id = {}", e.getMessage(), id, e);
+            log.warn("{}id = {}", e.getMessage(), task.id(), e);
         } catch (RuntimeException e) {
             log.error("알 수 없는 에러 발생", e);
         } finally {
