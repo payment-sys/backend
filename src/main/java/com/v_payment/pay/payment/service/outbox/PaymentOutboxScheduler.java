@@ -15,7 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 
-@Slf4j
+@Slf4j(topic = "SCHEDULER_LOGGER")
 @Component
 @RequiredArgsConstructor
 public class PaymentOutboxScheduler {
