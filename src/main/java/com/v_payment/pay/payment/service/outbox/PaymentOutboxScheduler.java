@@ -25,7 +25,7 @@ public class PaymentOutboxScheduler {
     private final PaymentOutboxService paymentOutboxService;
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
-    @Scheduled(fixedDelay = 25)
+    @Scheduled(fixedDelay = 75)
     public void schedulePaymentOutbox() {
         int batchableSize = Math.min(paymentOutboxLimiter.getAvailableCount(), MAX_BATCH_SIZE);
 
