@@ -30,7 +30,7 @@ public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Lo
 
     @Modifying
     @NativeQuery("""
-    UPDATE payment_outbox 
+    UPDATE payment_outbox FORCE INDEX (PRIMARY)
     SET status = 'PROCESSING', attempt_count = attempt_count + 1 
     WHERE payment_outbox_id IN (:ids)
     AND status = 'READY'
@@ -39,7 +39,7 @@ public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Lo
 
     @Modifying
     @NativeQuery("""
-    UPDATE payment_outbox
+    UPDATE payment_outbox FORCE INDEX (PRIMARY)
     SET status = 'PUBLISHED'
     WHERE payment_outbox_id = :id
     AND status = 'PROCESSING'
@@ -48,7 +48,7 @@ public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Lo
 
     @Modifying
     @NativeQuery("""
-    UPDATE payment_outbox
+    UPDATE payment_outbox FORCE INDEX (PRIMARY)
     SET status = 'READY',
         last_error_code = :lastErrorCode,
         last_error_message = :lastErrorMessage,
@@ -65,7 +65,7 @@ public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Lo
 
     @Modifying
     @NativeQuery("""
-    UPDATE payment_outbox
+    UPDATE payment_outbox FORCE INDEX (PRIMARY)
     SET status = 'DEAD',
         last_error_code = :lastErrorCode,
         last_error_message = :lastErrorMessage,
