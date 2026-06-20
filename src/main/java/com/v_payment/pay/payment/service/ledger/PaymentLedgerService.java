@@ -2,6 +2,8 @@ package com.v_payment.pay.payment.service.ledger;
 
 import com.v_payment.pay.payment.entity.Payment;
 import com.v_payment.pay.payment.entity.PaymentStatus;
+import com.v_payment.pay.payment.entity.Provider;
+import com.v_payment.pay.payment.entity.outbox.PaymentPayload;
 import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.infra.SuccessResult;
 import com.v_payment.pay.payment.repository.PaymentLedgerRepository;
@@ -27,14 +29,39 @@ public class PaymentLedgerService {
                 null);
     }
 
-    public void insertPaymentLedgerAPPROVED(Payment payment, SuccessResult successResult) {
-        insertPaymentLedger(payment, PaymentStatus.APPROVING, PaymentStatus.APPROVED, null, null,
-                successResult.totalAmount());
+    public void insertPaymentLedgerAPPROVED(PaymentPayload paymentPayload, SuccessResult successResult) {
+        paymentLedgerRepository.insertPaymentLedger(
+                paymentPayload.getOrderId(),
+                paymentPayload.getPaymentKey(),
+                Provider.TOSS.name(),
+                PaymentStatus.APPROVING.name(),
+                PaymentStatus.APPROVED.name(),
+                null,
+                null,
+                paymentPayload.getAmount(),
+                successResult.totalAmount(),
+                LocalDateTime.now(clock)
+        );
     }
 
     public void insertPaymentLedgerREJECTED(Payment payment, FailedResult failedResult) {
         insertPaymentLedger(payment, PaymentStatus.APPROVING, PaymentStatus.REJECTED, failedResult.paymentError().name(),
                 failedResult.message(), null);
+    }
+
+    public void insertPaymentLedgerREJECTED(PaymentPayload paymentPayload, FailedResult failedResult) {
+        paymentLedgerRepository.insertPaymentLedger(
+                paymentPayload.getOrderId(),
+                paymentPayload.getPaymentKey(),
+                Provider.TOSS.name(),
+                PaymentStatus.APPROVING.name(),
+                PaymentStatus.REJECTED.name(),
+                failedResult.paymentError().name(),
+                failedResult.message(),
+                paymentPayload.getAmount(),
+                null,
+                LocalDateTime.now(clock)
+        );
     }
 
     private void insertPaymentLedger(Payment payment,

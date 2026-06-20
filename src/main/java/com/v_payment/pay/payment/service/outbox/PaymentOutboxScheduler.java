@@ -61,7 +61,7 @@ public class PaymentOutboxScheduler {
 
             Result result = paymentOutboxService.approve(paymentPayload);
 
-            paymentOutboxService.postApprove(result, task.id());
+            paymentOutboxService.postApprove(result, task.id(), paymentPayload);
         } catch (DataAccessException e){
             log.warn("approvePipeLine을 수행할 수 없습니다. id = {}", task.id(), e);
         } catch (PaymentNotFoundException | PaymentOutboxNotFoundException e) {
