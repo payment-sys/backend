@@ -1,7 +1,6 @@
 package com.v_payment.pay.payment.repository;
 
 import com.v_payment.pay.payment.entity.outbox.PaymentOutbox;
-import com.v_payment.pay.payment.entity.outbox.PaymentOutboxStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.NativeQuery;
@@ -9,7 +8,6 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Long> {
 
@@ -39,5 +37,44 @@ public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Lo
     """)
     int markProcessing(@Param("ids") List<Long> ids);
 
-    Optional<PaymentOutbox> findByIdAndStatus(Long id, PaymentOutboxStatus paymentOutboxStatus);
+    @Modifying
+    @NativeQuery("""
+    UPDATE payment_outbox
+    SET status = 'PUBLISHED'
+    WHERE payment_outbox_id = :id
+    AND status = 'PROCESSING'
+    """)
+    int markPublished(@Param("id") Long id);
+
+    @Modifying
+    @NativeQuery("""
+    UPDATE payment_outbox
+    SET status = 'READY',
+        last_error_code = :lastErrorCode,
+        last_error_message = :lastErrorMessage,
+        next_attempt_time = :nextAttemptTime
+    WHERE payment_outbox_id = :id
+    AND status = 'PROCESSING'
+    AND attempt_count < :maxAttemptCount
+    """)
+    int markReadyForRetry(@Param("id") Long id,
+                          @Param("lastErrorCode") String lastErrorCode,
+                          @Param("lastErrorMessage") String lastErrorMessage,
+                          @Param("nextAttemptTime") LocalDateTime nextAttemptTime,
+                          @Param("maxAttemptCount") int maxAttemptCount);
+
+    @Modifying
+    @NativeQuery("""
+    UPDATE payment_outbox
+    SET status = 'DEAD',
+        last_error_code = :lastErrorCode,
+        last_error_message = :lastErrorMessage,
+        next_attempt_time = null
+    WHERE payment_outbox_id = :id
+    AND status = 'PROCESSING'
+    """)
+    int markDead(@Param("id") Long id,
+                 @Param("lastErrorCode") String lastErrorCode,
+                 @Param("lastErrorMessage") String lastErrorMessage);
+
 }

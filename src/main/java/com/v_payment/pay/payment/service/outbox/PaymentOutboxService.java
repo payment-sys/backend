@@ -1,7 +1,6 @@
 package com.v_payment.pay.payment.service.outbox;
 
 import com.v_payment.pay.payment.entity.*;
-import com.v_payment.pay.payment.entity.outbox.PaymentOutbox;
 import com.v_payment.pay.payment.entity.outbox.PaymentOutboxStatus;
 import com.v_payment.pay.payment.entity.outbox.PaymentPayload;
 import com.v_payment.pay.payment.infra.FailedResult;
@@ -71,26 +70,25 @@ public class PaymentOutboxService {
 
     //4. 외부 API 결과 처리
     @Transactional
-    public void postApprove(Result result, Long id) {
+    public void postApprove(Result result, Long id, PaymentPayload paymentPayload) {
         if(result instanceof SuccessResult successResult) {
-            applySuccessResult(successResult, id);
+            applySuccessResult(successResult, id, paymentPayload);
         }
         if(result instanceof FailedResult failedResult) {
-            applyFailedResult(failedResult, id);
+            applyFailedResult(failedResult, id, paymentPayload);
         }
     }
 
     //4-1. 성공 처리
-    private void applySuccessResult(SuccessResult successResult, Long id) {
-        PaymentOutbox paymentOutbox = paymentOutboxRepository.findByIdAndStatus(id, PaymentOutboxStatus.PROCESSING)
-                .orElseThrow(() -> new PaymentOutboxNotFoundException("PROCESSING 상태의 outbox를 찾을 수 없습니다."));
-        paymentOutbox.success();
+    private void applySuccessResult(SuccessResult successRes, Long id, PaymentPayload paymentPayload) {
+        int updated = paymentOutboxRepository.markPublished(id);
+        if (updated == 0) throw new PaymentOutboxNotFoundException("PROCESSING 상태의 outbox를 찾을 수 없습니다.");
 
-        Payment payment = paymentRepository.findByOrderIdAndPaymentStatus(paymentOutbox.getOrderId(), PaymentStatus.APPROVING)
-                .orElseThrow(() -> new PaymentNotFoundException("APPROVING 상태의 Payment를 찾을 수 없습니다."));
-        payment.success(successResult);
+        updated = paymentRepository.markApproved(paymentPayload.getOrderId(), PaymentStatus.APPROVING,
+                PaymentStatus.APPROVED, successRes.totalAmount(), successRes.approvedAt(), successRes.receipt().url());
+        if (updated == 0) throw new PaymentNotFoundException("APPROVING 상태의 Payment를 찾을 수 없습니다.");
 
-        paymentLedgerService.insertPaymentLedgerAPPROVED(payment, successResult);
+        paymentLedgerService.insertPaymentLedgerAPPROVED(paymentPayload, successRes);
 
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
@@ -101,33 +99,34 @@ public class PaymentOutboxService {
     }
 
     //4-2. 실패 처리
-    private void applyFailedResult(FailedResult failedResult, Long id) {
-        PaymentOutbox paymentOutbox = paymentOutboxRepository.findByIdAndStatus(id,  PaymentOutboxStatus.PROCESSING)
-                .orElseThrow(() -> new PaymentOutboxNotFoundException("Processing 상태의 outbox를 찾을 수 없습니다."));
-
-        if (!isRetryable(failedResult) || paymentOutbox.getAttemptCount() >= MAX_ATTEMPT_COUNT) {
-            applyDeadResult(failedResult, paymentOutbox); return;
+    private void applyFailedResult(FailedResult failedRes, Long id, PaymentPayload paymentPayload) {
+        if (isRetryable(failedRes)) {
+            int updated = paymentOutboxRepository.markReadyForRetry(id, failedRes.paymentError().name(),
+                    failedRes.message(), LocalDateTime.now(clock).plusSeconds(RETRY_DELAY_SECONDS), MAX_ATTEMPT_COUNT);
+            if (updated == 1) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        PaymentOutboxMetric.incrementRetryScheduled(1);
+                    }
+                });
+                return;
+            }
         }
 
-        paymentOutbox.failed(failedResult, LocalDateTime.now(clock).plusSeconds(RETRY_DELAY_SECONDS));
-
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                PaymentOutboxMetric.incrementRetryScheduled(1);
-            }
-        });
+        applyDeadResult(failedRes, id, paymentPayload);
     }
 
     //4-2-1. 실패 중 재시도 불가 시 Dead 처리
-    private void applyDeadResult(FailedResult failedResult, PaymentOutbox paymentOutbox) {
-        paymentOutbox.dead(failedResult);
+    private void applyDeadResult(FailedResult failedRes, Long id, PaymentPayload paymentPayload) {
+        int updated = paymentOutboxRepository.markDead(id, failedRes.paymentError().name(), failedRes.message());
+        if (updated == 0) throw new PaymentOutboxNotFoundException("Processing 상태의 outbox를 찾을 수 없습니다.");
 
-        Payment payment = paymentRepository.findByOrderIdAndPaymentStatus(failedResult.orderId(), PaymentStatus.APPROVING)
-                .orElseThrow(() -> new PaymentNotFoundException("APPROVING 상태의 Payment를 찾을 수 없습니다."));
-        payment.failed(failedResult);
+        updated = paymentRepository.markRejected(paymentPayload.getOrderId(), PaymentStatus.APPROVING,
+                PaymentStatus.REJECTED, failedRes.message());
+        if (updated == 0) throw new PaymentNotFoundException("APPROVING 상태의 Payment를 찾을 수 없습니다.");
 
-        paymentLedgerService.insertPaymentLedgerREJECTED(payment, failedResult);
+        paymentLedgerService.insertPaymentLedgerREJECTED(paymentPayload, failedRes);
 
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
