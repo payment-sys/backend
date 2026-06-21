@@ -19,14 +19,16 @@ import java.util.concurrent.RejectedExecutionException;
 @Component
 @RequiredArgsConstructor
 public class PaymentOutboxScheduler {
-    private static final int MIN_BATCH_SIZE = 10;
-    private static final int MAX_BATCH_SIZE = 15;
+    private static final int MIN_BATCH_SIZE = 100;
+    private static final int MAX_BATCH_SIZE = 100;
     private final PaymentOutboxLimiter paymentOutboxLimiter;
     private final PaymentOutboxService paymentOutboxService;
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
-    @Scheduled(fixedDelay = 75)
+    @Scheduled(fixedDelay = 100)
     public void schedulePaymentOutbox() {
+        long startNanos = System.nanoTime();
+
         int batchableSize = Math.min(paymentOutboxLimiter.getAvailableCount(), MAX_BATCH_SIZE);
 
         if (batchableSize < MIN_BATCH_SIZE) return;
@@ -34,6 +36,8 @@ public class PaymentOutboxScheduler {
         List<PaymentOutboxTask> tasks = pollPaymentOutboxTasks(batchableSize);
 
         tasks.forEach(this::submitTaskToVirtualThread);
+
+        if (!tasks.isEmpty()) PaymentOutboxMetric.recordSchedulerCycle(System.nanoTime() - startNanos);
     }
 
     private List<PaymentOutboxTask> pollPaymentOutboxTasks(int batchableSize) {
