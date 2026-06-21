@@ -12,7 +12,6 @@ import com.v_payment.pay.payment.service.ledger.PaymentLedgerService;
 import com.v_payment.pay.payment.service.outbox.PaymentOutboxMetric;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -44,22 +43,16 @@ public class PaymentService {
     @Transactional
     public void validateApprovalReq(ApprovalReq approvalReq) {
         //Payment 검증 및 상태 업뎃
-        Payment payment = paymentRepository.findByOrderIdAndPaymentStatusAndRequestedAmountAndProviderAndPaymentMethod(
-                approvalReq.orderId(), PaymentStatus.PENDING, approvalReq.requestedAmount(), approvalReq.provider(),
-                approvalReq.method()).orElseThrow(() -> new BusinessException(PAYMENT_INVALID));
-
-        try{
-            payment.completeValidate(approvalReq);
-            paymentRepository.flush();
-        } catch (OptimisticLockingFailureException e) {
-            throw new BusinessException(PAYMENT_INVALID);
-        }
+        int updatedCount = paymentRepository.markApproving(approvalReq.orderId(), approvalReq.paymentKey(),
+                approvalReq.requestedAmount(), approvalReq.provider(), approvalReq.method(), PaymentStatus.PENDING,
+                PaymentStatus.APPROVING);
+        if (updatedCount != 1) throw new BusinessException(PAYMENT_INVALID);
 
         //Payment 원장 테이블 저장
-        paymentLedgerService.insertPaymentLedgerAPPROVING(payment);
+        paymentLedgerService.insertPaymentLedgerAPPROVING(approvalReq);
 
         //Payment 아웃박스 테이블 저장
-        PaymentOutbox paymentOutbox = PaymentOutbox.create(payment, LocalDateTime.now(clock));
+        PaymentOutbox paymentOutbox = PaymentOutbox.create(approvalReq, LocalDateTime.now(clock));
         paymentOutboxRepository.save(paymentOutbox);
 
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

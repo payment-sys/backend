@@ -16,8 +16,25 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     Optional<Payment> findByOrderIdAndPaymentStatus(String orderId, PaymentStatus paymentStatus);
 
-    Optional<Payment> findByOrderIdAndPaymentStatusAndRequestedAmountAndProviderAndPaymentMethod(
-            String orderId, PaymentStatus paymentStatus, Long requestedAmount, Provider provider, PaymentMethod paymentMethod);
+    @Modifying
+    @Query("""
+    UPDATE Payment p
+    SET p.paymentStatus = :approvingStatus,
+        p.paymentKey = :paymentKey,
+        p.version = p.version + 1
+    WHERE p.orderId = :orderId
+    AND p.paymentStatus = :pendingStatus
+    AND p.requestedAmount = :requestedAmount
+    AND p.provider = :provider
+    AND p.paymentMethod = :paymentMethod
+    """)
+    int markApproving(@Param("orderId") String orderId,
+                      @Param("paymentKey") String paymentKey,
+                      @Param("requestedAmount") Long requestedAmount,
+                      @Param("provider") Provider provider,
+                      @Param("paymentMethod") PaymentMethod paymentMethod,
+                      @Param("pendingStatus") PaymentStatus pendingStatus,
+                      @Param("approvingStatus") PaymentStatus approvingStatus);
 
     @Modifying
     @Query("""
