@@ -3,7 +3,10 @@ package com.v_payment.pay.payment.service.outbox;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 @Component
 public class PaymentOutboxMetric {
@@ -13,6 +16,7 @@ public class PaymentOutboxMetric {
     private static Counter retryScheduledCounter;
     private static Counter completedCounter;
     private static Counter discardedCounter;
+    private static Timer schedulerCycleTimer;
 
     public PaymentOutboxMetric(MeterRegistry meterRegistry, PaymentOutboxLimiter paymentOutboxLimiter) {
         enqueuedCounter = Counter.builder("payment_outbox_enqueued")
@@ -46,6 +50,10 @@ public class PaymentOutboxMetric {
         Gauge.builder("payment_outbox_max_concurrent_tasks", paymentOutboxLimiter, PaymentOutboxLimiter::getMaxConcurrentTasks)
                 .description("Maximum number of concurrent payment outbox processing tasks")
                 .register(meterRegistry);
+
+        schedulerCycleTimer = Timer.builder("payment_outbox_scheduler_cycle")
+                .description("Time spent in one payment outbox scheduler cycle with tasks")
+                .register(meterRegistry);
     }
 
     public static void incrementEnqueued() {
@@ -74,5 +82,9 @@ public class PaymentOutboxMetric {
         if (count > 0) {
             discardedCounter.increment(count);
         }
+    }
+
+    public static void recordSchedulerCycle(long elapsedNanos) {
+        schedulerCycleTimer.record(Duration.ofNanos(elapsedNanos));
     }
 }
