@@ -3,6 +3,7 @@ package com.v_payment.pay.payment.service.ledger;
 import com.v_payment.pay.payment.entity.Payment;
 import com.v_payment.pay.payment.entity.PaymentStatus;
 import com.v_payment.pay.payment.entity.Provider;
+import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.entity.outbox.PaymentPayload;
 import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.infra.SuccessResult;
@@ -27,6 +28,21 @@ public class PaymentLedgerService {
     public void insertPaymentLedgerAPPROVING(Payment payment) {
         insertPaymentLedger(payment, PaymentStatus.PENDING, PaymentStatus.APPROVING, null, null,
                 null);
+    }
+
+    public void insertPaymentLedgerAPPROVING(ApprovalReq approvalReq) {
+        paymentLedgerRepository.insertPaymentLedger(
+                approvalReq.orderId(),
+                approvalReq.paymentKey(),
+                approvalReq.provider().name(),
+                PaymentStatus.PENDING.name(),
+                PaymentStatus.APPROVING.name(),
+                null,
+                null,
+                approvalReq.requestedAmount(),
+                null,
+                LocalDateTime.now(clock)
+        );
     }
 
     public void insertPaymentLedgerAPPROVED(PaymentPayload paymentPayload, SuccessResult successResult) {

@@ -1,5 +1,6 @@
 package com.v_payment.pay.payment.entity.outbox;
 
+import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.entity.Payment;
 import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.infra.PaymentError;
@@ -104,6 +105,20 @@ public class PaymentOutbox {
                 .orderId(payment.getOrderId())
                 .paymentKey(payment.getPaymentKey())
                 .amount(payment.getRequestedAmount())
+                .status(PaymentOutboxStatus.READY)
+                .attemptCount(0)
+                .lastErrorCode(null)
+                .lastErrorMessage(null)
+                .createdAt(createdAt)
+                .nextAttemptTime(createdAt)
+                .build();
+    }
+
+    public static PaymentOutbox create(ApprovalReq approvalReq, LocalDateTime createdAt) {
+        return PaymentOutbox.builder()
+                .orderId(approvalReq.orderId())
+                .paymentKey(approvalReq.paymentKey())
+                .amount(approvalReq.requestedAmount())
                 .status(PaymentOutboxStatus.READY)
                 .attemptCount(0)
                 .lastErrorCode(null)
