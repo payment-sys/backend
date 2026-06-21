@@ -25,7 +25,7 @@ public class PaymentOutboxScheduler {
     private final PaymentOutboxService paymentOutboxService;
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
-    @Scheduled(fixedDelay = 100)
+    @Scheduled(fixedDelay = 0)
     public void schedulePaymentOutbox() {
         long startNanos = System.nanoTime();
 
