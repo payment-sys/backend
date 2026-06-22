@@ -19,8 +19,8 @@ import java.util.concurrent.RejectedExecutionException;
 @Component
 @RequiredArgsConstructor
 public class PaymentOutboxScheduler {
-    private static final int MIN_BATCH_SIZE = 60;
-    private static final int MAX_BATCH_SIZE = 60;
+    private static final int MIN_BATCH_SIZE = 120;
+    private static final int MAX_BATCH_SIZE = 120;
     private final PaymentOutboxLimiter paymentOutboxLimiter;
     private final PaymentOutboxService paymentOutboxService;
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
