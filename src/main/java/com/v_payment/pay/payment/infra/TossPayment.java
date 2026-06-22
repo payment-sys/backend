@@ -15,7 +15,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-@Slf4j(topic = "API_LOGGER")
+@Slf4j(topic = "SCHEDULER_LOGGER")
 @Component
 @RequiredArgsConstructor
 public class TossPayment {
