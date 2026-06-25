@@ -10,6 +10,7 @@ import com.v_payment.pay.payment.repository.PaymentOutboxRepository;
 import com.v_payment.pay.payment.repository.PaymentRepository;
 import com.v_payment.pay.payment.service.ledger.PaymentLedgerService;
 import com.v_payment.pay.payment.service.outbox.PaymentOutboxMetric;
+import com.v_payment.pay.payment.service.outbox.queue.PaymentOutboxQueue;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final PaymentOutboxRepository paymentOutboxRepository;
     private final PaymentLedgerService paymentLedgerService;
+    private final PaymentOutboxQueue paymentOutboxQueue;
 
     @Transactional
     public PaymentCreateRes create(PaymentCreateReq paymentCreateReq) {
@@ -53,13 +55,6 @@ public class PaymentService {
 
         //Payment 아웃박스 테이블 저장
         PaymentOutbox paymentOutbox = PaymentOutbox.create(approvalReq, LocalDateTime.now(clock));
-        paymentOutboxRepository.save(paymentOutbox);
-
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                PaymentOutboxMetric.incrementEnqueued();
-            }
-        });
+        paymentOutboxQueue.enqueue(paymentOutbox);
     }
 }
