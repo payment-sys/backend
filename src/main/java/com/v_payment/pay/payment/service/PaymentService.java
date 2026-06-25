@@ -29,7 +29,6 @@ import static com.v_payment.pay.payment.exception.PaymentException.*;
 public class PaymentService {
     private final Clock clock;
     private final PaymentRepository paymentRepository;
-    private final PaymentOutboxRepository paymentOutboxRepository;
     private final PaymentLedgerService paymentLedgerService;
     private final PaymentOutboxQueue paymentOutboxQueue;
 

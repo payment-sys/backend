@@ -30,8 +30,8 @@ public class PaymentOutboxQueue implements OutboxQueue{
     private final Clock clock;
     private final ApplicationEventPublisher publisher;
     private final PaymentOutboxRepository paymentOutboxRepository;
-    private final PaymentOutboxMetric paymentOutboxMetric;
 
+    @Transactional
     @Override
     public void enqueue(PaymentOutbox paymentOutbox) {
         paymentOutboxRepository.save(paymentOutbox);
