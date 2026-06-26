@@ -26,8 +26,8 @@ import java.util.concurrent.RejectedExecutionException;
 @Component
 @RequiredArgsConstructor
 public class PaymentOutboxScheduler implements SchedulingConfigurer {
-    private static final int MIN_BATCH_SIZE = 75;
-    private static final int MAX_BATCH_SIZE = 75;
+    private static final int MIN_BATCH_SIZE = 25;
+    private static final int MAX_BATCH_SIZE = 50;
     private static final long MIN_POLLING_DELAY_MS = 1;
     private static final long MAX_POLLING_DELAY_MS = 5000;
     private static final int POLLING_DELAY_MULTIPLIER = 2;
