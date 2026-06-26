@@ -38,37 +38,10 @@ public class PaymentOutboxService {
     private final PaymentOutboxRepository paymentOutboxRepository;
     private final PaymentLedgerService paymentLedgerService;
 
-    //1. Batch로 처리해야할 이벤트들을 찾아온다.
-    @Transactional
-    public List<PaymentOutboxTask> loadApproves(int count) {
-        List<PaymentOutboxPublishProjection> outboxes = paymentOutboxRepository.findForPublish(
-                PaymentOutboxStatus.READY.name(), LocalDateTime.now(clock), count);
-        if(outboxes.isEmpty()) return List.of();
-
-        List<Long> ids = outboxes.stream().map(PaymentOutboxPublishProjection::getPaymentOutboxId).toList();
-        int cnt = paymentOutboxRepository.markProcessing(ids);
-
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                PaymentOutboxMetric.incrementClaimed(cnt);
-            }
-        });
-
-        return outboxes.stream()
-                .map(outbox -> new PaymentOutboxTask(
-                        outbox.getPaymentOutboxId(),
-                        PaymentPayload.create(outbox.getOrderId(), outbox.getPaymentKey(), outbox.getAmount())
-                ))
-                .toList();
-    }
-
-    //3. 외부 API 호출
     public Result approve(PaymentPayload paymentPayload) {
         return tossPayment.call(paymentPayload);
     }
 
-    //4. 외부 API 결과 처리
     @Transactional
     public void postApprove(Result result, Long id, PaymentPayload paymentPayload) {
         if(result instanceof SuccessResult successResult) {
