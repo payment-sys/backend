@@ -17,6 +17,7 @@ public class PaymentOutboxMetric {
     private static Counter completedCounter;
     private static Counter discardedCounter;
     private static Timer schedulerCycleTimer;
+    private static Timer taskElapsedTimer;
 
     public PaymentOutboxMetric(MeterRegistry meterRegistry, PaymentOutboxLimiter paymentOutboxLimiter) {
         enqueuedCounter = Counter.builder("payment_outbox_enqueued")
@@ -54,6 +55,10 @@ public class PaymentOutboxMetric {
         schedulerCycleTimer = Timer.builder("payment_outbox_scheduler_cycle")
                 .description("Time spent in one payment outbox scheduler cycle with tasks")
                 .register(meterRegistry);
+
+        taskElapsedTimer = Timer.builder("payment_outbox_task_elapsed")
+                .description("Time from payment outbox polling cycle start to task completion")
+                .register(meterRegistry);
     }
 
     public static void incrementEnqueued() {
@@ -86,5 +91,9 @@ public class PaymentOutboxMetric {
 
     public static void recordSchedulerCycle(long elapsedNanos) {
         schedulerCycleTimer.record(Duration.ofNanos(elapsedNanos));
+    }
+
+    public static void recordTaskElapsed(long elapsedNanos) {
+        taskElapsedTimer.record(Duration.ofNanos(elapsedNanos));
     }
 }
