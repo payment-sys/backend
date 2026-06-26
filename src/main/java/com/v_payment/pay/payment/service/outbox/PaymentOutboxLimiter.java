@@ -6,7 +6,7 @@ import java.util.concurrent.Semaphore;
 
 @Component
 public class PaymentOutboxLimiter {
-    private static final int MAX_CONCURRENT_TASKS = 300;
+    private static final int MAX_CONCURRENT_TASKS = 50;
     private static final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_TASKS);
 
     public void acquire(int count) {
