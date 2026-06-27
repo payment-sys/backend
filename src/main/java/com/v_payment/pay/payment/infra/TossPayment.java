@@ -54,7 +54,7 @@ public class TossPayment {
                 .header(CONTENT_TYPE_HEADER_KEY, tossPaymentProperties.contentType())
                 .body(paymentPayload)
                 .retrieve()
-                .body(Result.class);
+                .body(SuccessResult.class);
     }
 
     private String encodeBase64(String secretKey) {
