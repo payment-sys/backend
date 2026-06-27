@@ -58,6 +58,8 @@ public class PaymentOutboxScheduler implements SchedulingConfigurer {
         long startNanos = System.nanoTime();
 
         int batchableSize = schedulerManager.calculateBatchableSize(virtualThreadLimiter.getAvailableCount());
+        if(batchableSize <= 0) return;
+
         List<PaymentOutboxTask> tasks = outboxQueue.poll(batchableSize);
         schedulerManager.applySchedulingDelay(tasks.size());
 
@@ -89,7 +91,7 @@ public class PaymentOutboxScheduler implements SchedulingConfigurer {
             }));
         } catch (RejectedExecutionException e) {
             virtualThreadLimiter.release();
-            log.warn("가상 스레드 작업 제출에 실패했습니다. id = {}", task.id());
+            log.warn("가상 스레드 작업 제출에 실패했습니다. id = {} error = {}", task.id(), e.toString());
         }
     }
 
@@ -101,11 +103,11 @@ public class PaymentOutboxScheduler implements SchedulingConfigurer {
 
             resultApplyLimiter.execute(() -> paymentOutboxService.postApprove(result, task.id(), paymentPayload));
         } catch (DataAccessException e) {
-            log.warn("approvePipeline을 수행할 수 없습니다. id = {}", task.id());
+            log.warn("approvePipeline을 수행할 수 없습니다. id = {} error = {}", task.id(), e.toString());
         } catch (PaymentNotFoundException | PaymentOutboxNotFoundException e) {
             log.warn("{} id = {}", e.getMessage(), task.id());
         } catch (RuntimeException e) {
-            log.error("알 수 없는 에러 발생", e);
+            log.error("알 수 없는 에러 발생 error = {}", e.toString());
         } finally {
             PaymentOutboxMetric.recordTaskElapsed(System.nanoTime() - startNanos);
         }

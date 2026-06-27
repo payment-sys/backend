@@ -33,16 +33,16 @@ public class TossPayment {
         try{
             return exchangeRequestToResponse(paymentPayload);
         } catch (ResourceAccessException e) {
-            log.warn("승인 API 호출 실패. orderId = {} elapsedMs = {}", paymentPayload.getOrderId(), LTimer.getDiff(callStartTime), e);
+            log.warn("승인 API 호출 실패. orderId = {} elapsedMs = {} error = {}", paymentPayload.getOrderId(), LTimer.getDiff(callStartTime), e.toString());
             return new FailedResult(paymentPayload.getOrderId(), PaymentError.NETWORK_TIMEOUT, e.getMessage());
         } catch (RestClientResponseException e) {
-            log.warn("승인 API 호출 실패. orderId = {} elapsedMs = {}", paymentPayload.getOrderId(), LTimer.getDiff(callStartTime), e);
+            log.warn("승인 API 호출 실패. orderId = {} elapsedMs = {} error = {}", paymentPayload.getOrderId(), LTimer.getDiff(callStartTime), e.toString());
             int statusCode = e.getStatusCode().value();
             if(statusCode == 429) return new FailedResult(paymentPayload.getOrderId(), PaymentError.UPSTREAM_429, e.getMessage());
             if(statusCode >= 500) return new FailedResult(paymentPayload.getOrderId(), PaymentError.UPSTREAM_5XX, e.getMessage());
             return new FailedResult(paymentPayload.getOrderId(), PaymentError.UPSTREAM_4XX, e.getMessage());
         } catch (RuntimeException e) {
-            log.warn("승인 API 호출 실패. orderId = {} elapsedMs = {}", paymentPayload.getOrderId(), LTimer.getDiff(callStartTime), e);
+            log.warn("승인 API 호출 실패. orderId = {} elapsedMs = {} error = {}", paymentPayload.getOrderId(), LTimer.getDiff(callStartTime), e.toString());
             return new FailedResult(paymentPayload.getOrderId(), PaymentError.UNKNOWN, e.getMessage());
         }
     }
