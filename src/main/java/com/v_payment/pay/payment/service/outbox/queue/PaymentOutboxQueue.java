@@ -58,6 +58,7 @@ public class PaymentOutboxQueue implements OutboxQueue{
     @Transactional
     @Override
     public List<PaymentOutboxTask> poll(int count) {
+        if(count <= 0) return List.of();
         try{
             List<PaymentOutboxPublishProjection> outboxes = paymentOutboxRepository.findForPublish(
                     PaymentOutboxStatus.READY.name(), LocalDateTime.now(clock), count);
