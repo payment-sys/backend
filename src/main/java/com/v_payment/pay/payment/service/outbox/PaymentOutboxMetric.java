@@ -1,9 +1,11 @@
 package com.v_payment.pay.payment.service.outbox;
 
+import com.v_payment.pay.payment.service.limiter.Limiter;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -19,7 +21,10 @@ public class PaymentOutboxMetric {
     private static Timer schedulerCycleTimer;
     private static Timer taskElapsedTimer;
 
-    public PaymentOutboxMetric(MeterRegistry meterRegistry, PaymentOutboxLimiter paymentOutboxLimiter) {
+    public PaymentOutboxMetric(
+            MeterRegistry meterRegistry,
+            @Qualifier("virtualThreadLimiter") Limiter virtualThreadLimiter
+    ) {
         enqueuedCounter = Counter.builder("payment_outbox_enqueued")
                 .description("Total number of payment outbox commands enqueued")
                 .register(meterRegistry);
@@ -40,15 +45,15 @@ public class PaymentOutboxMetric {
                 .description("Total number of payment outbox commands discarded or moved to DLQ")
                 .register(meterRegistry);
 
-        Gauge.builder("payment_outbox_running_tasks", paymentOutboxLimiter, PaymentOutboxLimiter::getRunningCount)
+        Gauge.builder("payment_outbox_running_tasks", virtualThreadLimiter, Limiter::getRunningCount)
                 .description("Current number of payment outbox virtual-thread tasks in progress")
                 .register(meterRegistry);
 
-        Gauge.builder("payment_outbox_available_slots", paymentOutboxLimiter, PaymentOutboxLimiter::getAvailableCount)
+        Gauge.builder("payment_outbox_available_slots", virtualThreadLimiter, Limiter::getAvailableCount)
                 .description("Current number of available payment outbox processing slots")
                 .register(meterRegistry);
 
-        Gauge.builder("payment_outbox_max_concurrent_tasks", paymentOutboxLimiter, PaymentOutboxLimiter::getMaxConcurrentTasks)
+        Gauge.builder("payment_outbox_max_concurrent_tasks", virtualThreadLimiter, Limiter::getMaxConcurrentTasks)
                 .description("Maximum number of concurrent payment outbox processing tasks")
                 .register(meterRegistry);
 
