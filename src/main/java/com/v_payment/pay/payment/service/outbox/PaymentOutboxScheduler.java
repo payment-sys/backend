@@ -80,8 +80,15 @@ public class PaymentOutboxScheduler implements SchedulingConfigurer {
 
     private void submitTaskToVirtualThread(PaymentOutboxTask task, long startNanos) {
         try {
-            executorService.submit(() -> virtualThreadLimiter.execute(() -> approvePipeline(task, startNanos)));
+            virtualThreadLimiter.executeWithoutRelease(1, () -> executorService.submit(() -> {
+                try {
+                    approvePipeline(task, startNanos);
+                } finally {
+                    virtualThreadLimiter.release();
+                }
+            }));
         } catch (RejectedExecutionException e) {
+            virtualThreadLimiter.release();
             log.warn("가상 스레드 작업 제출에 실패했습니다. id = {}", task.id());
         }
     }

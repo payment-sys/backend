@@ -7,6 +7,10 @@ public interface Limiter {
 
     void execute(int count, Runnable task);
 
+    void executeWithoutRelease(int count, Runnable task);
+
+    void release();
+
     int getAvailableCount();
 
     int getRunningCount();
