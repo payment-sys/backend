@@ -22,6 +22,17 @@ public class SemaphoreLimiter implements Limiter {
     }
 
     @Override
+    public void executeWithoutRelease(int count, Runnable task) {
+        semaphore.acquireUninterruptibly(count);
+        task.run();
+    }
+
+    @Override
+    public void release() {
+        semaphore.release();
+    }
+
+    @Override
     public int getAvailableCount() {
         return semaphore.availablePermits();
     }
