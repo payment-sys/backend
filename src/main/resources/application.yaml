@@ -40,6 +40,15 @@ toss:
     content-type: application/json
     timeout: 2
 
+payment:
+  outbox:
+    scheduler:
+      min-batch-size: 50
+      max-batch-size: 50
+      min-polling-delay-ms: 1
+      max-polling-delay-ms: 5000
+      polling-delay-multiplier: 2
+
 management:
   server:
     port: 8082
