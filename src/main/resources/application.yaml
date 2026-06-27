@@ -44,7 +44,7 @@ payment:
   outbox:
     limiter:
       max-virtual-thread-tasks: 100
-      max-result-apply-tasks: 50
+      max-result-apply-tasks: 25
     scheduler:
       min-batch-size: 50
       max-batch-size: 50
