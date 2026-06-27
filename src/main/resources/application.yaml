@@ -43,7 +43,7 @@ toss:
 payment:
   outbox:
     limiter:
-      max-virtual-thread-tasks: 50
+      max-virtual-thread-tasks: 100
       max-result-apply-tasks: 50
     scheduler:
       min-batch-size: 50
