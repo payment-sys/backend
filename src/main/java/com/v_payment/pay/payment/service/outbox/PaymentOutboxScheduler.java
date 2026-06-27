@@ -101,9 +101,9 @@ public class PaymentOutboxScheduler implements SchedulingConfigurer {
 
             resultApplyLimiter.execute(() -> paymentOutboxService.postApprove(result, task.id(), paymentPayload));
         } catch (DataAccessException e) {
-            log.warn("approvePipeline을 수행할 수 없습니다. id = {}", task.id(), e);
+            log.warn("approvePipeline을 수행할 수 없습니다. id = {}", task.id());
         } catch (PaymentNotFoundException | PaymentOutboxNotFoundException e) {
-            log.warn("{} id = {}", e.getMessage(), task.id(), e);
+            log.warn("{} id = {}", e.getMessage(), task.id());
         } catch (RuntimeException e) {
             log.error("알 수 없는 에러 발생", e);
         } finally {
