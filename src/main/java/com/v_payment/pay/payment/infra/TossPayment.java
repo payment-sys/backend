@@ -31,9 +31,7 @@ public class TossPayment {
         long callStartTime = LTimer.getCurrTime();
 
         try{
-            String rawResult = exchangeRequestToResponse(paymentPayload);
-            log.info("승인 API 호출 성공. orderId = {} elapsedMs = {}", paymentPayload.getOrderId(), LTimer.getDiff(callStartTime));
-            return objectMapper.readValue(rawResult, SuccessResult.class);
+            return exchangeRequestToResponse(paymentPayload);
         } catch (ResourceAccessException e) {
             log.warn("승인 API 호출 실패. orderId = {} elapsedMs = {}", paymentPayload.getOrderId(), LTimer.getDiff(callStartTime), e);
             return new FailedResult(paymentPayload.getOrderId(), PaymentError.NETWORK_TIMEOUT, e.getMessage());
@@ -49,14 +47,14 @@ public class TossPayment {
         }
     }
 
-    private String exchangeRequestToResponse(PaymentPayload paymentPayload) {
+    private Result exchangeRequestToResponse(PaymentPayload paymentPayload) {
         return tossPaymentClient.post()
                 .uri(tossPaymentProperties.uri())
                 .header(AUTHORIZATION_HEADER_KEY, encodeBase64(tossPaymentProperties.secret()))
                 .header(CONTENT_TYPE_HEADER_KEY, tossPaymentProperties.contentType())
                 .body(paymentPayload)
                 .retrieve()
-                .body(String.class);
+                .body(Result.class);
     }
 
     private String encodeBase64(String secretKey) {
