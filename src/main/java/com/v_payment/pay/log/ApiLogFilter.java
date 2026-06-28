@@ -18,7 +18,7 @@ import static com.v_payment.pay.log.ApiLogContext.*;
 
 @Slf4j(topic = "API_LOGGER")
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class ApiLogFilter extends OncePerRequestFilter {
 
     @Override
