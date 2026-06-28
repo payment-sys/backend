@@ -29,7 +29,7 @@ spring:
       register-mbeans: true
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     open-in-view: false
 
 toss:
