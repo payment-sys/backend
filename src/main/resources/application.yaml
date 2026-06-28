@@ -41,6 +41,12 @@ toss:
     timeout: 2
 
 payment:
+  approval:
+    concurrency:
+      min: 0
+      max-wait: 100
+      max-wait-time: 100ms
+      max: 24
   outbox:
     limiter:
       max-virtual-thread-tasks: 100
