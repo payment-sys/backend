@@ -29,7 +29,7 @@ spring:
       register-mbeans: true
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     open-in-view: false
 
 toss:
@@ -49,8 +49,8 @@ payment:
       max-wait-time: 100ms
   outbox:
     limiter:
-      max-virtual-thread-tasks: 1
-      max-result-apply-tasks: 1
+      max-virtual-thread-tasks: 50
+      max-result-apply-tasks: 14
     scheduler:
       min-batch-size: 1
       max-batch-size: 1
