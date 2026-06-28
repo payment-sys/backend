@@ -49,12 +49,12 @@ payment:
       max-wait-time: 100ms
   outbox:
     limiter:
-      max-virtual-thread-tasks: 100
-      max-result-apply-tasks: 25
+      max-virtual-thread-tasks: 1
+      max-result-apply-tasks: 1
     scheduler:
-      min-batch-size: 50
-      max-batch-size: 50
-      min-polling-delay-ms: 1
+      min-batch-size: 1
+      max-batch-size: 1
+      min-polling-delay-ms: 1000
       max-polling-delay-ms: 5000
       polling-delay-multiplier: 2
 
