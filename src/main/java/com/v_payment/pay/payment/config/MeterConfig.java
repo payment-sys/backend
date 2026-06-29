@@ -57,7 +57,6 @@ public class MeterConfig {
                 || name.equals("jvm.threads.peak")
                 || name.equals("jvm.threads.daemon")
                 || name.equals("process.cpu.usage")
-                || name.equals("system.cpu.usage")
-                || name.startsWith("tomcat.");
+                || name.equals("system.cpu.usage");
     }
 }
