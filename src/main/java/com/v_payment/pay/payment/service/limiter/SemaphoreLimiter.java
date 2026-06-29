@@ -43,6 +43,11 @@ public class SemaphoreLimiter implements Limiter {
     }
 
     @Override
+    public int getWaitingCount() {
+        return semaphore.getQueueLength();
+    }
+
+    @Override
     public int getMaxConcurrentTasks() {
         return maxConcurrentTasks;
     }

@@ -15,5 +15,7 @@ public interface Limiter {
 
     int getRunningCount();
 
+    int getWaitingCount();
+
     int getMaxConcurrentTasks();
 }
