@@ -5,11 +5,11 @@
 
   <property
           name="LOG_PATTERN"
-          value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSSXXX}","level":"%level","traceId":"%X{TRACE_ID}","method":"%X{METHOD}","path":"%X{PATH}","message":"%msg","elapsed_ms":%X{ELAPSED_MS:-0},exception":"%ex"}%n'
+          value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSSXXX}","level":"%level","traceId":"%X{TRACE_ID}","method":"%X{METHOD}","path":"%X{PATH}","message":"%msg","elapsed_ms":%X{ELAPSED_MS:-0},"exception":""}%nopex%n'
   />
   <property
           name="SCHEDULER_LOG_PATTERN"
-          value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSSXXX}","level":"%level","type":"scheduler","thread":"%thread","logger":"%logger{40}","message":"%msg","exception":"%ex"}%n'
+          value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSSXXX}","level":"%level","type":"scheduler","thread":"%thread","logger":"%logger{40}","message":"%msg","exception":""}%nopex%n'
   />
   <property name="LOG_PATH" value="./logs" />
 
