@@ -49,6 +49,7 @@ public class MeterConfig {
                 || name.equals("http.server.requests.active")
                 || name.equals("pay.api")
                 || name.startsWith("hikaricp.connections")
+                || name.startsWith("payment_approval_concurrency")
                 || name.startsWith("payment_outbox")
                 || name.equals("jvm.memory.used")
                 || name.equals("jvm.memory.committed")
