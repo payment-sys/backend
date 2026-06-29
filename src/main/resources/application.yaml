@@ -20,7 +20,7 @@ spring:
       maximum-pool-size: 30
       minimum-idle: 30
 
-      connection-timeout: 2000
+      connection-timeout: 850
       validation-timeout: 1000
       idle-timeout: 600000
       max-lifetime: 1800000
@@ -46,7 +46,7 @@ payment:
       min: 0
       max: 18
       max-wait: 100
-      max-wait-time: 200ms
+      max-wait-time: 1000ms
   outbox:
     limiter:
       max-virtual-thread-tasks: 1
