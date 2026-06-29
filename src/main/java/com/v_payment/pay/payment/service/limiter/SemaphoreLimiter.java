@@ -8,7 +8,7 @@ public class SemaphoreLimiter implements Limiter {
 
     public SemaphoreLimiter(int maxConcurrentTasks) {
         this.maxConcurrentTasks = maxConcurrentTasks;
-        this.semaphore = new Semaphore(maxConcurrentTasks);
+        this.semaphore = new Semaphore(maxConcurrentTasks, true);
     }
 
     @Override

@@ -23,7 +23,8 @@ public class PaymentOutboxMetric {
 
     public PaymentOutboxMetric(
             MeterRegistry meterRegistry,
-            @Qualifier("virtualThreadLimiter") Limiter virtualThreadLimiter
+            @Qualifier("virtualThreadLimiter") Limiter virtualThreadLimiter,
+            @Qualifier("resultApplyLimiter") Limiter resultApplyLimiter
     ) {
         enqueuedCounter = Counter.builder("payment_outbox_enqueued")
                 .description("Total number of payment outbox commands enqueued")
@@ -55,6 +56,18 @@ public class PaymentOutboxMetric {
 
         Gauge.builder("payment_outbox_max_concurrent_tasks", virtualThreadLimiter, Limiter::getMaxConcurrentTasks)
                 .description("Maximum number of concurrent payment outbox processing tasks")
+                .register(meterRegistry);
+
+        Gauge.builder("payment_outbox_result_apply_running_tasks", resultApplyLimiter, Limiter::getRunningCount)
+                .description("Current number of payment outbox result apply tasks in progress")
+                .register(meterRegistry);
+
+        Gauge.builder("payment_outbox_result_apply_available_slots", resultApplyLimiter, Limiter::getAvailableCount)
+                .description("Current number of available payment outbox result apply slots")
+                .register(meterRegistry);
+
+        Gauge.builder("payment_outbox_result_apply_max_concurrent_tasks", resultApplyLimiter, Limiter::getMaxConcurrentTasks)
+                .description("Maximum number of concurrent payment outbox result apply tasks")
                 .register(meterRegistry);
 
         schedulerCycleTimer = Timer.builder("payment_outbox_scheduler_cycle")

@@ -102,7 +102,7 @@ public class ApprovalConcurrencyLimitFilter extends OncePerRequestFilter {
     }
 
     private AcquireResult tryAcquireExecutionPermit() throws InterruptedException {
-        if (activeSemaphore.tryAcquire()) {
+        if (activeSemaphore.tryAcquire(0, TimeUnit.MILLISECONDS)) {
             return AcquireResult.ACQUIRED;
         }
         if (!waitingSemaphore.tryAcquire()) {
