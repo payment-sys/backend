@@ -54,6 +54,10 @@ public class PaymentOutboxMetric {
                 .description("Current number of available payment outbox processing slots")
                 .register(meterRegistry);
 
+        Gauge.builder("payment_outbox_waiting_tasks", virtualThreadLimiter, Limiter::getWaitingCount)
+                .description("Estimated number of payment outbox tasks waiting for a virtual-thread processing slot")
+                .register(meterRegistry);
+
         Gauge.builder("payment_outbox_max_concurrent_tasks", virtualThreadLimiter, Limiter::getMaxConcurrentTasks)
                 .description("Maximum number of concurrent payment outbox processing tasks")
                 .register(meterRegistry);
@@ -64,6 +68,10 @@ public class PaymentOutboxMetric {
 
         Gauge.builder("payment_outbox_result_apply_available_slots", resultApplyLimiter, Limiter::getAvailableCount)
                 .description("Current number of available payment outbox result apply slots")
+                .register(meterRegistry);
+
+        Gauge.builder("payment_outbox_result_apply_waiting_tasks", resultApplyLimiter, Limiter::getWaitingCount)
+                .description("Estimated number of payment outbox tasks waiting for a result apply slot")
                 .register(meterRegistry);
 
         Gauge.builder("payment_outbox_result_apply_max_concurrent_tasks", resultApplyLimiter, Limiter::getMaxConcurrentTasks)
