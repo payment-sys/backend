@@ -49,7 +49,7 @@ payment:
       max-wait-time: 1800ms
   outbox:
     limiter:
-      max-virtual-thread-tasks: 200
+      max-virtual-thread-tasks: 300
       max-result-apply-tasks: 8
     scheduler:
       min-batch-size: 10
