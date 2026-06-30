@@ -87,9 +87,6 @@ public class PaymentOutboxScheduler implements SchedulingConfigurer {
     private void submitTaskToVirtualThread(PaymentOutboxTask task, long startNanos) {
         try {
             virtualThreadLimiter.executeWithoutRelease(1, () -> executorService.submit(() -> {
-                if(virtualThreadLimiter.getRunningCount() >= 300) {
-                    tool.dumpOnce("outbox-vthread-200");
-                }
                 try {
                     approvePipeline(task, startNanos);
                 } finally {
