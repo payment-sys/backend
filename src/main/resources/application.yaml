@@ -44,9 +44,9 @@ payment:
   approval:
     concurrency:
       min: 0
-      max: 5
+      max: 8
       max-wait: 100
-      max-wait-time: 1000ms
+      max-wait-time: 1800ms
   outbox:
     limiter:
       max-virtual-thread-tasks: 1
