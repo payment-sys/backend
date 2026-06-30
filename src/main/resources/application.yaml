@@ -44,7 +44,7 @@ payment:
   approval:
     concurrency:
       min: 0
-      max: 8
+      max: 5
       max-wait: 100
       max-wait-time: 1000ms
   outbox:
