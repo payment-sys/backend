@@ -1,5 +1,6 @@
 package com.v_payment.pay.payment.service.outbox;
 
+import com.v_payment.pay.global.HeapDumpTool;
 import com.v_payment.pay.payment.entity.outbox.PaymentPayload;
 import com.v_payment.pay.payment.infra.Result;
 import com.v_payment.pay.payment.service.limiter.Limiter;
@@ -24,6 +25,7 @@ import java.util.concurrent.RejectedExecutionException;
 @Slf4j(topic = "SCHEDULER_LOGGER")
 @Component
 public class PaymentOutboxScheduler implements SchedulingConfigurer {
+    private final HeapDumpTool tool;
     private final PaymentOutboxQueue outboxQueue;
     private final SchedulerManager schedulerManager;
     private final ThreadPoolTaskScheduler outboxTaskScheduler;
@@ -38,7 +40,8 @@ public class PaymentOutboxScheduler implements SchedulingConfigurer {
             ThreadPoolTaskScheduler outboxTaskScheduler,
             @Qualifier("resultApplyLimiter") Limiter resultApplyLimiter,
             @Qualifier("virtualThreadLimiter") Limiter virtualThreadLimiter,
-            PaymentOutboxService paymentOutboxService
+            PaymentOutboxService paymentOutboxService,
+            HeapDumpTool tool
     ) {
         this.outboxQueue = outboxQueue;
         this.schedulerManager = schedulerManager;
@@ -46,6 +49,7 @@ public class PaymentOutboxScheduler implements SchedulingConfigurer {
         this.resultApplyLimiter = resultApplyLimiter;
         this.virtualThreadLimiter = virtualThreadLimiter;
         this.paymentOutboxService = paymentOutboxService;
+        this.tool = tool;
     }
 
     @Override
@@ -83,6 +87,9 @@ public class PaymentOutboxScheduler implements SchedulingConfigurer {
     private void submitTaskToVirtualThread(PaymentOutboxTask task, long startNanos) {
         try {
             virtualThreadLimiter.executeWithoutRelease(1, () -> executorService.submit(() -> {
+                if(virtualThreadLimiter.getRunningCount() >= 200) {
+                    tool.dumpOnce("outbox-vthread-200");
+                }
                 try {
                     approvePipeline(task, startNanos);
                 } finally {
