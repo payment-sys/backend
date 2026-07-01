@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +33,7 @@ public class ApprovalConcurrencyLimitFilter extends OncePerRequestFilter {
     private final Counter waitingQueueFullCounter;
     private final Counter waitTimeoutCounter;
     private final Counter interruptedCounter;
+    private final DistributionSummary waitingDepthSummary;
 
     public ApprovalConcurrencyLimitFilter(
             @Value("${payment.approval.concurrency.min:0}") int minConcurrentRequests,
@@ -64,6 +66,10 @@ public class ApprovalConcurrencyLimitFilter extends OncePerRequestFilter {
         this.waitingQueueFullCounter = rejectedCounter(meterRegistry, "waiting_queue_full");
         this.waitTimeoutCounter = rejectedCounter(meterRegistry, "wait_timeout");
         this.interruptedCounter = rejectedCounter(meterRegistry, "interrupted");
+        this.waitingDepthSummary = DistributionSummary.builder("payment_approval_concurrency_waiting_depth")
+                .description("Observed approval waiting queue depth")
+                .baseUnit("requests")
+                .register(meterRegistry);
         registerGauges(meterRegistry);
     }
 
@@ -103,12 +109,15 @@ public class ApprovalConcurrencyLimitFilter extends OncePerRequestFilter {
 
     private AcquireResult tryAcquireExecutionPermit() throws InterruptedException {
         if (activeSemaphore.tryAcquire(0, TimeUnit.MILLISECONDS)) {
+            recordWaitingDepth();
             return AcquireResult.ACQUIRED;
         }
         if (!waitingSemaphore.tryAcquire()) {
+            recordWaitingDepth(maxWaitingRequests);
             return AcquireResult.WAITING_QUEUE_FULL;
         }
 
+        recordWaitingDepth();
         try {
             if (activeSemaphore.tryAcquire(maxWaitTime.toNanos(), TimeUnit.NANOSECONDS)) {
                 return AcquireResult.ACQUIRED;
@@ -116,6 +125,7 @@ public class ApprovalConcurrencyLimitFilter extends OncePerRequestFilter {
             return AcquireResult.WAIT_TIMEOUT;
         } finally {
             waitingSemaphore.release();
+            recordWaitingDepth();
         }
     }
 
@@ -177,6 +187,14 @@ public class ApprovalConcurrencyLimitFilter extends OncePerRequestFilter {
 
     private double waitingAvailable() {
         return waitingSemaphore.availablePermits();
+    }
+
+    private void recordWaitingDepth() {
+        recordWaitingDepth((int) waitingRequests());
+    }
+
+    private void recordWaitingDepth(int waiting) {
+        waitingDepthSummary.record(Math.max(waiting, 0));
     }
 
     private enum AcquireResult {
