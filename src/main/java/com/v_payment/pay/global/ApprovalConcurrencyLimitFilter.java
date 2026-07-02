@@ -21,7 +21,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class ApprovalConcurrencyLimitFilter extends OncePerRequestFilter {
     private static final String APPROVAL_PATH = "/payments/approvals";
     private final Semaphore activeSemaphore;
