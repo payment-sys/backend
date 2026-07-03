@@ -1,4 +1,4 @@
-package com.v_payment.pay.payment.repository;
+package com.v_payment.pay.payment.outbox.repository;
 
 public interface PaymentOutboxPublishProjection {
     Long getPaymentOutboxId();

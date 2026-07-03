@@ -1,4 +1,4 @@
-package com.v_payment.pay.payment.service.limiter;
+package com.v_payment.pay.payment.outbox.limiter;
 
 public interface Limiter {
     default void execute(Runnable task) {

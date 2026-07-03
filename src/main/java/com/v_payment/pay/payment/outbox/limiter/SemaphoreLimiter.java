@@ -1,31 +1,32 @@
-package com.v_payment.pay.payment.service.limiter;
+package com.v_payment.pay.payment.outbox.limiter;
 
-import io.micrometer.core.instrument.DistributionSummary;
-import io.micrometer.core.instrument.MeterRegistry;
+import com.v_payment.pay.global.meter.DistributionSummaryMeter;
 
 import java.util.concurrent.Semaphore;
 
 public class SemaphoreLimiter implements Limiter {
     private final Semaphore semaphore;
     private final int maxConcurrentTasks;
-    private final DistributionSummary waitingDepthSummary;
+    private final DistributionSummaryMeter waitSummary;
+    private final DistributionSummaryMeter runSummary;
 
     public SemaphoreLimiter(int maxConcurrentTasks) {
         this(maxConcurrentTasks, null, null);
     }
 
-    public SemaphoreLimiter(int maxConcurrentTasks, String limiterName, MeterRegistry meterRegistry) {
+    public SemaphoreLimiter(int maxConcurrentTasks, DistributionSummaryMeter waitSummary) {
+        this(maxConcurrentTasks, waitSummary, null);
+    }
+
+    public SemaphoreLimiter(
+            int maxConcurrentTasks,
+            DistributionSummaryMeter waitSummary,
+            DistributionSummaryMeter runSummary
+    ) {
         this.maxConcurrentTasks = maxConcurrentTasks;
         this.semaphore = new Semaphore(maxConcurrentTasks, true);
-        if (meterRegistry == null || limiterName == null) {
-            this.waitingDepthSummary = null;
-            return;
-        }
-        this.waitingDepthSummary = DistributionSummary.builder("payment_limiter_waiting_depth")
-                .description("Observed number of tasks waiting for limiter permits")
-                .baseUnit("tasks")
-                .tag("limiter", limiterName)
-                .register(meterRegistry);
+        this.waitSummary = waitSummary;
+        this.runSummary = runSummary;
     }
 
     @Override
@@ -70,31 +71,38 @@ public class SemaphoreLimiter implements Limiter {
     }
 
     private void acquire(int count) {
-        recordWaitingDepthBeforeAcquire(count);
+        recordWaitBeforeAcquire(count);
         semaphore.acquireUninterruptibly(count);
-        recordWaitingDepth();
+        recordRun();
+        recordWait();
     }
 
     private void release(int count) {
         semaphore.release(count);
-        recordWaitingDepth();
+        recordWait();
     }
 
-    private void recordWaitingDepthBeforeAcquire(int count) {
+    private void recordWaitBeforeAcquire(int count) {
         int waiting = semaphore.getQueueLength();
         if (semaphore.availablePermits() < count) {
             waiting++;
         }
-        recordWaitingDepth(waiting);
+        recordWait(waiting);
     }
 
-    private void recordWaitingDepth() {
-        recordWaitingDepth(semaphore.getQueueLength());
+    private void recordWait() {
+        recordWait(semaphore.getQueueLength());
     }
 
-    private void recordWaitingDepth(int waiting) {
-        if (waitingDepthSummary != null) {
-            waitingDepthSummary.record(Math.max(waiting, 0));
+    private void recordWait(int waiting) {
+        if (waitSummary != null) {
+            waitSummary.record(Math.max(waiting, 0));
+        }
+    }
+
+    private void recordRun() {
+        if (runSummary != null) {
+            runSummary.record(getRunningCount());
         }
     }
 }

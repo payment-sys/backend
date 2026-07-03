@@ -1,6 +1,6 @@
-package com.v_payment.pay.payment.service.outbox;
+package com.v_payment.pay.payment.outbox;
 
-import com.v_payment.pay.payment.config.PaymentOutboxSchedulerProperties;
+import com.v_payment.pay.payment.outbox.config.PaymentOutboxSchedulerProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.TriggerContext;
 import org.springframework.stereotype.Component;

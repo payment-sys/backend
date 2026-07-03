@@ -1,19 +1,17 @@
-package com.v_payment.pay.payment.service.outbox;
+package com.v_payment.pay.payment.outbox;
 
-import com.v_payment.pay.payment.entity.*;
-import com.v_payment.pay.payment.entity.outbox.PaymentOutboxStatus;
-import com.v_payment.pay.payment.entity.outbox.PaymentPayload;
-import com.v_payment.pay.payment.infra.FailedResult;
-import com.v_payment.pay.payment.infra.PaymentError;
-import com.v_payment.pay.payment.infra.Result;
-import com.v_payment.pay.payment.infra.SuccessResult;
-import com.v_payment.pay.payment.infra.TossPayment;
-import com.v_payment.pay.payment.repository.PaymentOutboxRepository;
-import com.v_payment.pay.payment.repository.PaymentOutboxPublishProjection;
-import com.v_payment.pay.payment.repository.PaymentRepository;
-import com.v_payment.pay.payment.service.ledger.PaymentLedgerService;
-import com.v_payment.pay.payment.service.outbox.exception.PaymentNotFoundException;
-import com.v_payment.pay.payment.service.outbox.exception.PaymentOutboxNotFoundException;
+import com.v_payment.pay.payment.ledger.service.PaymentLedgerService;
+import com.v_payment.pay.payment.outbox.entity.PaymentPayload;
+import com.v_payment.pay.payment.outbox.exception.PaymentNotFoundException;
+import com.v_payment.pay.payment.outbox.exception.PaymentOutboxNotFoundException;
+import com.v_payment.pay.payment.outbox.repository.PaymentOutboxRepository;
+import com.v_payment.pay.payment.payment.entity.PaymentStatus;
+import com.v_payment.pay.payment.payment.infra.FailedResult;
+import com.v_payment.pay.payment.payment.infra.PaymentError;
+import com.v_payment.pay.payment.payment.infra.Result;
+import com.v_payment.pay.payment.payment.infra.SuccessResult;
+import com.v_payment.pay.payment.payment.infra.TossPayment;
+import com.v_payment.pay.payment.payment.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,7 +21,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Slf4j(topic = "SCHEDULER_LOGGER")
 @Service
@@ -37,6 +34,7 @@ public class PaymentOutboxService {
     private final PaymentRepository paymentRepository;
     private final PaymentOutboxRepository paymentOutboxRepository;
     private final PaymentLedgerService paymentLedgerService;
+    private final PaymentOutboxMetric paymentOutboxMetric;
 
     public Result approve(PaymentPayload paymentPayload) {
         return tossPayment.call(paymentPayload);
@@ -44,34 +42,36 @@ public class PaymentOutboxService {
 
     @Transactional
     public void postApprove(Result result, Long id, PaymentPayload paymentPayload) {
-        if(result instanceof SuccessResult successResult) {
+        if (result instanceof SuccessResult successResult) {
             applySuccessResult(successResult, id, paymentPayload);
         }
-        if(result instanceof FailedResult failedResult) {
+        if (result instanceof FailedResult failedResult) {
             applyFailedResult(failedResult, id, paymentPayload);
         }
     }
 
-    //4-1. 성공 처리
     private void applySuccessResult(SuccessResult successRes, Long id, PaymentPayload paymentPayload) {
         int updated = paymentOutboxRepository.markPublished(id);
-        if (updated == 0) throw new PaymentOutboxNotFoundException("PROCESSING 상태의 outbox를 찾을 수 없습니다.");
+        if (updated == 0) {
+            throw new PaymentOutboxNotFoundException("PROCESSING outbox not found.");
+        }
 
         updated = paymentRepository.markApproved(paymentPayload.getOrderId(), PaymentStatus.APPROVING,
                 PaymentStatus.APPROVED, successRes.totalAmount(), successRes.approvedAt(), successRes.receipt().url());
-        if (updated == 0) throw new PaymentNotFoundException("APPROVING 상태의 Payment를 찾을 수 없습니다.");
+        if (updated == 0) {
+            throw new PaymentNotFoundException("APPROVING payment not found.");
+        }
 
         paymentLedgerService.insertPaymentLedgerAPPROVED(paymentPayload, successRes);
 
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                PaymentOutboxMetric.incrementCompleted(1);
+                paymentOutboxMetric.incrementCompleted(1);
             }
         });
     }
 
-    //4-2. 실패 처리
     private void applyFailedResult(FailedResult failedRes, Long id, PaymentPayload paymentPayload) {
         if (isRetryable(failedRes)) {
             int updated = paymentOutboxRepository.markReadyForRetry(id, failedRes.paymentError().name(),
@@ -80,7 +80,7 @@ public class PaymentOutboxService {
                 TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                     @Override
                     public void afterCommit() {
-                        PaymentOutboxMetric.incrementRetryScheduled(1);
+                        paymentOutboxMetric.incrementRetryScheduled(1);
                     }
                 });
                 return;
@@ -90,28 +90,31 @@ public class PaymentOutboxService {
         applyDeadResult(failedRes, id, paymentPayload);
     }
 
-    //4-2-1. 실패 중 재시도 불가 시 Dead 처리
     private void applyDeadResult(FailedResult failedRes, Long id, PaymentPayload paymentPayload) {
         int updated = paymentOutboxRepository.markDead(id, failedRes.paymentError().name(), failedRes.message());
-        if (updated == 0) throw new PaymentOutboxNotFoundException("Processing 상태의 outbox를 찾을 수 없습니다.");
+        if (updated == 0) {
+            throw new PaymentOutboxNotFoundException("PROCESSING outbox not found.");
+        }
 
         updated = paymentRepository.markRejected(paymentPayload.getOrderId(), PaymentStatus.APPROVING,
                 PaymentStatus.REJECTED, failedRes.message());
-        if (updated == 0) throw new PaymentNotFoundException("APPROVING 상태의 Payment를 찾을 수 없습니다.");
+        if (updated == 0) {
+            throw new PaymentNotFoundException("APPROVING payment not found.");
+        }
 
         paymentLedgerService.insertPaymentLedgerREJECTED(paymentPayload, failedRes);
 
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                PaymentOutboxMetric.incrementDiscarded(1);
+                paymentOutboxMetric.incrementDiscarded(1);
             }
         });
     }
 
     private boolean isRetryable(FailedResult failedResult) {
-        return failedResult.paymentError() == PaymentError.NETWORK_TIMEOUT ||
-                failedResult.paymentError() == PaymentError.UPSTREAM_429 ||
-                failedResult.paymentError() == PaymentError.UPSTREAM_5XX;
+        return failedResult.paymentError() == PaymentError.NETWORK_TIMEOUT
+                || failedResult.paymentError() == PaymentError.UPSTREAM_429
+                || failedResult.paymentError() == PaymentError.UPSTREAM_5XX;
     }
 }

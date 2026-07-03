@@ -1,7 +1,7 @@
-package com.v_payment.pay.payment.service.outbox.queue;
+package com.v_payment.pay.payment.outbox.queue;
 
-import com.v_payment.pay.payment.entity.outbox.PaymentOutbox;
-import com.v_payment.pay.payment.service.outbox.PaymentOutboxTask;
+import com.v_payment.pay.payment.outbox.PaymentOutboxTask;
+import com.v_payment.pay.payment.outbox.entity.PaymentOutbox;
 
 import java.util.List;
 

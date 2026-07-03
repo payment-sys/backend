@@ -1,10 +1,18 @@
-package com.v_payment.pay.payment.entity.outbox;
+package com.v_payment.pay.payment.outbox.entity;
 
-import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
-import com.v_payment.pay.payment.entity.Payment;
-import com.v_payment.pay.payment.infra.FailedResult;
-import com.v_payment.pay.payment.infra.PaymentError;
-import jakarta.persistence.*;
+import com.v_payment.pay.payment.payment.controller.dto.req.ApprovalReq;
+import com.v_payment.pay.payment.payment.entity.Payment;
+import com.v_payment.pay.payment.payment.infra.FailedResult;
+import com.v_payment.pay.payment.payment.infra.PaymentError;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -37,9 +45,9 @@ public class PaymentOutbox {
     private Integer attemptCount;
 
     @Enumerated(EnumType.STRING)
-    private PaymentError lastErrorCode;   //nullable
+    private PaymentError lastErrorCode;
 
-    private String lastErrorMessage;    //nullable
+    private String lastErrorMessage;
 
     private LocalDateTime createdAt;
 
@@ -49,15 +57,17 @@ public class PaymentOutbox {
     }
 
     @Builder
-    private PaymentOutbox(String orderId,
-                          String paymentKey,
-                          Long amount,
-                          PaymentOutboxStatus status,
-                          Integer attemptCount,
-                          PaymentError lastErrorCode,
-                          String lastErrorMessage,
-                          LocalDateTime createdAt,
-                          LocalDateTime nextAttemptTime) {
+    private PaymentOutbox(
+            String orderId,
+            String paymentKey,
+            Long amount,
+            PaymentOutboxStatus status,
+            Integer attemptCount,
+            PaymentError lastErrorCode,
+            String lastErrorMessage,
+            LocalDateTime createdAt,
+            LocalDateTime nextAttemptTime
+    ) {
         this.orderId = orderId;
         this.paymentKey = paymentKey;
         this.amount = amount;
@@ -74,18 +84,24 @@ public class PaymentOutbox {
     }
 
     public void process() {
-        if(status != PaymentOutboxStatus.READY) throw new IllegalStateException("Ready 상태가 아닙니다.");
+        if (status != PaymentOutboxStatus.READY) {
+            throw new IllegalStateException("Ready status is required.");
+        }
         this.status = PaymentOutboxStatus.PROCESSING;
         this.attemptCount++;
     }
 
     public void success() {
-        if(status != PaymentOutboxStatus.PROCESSING) throw new IllegalStateException("Processing 상태가 아닙니다.");
+        if (status != PaymentOutboxStatus.PROCESSING) {
+            throw new IllegalStateException("Processing status is required.");
+        }
         this.status = PaymentOutboxStatus.PUBLISHED;
     }
 
     public void failed(FailedResult failedResult, LocalDateTime nextAttemptTime) {
-        if(status != PaymentOutboxStatus.PROCESSING) throw new IllegalStateException("Processing 상태가 아닙니다.");
+        if (status != PaymentOutboxStatus.PROCESSING) {
+            throw new IllegalStateException("Processing status is required.");
+        }
         this.status = PaymentOutboxStatus.READY;
         this.lastErrorCode = failedResult.paymentError();
         this.lastErrorMessage = failedResult.message();
@@ -93,7 +109,9 @@ public class PaymentOutbox {
     }
 
     public void dead(FailedResult failedResult) {
-        if(status != PaymentOutboxStatus.PROCESSING) throw new IllegalStateException("Processing 상태가 아닙니다.");
+        if (status != PaymentOutboxStatus.PROCESSING) {
+            throw new IllegalStateException("Processing status is required.");
+        }
         this.status = PaymentOutboxStatus.DEAD;
         this.lastErrorCode = failedResult.paymentError();
         this.lastErrorMessage = failedResult.message();

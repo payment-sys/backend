@@ -1,4 +1,4 @@
-package com.v_payment.pay.payment.entity.outbox;
+package com.v_payment.pay.payment.outbox.entity;
 
 import lombok.*;
 

@@ -1,4 +1,4 @@
-package com.v_payment.pay.payment.service.outbox.exception;
+package com.v_payment.pay.payment.outbox.exception;
 
 public class PaymentNotFoundException extends RuntimeException {
     public PaymentNotFoundException(String message) {

@@ -1,6 +1,6 @@
-package com.v_payment.pay.payment.repository;
+package com.v_payment.pay.payment.outbox.repository;
 
-import com.v_payment.pay.payment.entity.outbox.PaymentOutbox;
+import com.v_payment.pay.payment.outbox.entity.PaymentOutbox;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.NativeQuery;

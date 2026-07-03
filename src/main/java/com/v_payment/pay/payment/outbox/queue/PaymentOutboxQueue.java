@@ -1,12 +1,12 @@
-package com.v_payment.pay.payment.service.outbox.queue;
+package com.v_payment.pay.payment.outbox.queue;
 
-import com.v_payment.pay.payment.entity.outbox.PaymentOutbox;
-import com.v_payment.pay.payment.entity.outbox.PaymentOutboxStatus;
-import com.v_payment.pay.payment.entity.outbox.PaymentPayload;
-import com.v_payment.pay.payment.repository.PaymentOutboxPublishProjection;
-import com.v_payment.pay.payment.repository.PaymentOutboxRepository;
-import com.v_payment.pay.payment.service.outbox.PaymentOutboxMetric;
-import com.v_payment.pay.payment.service.outbox.PaymentOutboxTask;
+import com.v_payment.pay.payment.outbox.PaymentOutboxMetric;
+import com.v_payment.pay.payment.outbox.PaymentOutboxTask;
+import com.v_payment.pay.payment.outbox.entity.PaymentOutbox;
+import com.v_payment.pay.payment.outbox.entity.PaymentOutboxStatus;
+import com.v_payment.pay.payment.outbox.entity.PaymentPayload;
+import com.v_payment.pay.payment.outbox.repository.PaymentOutboxPublishProjection;
+import com.v_payment.pay.payment.outbox.repository.PaymentOutboxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -24,12 +24,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j(topic = "SCHEDULER_LOGGER")
 @Component
 @RequiredArgsConstructor
-public class PaymentOutboxQueue implements OutboxQueue{
+public class PaymentOutboxQueue implements OutboxQueue {
     private final AtomicBoolean isEnqueued = new AtomicBoolean(false);
 
     private final Clock clock;
     private final ApplicationEventPublisher publisher;
     private final PaymentOutboxRepository paymentOutboxRepository;
+    private final PaymentOutboxMetric paymentOutboxMetric;
 
     @Transactional
     @Override
@@ -47,7 +48,9 @@ public class PaymentOutboxQueue implements OutboxQueue{
 
     @Override
     public void notifyEnqueued() {
-        if(isEnqueued.compareAndSet(false, true)) publisher.publishEvent(new OutboxEnqueueEvent());
+        if (isEnqueued.compareAndSet(false, true)) {
+            publisher.publishEvent(new OutboxEnqueueEvent());
+        }
     }
 
     @Override
@@ -58,26 +61,32 @@ public class PaymentOutboxQueue implements OutboxQueue{
     @Transactional
     @Override
     public List<PaymentOutboxTask> poll(int count) {
-        if(count <= 0) return List.of();
-        try{
+        if (count <= 0) {
+            return List.of();
+        }
+        try {
             List<PaymentOutboxPublishProjection> outboxes = paymentOutboxRepository.findForPublish(
                     PaymentOutboxStatus.READY.name(), LocalDateTime.now(clock), count);
-            if(outboxes.isEmpty()) return List.of();
+            if (outboxes.isEmpty()) {
+                return List.of();
+            }
 
             List<Long> ids = outboxes.stream().map(PaymentOutboxPublishProjection::getPaymentOutboxId).toList();
             paymentOutboxRepository.markProcessing(ids);
+            paymentOutboxMetric.incrementClaimed(ids.size());
 
-            return outboxes.stream().map(outbox -> new PaymentOutboxTask(
+            return outboxes.stream()
+                    .map(outbox -> new PaymentOutboxTask(
                             outbox.getPaymentOutboxId(),
                             PaymentPayload.create(outbox.getOrderId(), outbox.getPaymentKey(), outbox.getAmount())))
                     .toList();
-        } catch (DataAccessException e){
-            log.warn("PaymentOutbox를 가져오는데 실패했습니다.", e);
+        } catch (DataAccessException e) {
+            log.warn("PaymentOutbox poll failed.", e);
             return List.of();
         }
     }
 
     public void recordMetric() {
-        PaymentOutboxMetric.incrementEnqueued();
+        paymentOutboxMetric.incrementEnqueued();
     }
 }
