@@ -18,56 +18,6 @@ public class MeterConfig {
     }
 
     @Bean
-    public CounterMeter requestRejectFullCounter(MeterRegistry meterRegistry) {
-        return new CounterMeter(
-                meterRegistry,
-                "payment_request_rejected",
-                "Rejected payment approval requests",
-                "reason", "waiting_queue_full"
-        );
-    }
-
-    @Bean
-    public CounterMeter requestRejectTimeoutCounter(MeterRegistry meterRegistry) {
-        return new CounterMeter(
-                meterRegistry,
-                "payment_request_rejected",
-                "Rejected payment approval requests",
-                "reason", "wait_timeout"
-        );
-    }
-
-    @Bean
-    public CounterMeter requestRejectInterruptCounter(MeterRegistry meterRegistry) {
-        return new CounterMeter(
-                meterRegistry,
-                "payment_request_rejected",
-                "Rejected payment approval requests",
-                "reason", "interrupted"
-        );
-    }
-
-    @Bean
-    public DistributionSummaryMeter requestRunSummary(MeterRegistry meterRegistry) {
-        return DistributionSummaryMeter.withBaseUnit(
-                meterRegistry,
-                "payment_request",
-                "Running payment approval request concurrency",
-                "requests"
-        );
-    }
-
-    @Bean
-    public DistributionSummaryMeter requestWaitSummary(MeterRegistry meterRegistry) {
-        return DistributionSummaryMeter.withBaseUnit(
-                meterRegistry,
-                "payment_request_waiting",
-                "Waiting payment approval requests",
-                "requests"
-        );
-    }
-
-    @Bean
     public DistributionSummaryMeter virtualThreadRunSummary(MeterRegistry meterRegistry) {
         return DistributionSummaryMeter.withBaseUnit(
                 meterRegistry,
