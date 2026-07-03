@@ -25,12 +25,6 @@ public class MeterFilter implements io.micrometer.core.instrument.config.MeterFi
                     Duration.ofSeconds(2).toNanos()
             );
         }
-        if (name.equals("payment_request")) {
-            return buckets(config, 1, 3, 6, 8);
-        }
-        if (name.equals("payment_request_waiting")) {
-            return buckets(config, 1, 10, 30, 50, 80, 100);
-        }
         if (name.equals("virtual_thread_running")) {
             return buckets(config, 1, 10, 30, 50, 100, 200, 300);
         }
@@ -51,7 +45,8 @@ public class MeterFilter implements io.micrometer.core.instrument.config.MeterFi
                 || name.equals("http.server.requests.active")
                 || name.equals("pay.api")
                 || name.startsWith("hikaricp.connections")
-                || name.startsWith("payment_request")
+                || name.startsWith("tomcat.threads")
+                || name.startsWith("tomcat.connections")
                 || name.startsWith("virtual_thread")
                 || name.startsWith("result_apply")
                 || name.startsWith("payment_outbox")

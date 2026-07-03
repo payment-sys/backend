@@ -1,16 +1,14 @@
 server:
   tomcat:
     threads:
-      max: 200
-      min-spare: 10
+      max: 30
+      min-spare: 8
       max-queue-capacity: 100
     mbeanregistry:
       enabled: true
 
 spring:
   threads:
-    virtual:
-      enabled: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${MYSQL_URL:jdbc:mysql://localhost:3306/payment}
@@ -41,12 +39,6 @@ toss:
     timeout: 2
 
 payment:
-  approval:
-    concurrency:
-      min: 0
-      max: 8
-      max-wait: 100
-      max-wait-time: 1800ms
   outbox:
     limiter:
       max-virtual-thread-tasks: 300
