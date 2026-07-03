@@ -1,10 +1,10 @@
-package com.v_payment.pay.payment.entity;
+package com.v_payment.pay.payment.payment.entity;
 
-import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
-import com.v_payment.pay.payment.controller.dto.req.PaymentCreateReq;
-import com.v_payment.pay.payment.entity.outbox.PaymentPayload;
-import com.v_payment.pay.payment.infra.FailedResult;
-import com.v_payment.pay.payment.infra.SuccessResult;
+import com.v_payment.pay.payment.outbox.entity.PaymentPayload;
+import com.v_payment.pay.payment.payment.controller.dto.req.ApprovalReq;
+import com.v_payment.pay.payment.payment.controller.dto.req.PaymentCreateReq;
+import com.v_payment.pay.payment.payment.infra.FailedResult;
+import com.v_payment.pay.payment.payment.infra.SuccessResult;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;

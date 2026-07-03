@@ -1,6 +1,6 @@
-package com.v_payment.pay.payment.controller.dto.res;
+package com.v_payment.pay.payment.payment.controller.dto.res;
 
-import com.v_payment.pay.payment.entity.Payment;
+import com.v_payment.pay.payment.payment.entity.Payment;
 
 import java.math.BigDecimal;
 

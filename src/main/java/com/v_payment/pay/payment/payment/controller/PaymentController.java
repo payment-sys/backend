@@ -1,10 +1,10 @@
-package com.v_payment.pay.payment.controller;
+package com.v_payment.pay.payment.payment.controller;
 
 import com.v_payment.pay.global.LTimer;
-import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
-import com.v_payment.pay.payment.controller.dto.req.PaymentCreateReq;
-import com.v_payment.pay.payment.controller.dto.res.PaymentCreateRes;
-import com.v_payment.pay.payment.service.PaymentService;
+import com.v_payment.pay.payment.payment.controller.dto.req.ApprovalReq;
+import com.v_payment.pay.payment.payment.controller.dto.req.PaymentCreateReq;
+import com.v_payment.pay.payment.payment.controller.dto.res.PaymentCreateRes;
+import com.v_payment.pay.payment.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;

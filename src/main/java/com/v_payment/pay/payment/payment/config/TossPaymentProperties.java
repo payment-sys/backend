@@ -1,4 +1,4 @@
-package com.v_payment.pay.payment.config;
+package com.v_payment.pay.payment.payment.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

@@ -1,7 +1,6 @@
-package com.v_payment.pay.payment.config;
+package com.v_payment.pay.payment.payment.config;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.restclient.autoconfigure.RestClientBuilderConfigurer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +12,6 @@ import java.time.Duration;
 
 @Configuration
 @RequiredArgsConstructor
-@EnableConfigurationProperties(TossPaymentProperties.class)
 public class TossPaymentClientConfig {
     private final TossPaymentProperties tossPaymentProperties;
     private final RestClientBuilderConfigurer restClientBuilderConfigurer;

@@ -1,8 +1,8 @@
-package com.v_payment.pay.payment.infra;
+package com.v_payment.pay.payment.payment.infra;
 
 import com.v_payment.pay.global.LTimer;
-import com.v_payment.pay.payment.config.TossPaymentProperties;
-import com.v_payment.pay.payment.entity.outbox.PaymentPayload;
+import com.v_payment.pay.payment.outbox.entity.PaymentPayload;
+import com.v_payment.pay.payment.payment.config.TossPaymentProperties;
 import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

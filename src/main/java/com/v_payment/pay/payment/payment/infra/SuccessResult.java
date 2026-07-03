@@ -1,4 +1,4 @@
-package com.v_payment.pay.payment.infra;
+package com.v_payment.pay.payment.payment.infra;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

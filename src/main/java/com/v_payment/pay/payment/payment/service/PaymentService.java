@@ -1,27 +1,24 @@
-package com.v_payment.pay.payment.service;
+package com.v_payment.pay.payment.payment.service;
 
-import com.v_payment.pay.global.BusinessException;
-import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
-import com.v_payment.pay.payment.controller.dto.req.PaymentCreateReq;
-import com.v_payment.pay.payment.controller.dto.res.PaymentCreateRes;
-import com.v_payment.pay.payment.entity.*;
-import com.v_payment.pay.payment.entity.outbox.PaymentOutbox;
-import com.v_payment.pay.payment.repository.PaymentOutboxRepository;
-import com.v_payment.pay.payment.repository.PaymentRepository;
-import com.v_payment.pay.payment.service.ledger.PaymentLedgerService;
-import com.v_payment.pay.payment.service.outbox.PaymentOutboxMetric;
-import com.v_payment.pay.payment.service.outbox.queue.PaymentOutboxQueue;
+import com.v_payment.pay.global.exception.BusinessException;
+import com.v_payment.pay.payment.ledger.service.PaymentLedgerService;
+import com.v_payment.pay.payment.outbox.PaymentOutboxMetric;
+import com.v_payment.pay.payment.outbox.entity.PaymentOutbox;
+import com.v_payment.pay.payment.outbox.queue.PaymentOutboxQueue;
+import com.v_payment.pay.payment.payment.controller.dto.req.ApprovalReq;
+import com.v_payment.pay.payment.payment.controller.dto.req.PaymentCreateReq;
+import com.v_payment.pay.payment.payment.controller.dto.res.PaymentCreateRes;
+import com.v_payment.pay.payment.payment.entity.*;
+import com.v_payment.pay.payment.payment.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
 
-import static com.v_payment.pay.payment.exception.PaymentException.*;
+import static com.v_payment.pay.payment.payment.exception.PaymentException.*;
 
 @Slf4j(topic = "API_LOGGER")
 @Service

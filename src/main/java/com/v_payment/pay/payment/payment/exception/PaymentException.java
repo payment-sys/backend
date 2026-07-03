@@ -1,6 +1,6 @@
-package com.v_payment.pay.payment.exception;
+package com.v_payment.pay.payment.payment.exception;
 
-import com.v_payment.pay.global.ErrorCode;
+import com.v_payment.pay.global.exception.ErrorCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
