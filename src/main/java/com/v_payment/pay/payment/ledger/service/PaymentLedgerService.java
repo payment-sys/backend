@@ -1,13 +1,13 @@
-package com.v_payment.pay.payment.service.ledger;
+package com.v_payment.pay.payment.ledger.service;
 
-import com.v_payment.pay.payment.entity.Payment;
-import com.v_payment.pay.payment.entity.PaymentStatus;
-import com.v_payment.pay.payment.entity.Provider;
-import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
-import com.v_payment.pay.payment.entity.outbox.PaymentPayload;
-import com.v_payment.pay.payment.infra.FailedResult;
-import com.v_payment.pay.payment.infra.SuccessResult;
-import com.v_payment.pay.payment.repository.PaymentLedgerRepository;
+import com.v_payment.pay.payment.payment.entity.Payment;
+import com.v_payment.pay.payment.payment.entity.PaymentStatus;
+import com.v_payment.pay.payment.payment.entity.Provider;
+import com.v_payment.pay.payment.payment.controller.dto.req.ApprovalReq;
+import com.v_payment.pay.payment.outbox.entity.PaymentPayload;
+import com.v_payment.pay.payment.payment.infra.FailedResult;
+import com.v_payment.pay.payment.payment.infra.SuccessResult;
+import com.v_payment.pay.payment.ledger.repository.PaymentLedgerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

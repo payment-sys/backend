@@ -1,7 +1,7 @@
-package com.v_payment.pay.payment.repository;
+package com.v_payment.pay.payment.ledger.repository;
 
-import com.v_payment.pay.payment.entity.ledger.PaymentLedger;
-import com.v_payment.pay.payment.entity.PaymentStatus;
+import com.v_payment.pay.payment.ledger.entity.PaymentLedger;
+import com.v_payment.pay.payment.payment.entity.PaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
