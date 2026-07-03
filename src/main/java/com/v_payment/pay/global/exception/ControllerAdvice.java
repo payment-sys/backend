@@ -1,4 +1,4 @@
-package com.v_payment.pay.global;
+package com.v_payment.pay.global.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -13,7 +13,7 @@ public class ControllerAdvice {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
         ErrorCode errorCode = e.getErrorCode();
-        log.warn("현 errorCode = {}, 메시지 = {}", errorCode, e.getMessage());
+        log.warn("errorCode = {}, message = {}", errorCode, e.getMessage());
 
         return ResponseEntity
                 .status(errorCode.getStatus())
@@ -25,6 +25,6 @@ public class ControllerAdvice {
         log.error("unexpected exception", e);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("알 수 없는 에러입니다."));
+                .body(new ErrorResponse("Unexpected server error."));
     }
 }

@@ -1,4 +1,4 @@
-package com.v_payment.pay.global;
+package com.v_payment.pay.global.exception;
 
 public record ErrorResponse(
         String message
