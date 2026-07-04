@@ -9,6 +9,7 @@ public record ApiLogContext(
     String path
 ) {
     public static final String TRACE_ID = "TRACE_ID";
+    public static final String LOG_TYPE = "LOG_TYPE";
     public static final String METHOD = "METHOD";
     public static final String PATH = "PATH";
     public static final String ELAPSED_MS = "ELAPSED_MS";
