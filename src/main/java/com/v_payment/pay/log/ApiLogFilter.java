@@ -15,6 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 import static com.v_payment.pay.log.ApiLogContext.ELAPSED_MS;
+import static com.v_payment.pay.log.ApiLogContext.LOG_TYPE;
 import static com.v_payment.pay.log.ApiLogContext.METHOD;
 import static com.v_payment.pay.log.ApiLogContext.PATH;
 import static com.v_payment.pay.log.ApiLogContext.TRACE_ID;
@@ -31,16 +32,16 @@ public class ApiLogFilter extends OncePerRequestFilter {
 
         long start = LTimer.getCurrTime();
         try {
+            MDC.put(LOG_TYPE, "api");
             MDC.put(TRACE_ID, apiLogContext.traceId());
             MDC.put(METHOD, apiLogContext.method());
             MDC.put(PATH, apiLogContext.path());
 
-            log.info("request start");
             filterChain.doFilter(request, response);
         } finally {
             MDC.put(ELAPSED_MS, String.valueOf(LTimer.getDiff(start)));
-            log.info("request end status = {}", response.getStatus());
 
+            MDC.remove(LOG_TYPE);
             MDC.remove(TRACE_ID);
             MDC.remove(METHOD);
             MDC.remove(PATH);

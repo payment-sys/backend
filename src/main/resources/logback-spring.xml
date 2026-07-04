@@ -3,13 +3,14 @@
   <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
   <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
 
+  <property name="EXCEPTION_PATTERN" value="%replace(%wEx{full}){'[\r\n]+','\\n'}"/>
   <property
           name="LOG_PATTERN"
-          value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSSXXX}","level":"%level","traceId":"%X{TRACE_ID}","method":"%X{METHOD}","path":"%X{PATH}","message":"%msg","elapsed_ms":%X{ELAPSED_MS:-0},"exception":""}%nopex%n'
+          value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSSXXX}","level":"%level","type":"%X{LOG_TYPE:-app}","traceId":"%X{TRACE_ID}","method":"%X{METHOD}","path":"%X{PATH}","thread":"%thread","logger":"%logger{40}","message":"%msg","elapsed_ms":%X{ELAPSED_MS:-0},"exception":"${EXCEPTION_PATTERN}"}%n'
   />
   <property
           name="SCHEDULER_LOG_PATTERN"
-          value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSSXXX}","level":"%level","type":"scheduler","thread":"%thread","logger":"%logger{40}","message":"%msg","exception":""}%nopex%n'
+          value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSSXXX}","level":"%level","type":"scheduler","thread":"%thread","logger":"%logger{40}","message":"%msg","exception":"${EXCEPTION_PATTERN}"}%n'
   />
   <property name="LOG_PATH" value="./logs" />
 
@@ -20,24 +21,6 @@
     </encoder>
     <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
       <fileNamePattern>${LOG_PATH}/api.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-      <maxFileSize>50MB</maxFileSize>
-      <maxHistory>30</maxHistory>
-      <totalSizeCap>2GB</totalSizeCap>
-    </rollingPolicy>
-  </appender>
-
-  <appender name="ERROR_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <filter class="ch.qos.logback.classic.filter.LevelFilter">
-      <level>ERROR</level>
-      <onMatch>ACCEPT</onMatch>
-      <onMismatch>DENY</onMismatch>
-    </filter>
-    <file>${LOG_PATH}/error.log</file>
-    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-      <pattern>${LOG_PATTERN}</pattern>
-    </encoder>
-    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-      <fileNamePattern>${LOG_PATH}/error.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
       <maxFileSize>50MB</maxFileSize>
       <maxHistory>30</maxHistory>
       <totalSizeCap>2GB</totalSizeCap>
@@ -59,7 +42,7 @@
 
   <root level="INFO">
     <appender-ref ref="CONSOLE"/>
-    <appender-ref ref="ERROR_APPENDER"/>
+    <appender-ref ref="API_APPENDER"/>
   </root>
 
   <logger name="API_LOGGER" level="INFO" additivity="false">
