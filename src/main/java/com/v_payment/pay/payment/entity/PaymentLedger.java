@@ -1,7 +1,6 @@
 package com.v_payment.pay.payment.entity;
 
 import com.v_payment.pay.payment.infra.FailedResult;
-import com.v_payment.pay.payment.infra.PaymentError;
 import com.v_payment.pay.payment.infra.SuccessResult;
 
 import jakarta.persistence.*;
