@@ -42,8 +42,6 @@ public class PaymentOutbox {
 
     private LocalDateTime createdAt;
 
-    private LocalDateTime processingStartedAt;
-
     private LocalDateTime publishedAt;
 
     protected PaymentOutbox() {
@@ -56,7 +54,6 @@ public class PaymentOutbox {
             Long amount,
             PaymentOutboxStatus status,
             LocalDateTime createdAt,
-            LocalDateTime processingStartedAt,
             LocalDateTime publishedAt
     ) {
         this.orderId = orderId;
@@ -64,7 +61,6 @@ public class PaymentOutbox {
         this.amount = amount;
         this.status = status;
         this.createdAt = createdAt;
-        this.processingStartedAt = processingStartedAt;
         this.publishedAt = publishedAt;
     }
 
@@ -79,7 +75,6 @@ public class PaymentOutbox {
                 .amount(approvalReq.requestedAmount())
                 .status(PaymentOutboxStatus.READY)
                 .createdAt(createdAt)
-                .processingStartedAt(null)
                 .publishedAt(null)
                 .build();
     }

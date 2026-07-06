@@ -21,7 +21,7 @@ public class PaymentOutboxRecoveryService {
     private final PaymentOutboxRepository paymentOutboxRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Transactional
+    @Transactional(readOnly = true)
     public int recoverStaleReady() {
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime cutoff = now.minusSeconds(properties.staleAfterSeconds());
@@ -30,14 +30,9 @@ public class PaymentOutboxRecoveryService {
 
         int recoveredCount = 0;
         for (PaymentOutboxTaskProjection staleTask : staleTasks) {
-            int updated = paymentOutboxRepository.markProcessing(staleTask.getPaymentOutboxId(), now);
-            if (updated != 1) {
-                continue;
-            }
-
             PaymentPayload paymentPayload = PaymentPayload.create(
                     staleTask.getOrderId(), staleTask.getPaymentKey(), staleTask.getAmount());
-            eventPublisher.publishEvent(new PaymentOutboxTask(staleTask.getPaymentOutboxId(), paymentPayload, true));
+            eventPublisher.publishEvent(new PaymentOutboxTask(staleTask.getPaymentOutboxId(), paymentPayload));
             recoveredCount++;
         }
         return recoveredCount;

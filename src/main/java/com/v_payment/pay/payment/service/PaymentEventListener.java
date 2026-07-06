@@ -18,10 +18,6 @@ public class PaymentEventListener {
     @Async("paymentSubmitExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void call(PaymentOutboxTask paymentOutboxTask) {
-        if (!paymentOutboxTask.claimed() && !paymentOutboxService.claimReady(paymentOutboxTask.id())) {
-            return;
-        }
-
         Result result = paymentOutboxService.approve(paymentOutboxTask.paymentPayload());
 
         paymentOutboxResultApplyLimiter.execute(() -> paymentOutboxService.postApprove(

@@ -3,7 +3,6 @@ package com.v_payment.pay.payment.service;
 import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.exception.PaymentNotFoundException;
 import com.v_payment.pay.payment.metric.PaymentOutboxMetric;
-import com.v_payment.pay.payment.exception.PaymentOutboxNotFoundException;
 import com.v_payment.pay.payment.infra.Pay;
 import com.v_payment.pay.payment.repository.PaymentOutboxRepository;
 import com.v_payment.pay.payment.entity.PaymentPayload;
@@ -39,11 +38,6 @@ public class PaymentOutboxService {
     }
 
     @Transactional
-    public boolean claimReady(Long id) {
-        return paymentOutboxRepository.markProcessing(id, LocalDateTime.now(clock)) == 1;
-    }
-
-    @Transactional
     public void postApprove(Result result, Long id, PaymentPayload paymentPayload) {
         if (result instanceof SuccessResult successResult) {
             applySuccessResult(successResult, id, paymentPayload);
@@ -60,7 +54,8 @@ public class PaymentOutboxService {
     private void applySuccessResult(SuccessResult successRes, Long id, PaymentPayload paymentPayload) {
         int updated = paymentOutboxRepository.markPublished(id, LocalDateTime.now(clock));
         if (updated == 0) {
-            throw new PaymentOutboxNotFoundException("PROCESSING outbox not found.");
+            log.info("해당 outbox 데이터가 없어, 성공 결과 저장이 실패했습니다. outboxId = {}", id);
+            return;
         }
 
         updated = paymentRepository.markApproved(paymentPayload.getOrderId(), PaymentStatus.APPROVING,
@@ -82,7 +77,8 @@ public class PaymentOutboxService {
     private void applyFailedResult(FailedResult failedRes, Long id, PaymentPayload paymentPayload) {
         int updated = paymentOutboxRepository.markPublished(id, LocalDateTime.now(clock));
         if (updated == 0) {
-            throw new PaymentOutboxNotFoundException("PROCESSING outbox not found.");
+            log.info("해당 outbox 데이터가 없어, 실패 결과 저장이 실패했습니다. outboxId = {}", id);
+            return;
         }
 
         updated = paymentRepository.markRejected(paymentPayload.getOrderId(), PaymentStatus.APPROVING,

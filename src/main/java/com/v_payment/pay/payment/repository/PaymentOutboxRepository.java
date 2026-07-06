@@ -1,6 +1,7 @@
 package com.v_payment.pay.payment.repository;
 
 import com.v_payment.pay.payment.entity.PaymentOutbox;
+import com.v_payment.pay.payment.entity.PaymentOutboxStatus;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -29,21 +30,10 @@ public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Lo
     @Modifying
     @NativeQuery("""
     UPDATE payment_outbox FORCE INDEX (PRIMARY)
-    SET status = 'PROCESSING',
-        processing_started_at = :processingStartedAt
-    WHERE payment_outbox_id = :id
-    AND status = 'READY'
-    """)
-    int markProcessing(@Param("id") Long id,
-                       @Param("processingStartedAt") LocalDateTime processingStartedAt);
-
-    @Modifying
-    @NativeQuery("""
-    UPDATE payment_outbox FORCE INDEX (PRIMARY)
     SET status = 'PUBLISHED',
         published_at = :publishedAt
     WHERE payment_outbox_id = :id
-    AND status = 'PROCESSING'
+    AND status = 'READY'
     """)
     int markPublished(@Param("id") Long id,
                       @Param("publishedAt") LocalDateTime publishedAt);
