@@ -1,4 +1,6 @@
 package com.v_payment.pay.payment.infra;
 
-public sealed interface Result permits SuccessResult, FailedResult, RetryableResult {
+import com.v_payment.pay.payment.entity.Payment;
+
+public interface Result {
 }

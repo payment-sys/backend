@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
         name = "payment_outbox",
         indexes = @Index(
                 name = "idx_payment_outbox_publish",
-                columnList = "status, created_at, payment_outbox_id"
+                columnList = "status, next_attempt_at, created_at, payment_outbox_id"
         )
 )
 public class PaymentOutbox {
@@ -44,6 +44,9 @@ public class PaymentOutbox {
 
     private LocalDateTime publishedAt;
 
+    @Column(name = "next_attempt_at")
+    private LocalDateTime nextAttemptAt;
+
     protected PaymentOutbox() {
     }
 
@@ -54,7 +57,8 @@ public class PaymentOutbox {
             Long amount,
             PaymentOutboxStatus status,
             LocalDateTime createdAt,
-            LocalDateTime publishedAt
+            LocalDateTime publishedAt,
+            LocalDateTime nextAttemptAt
     ) {
         this.orderId = orderId;
         this.paymentKey = paymentKey;
@@ -62,6 +66,7 @@ public class PaymentOutbox {
         this.status = status;
         this.createdAt = createdAt;
         this.publishedAt = publishedAt;
+        this.nextAttemptAt = nextAttemptAt;
     }
 
     public PaymentPayload getPaymentPayload() {
@@ -76,6 +81,7 @@ public class PaymentOutbox {
                 .status(PaymentOutboxStatus.READY)
                 .createdAt(createdAt)
                 .publishedAt(null)
+                .nextAttemptAt(null)
                 .build();
     }
 }

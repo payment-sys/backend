@@ -1,16 +1,12 @@
 package com.v_payment.pay.payment.service;
 
-import com.v_payment.pay.payment.infra.FailedResult;
+import com.v_payment.pay.payment.infra.*;
 import com.v_payment.pay.payment.exception.PaymentNotFoundException;
 import com.v_payment.pay.payment.metric.PaymentOutboxMetric;
-import com.v_payment.pay.payment.infra.Pay;
 import com.v_payment.pay.payment.repository.PaymentOutboxRepository;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.repository.PaymentRepository;
 import com.v_payment.pay.payment.entity.PaymentStatus;
-import com.v_payment.pay.payment.infra.Result;
-import com.v_payment.pay.payment.infra.RetryableResult;
-import com.v_payment.pay.payment.infra.SuccessResult;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,28 +22,30 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class PaymentOutboxService {
+    private static final long UNKNOWN_RESULT_RETRY_DELAY_SECONDS = 2;
+
     private final Clock clock;
-    private final Pay pay;
+    private final TossPayment tossPayment;
     private final PaymentRepository paymentRepository;
     private final PaymentOutboxRepository paymentOutboxRepository;
     private final PaymentLedgerService paymentLedgerService;
     private final PaymentOutboxMetric paymentOutboxMetric;
 
     public Result approve(PaymentPayload paymentPayload) {
-        return pay.approve(paymentPayload);
+        return tossPayment.approve(paymentPayload);
     }
 
     @Transactional
     public void postApprove(Result result, Long id, PaymentPayload paymentPayload) {
         if (result instanceof SuccessResult successResult) {
-            applySuccessResult(successResult, id, paymentPayload);
+            applySuccessResult(successResult, id, paymentPayload); return;
+        }
+        if (result instanceof FailedResult failedResult && failedResult.paymentError() == PaymentError.NETWORK_TIMEOUT) {
+            applyUnknownResult(failedResult, id, paymentPayload);
+            return;
         }
         if (result instanceof FailedResult failedResult) {
             applyFailedResult(failedResult, id, paymentPayload);
-        }
-        if (result instanceof RetryableResult retryableResult) {
-            log.info("Retryable payment result. outboxId = {} orderId = {} error = {} message = {}",
-                    id, retryableResult.orderId(), retryableResult.paymentError(), retryableResult.message());
         }
     }
 
@@ -95,5 +93,17 @@ public class PaymentOutboxService {
                 paymentOutboxMetric.incrementCompleted(1);
             }
         });
+    }
+
+    private void applyUnknownResult(FailedResult failedRes, Long id, PaymentPayload paymentPayload) {
+        LocalDateTime nextAttemptAt = LocalDateTime.now(clock).plusSeconds(UNKNOWN_RESULT_RETRY_DELAY_SECONDS);
+        int updated = paymentOutboxRepository.scheduleNextAttempt(id, nextAttemptAt);
+        if (updated == 0) {
+            log.info("해당 outbox 데이터가 없어, 재시도 예약이 실패했습니다. outboxId = {}", id);
+            return;
+        }
+
+        log.info("Unknown payment result scheduled for retry. outboxId = {} orderId = {} error = {} nextAttemptAt = {} message = {}",
+                id, failedRes.orderId(), failedRes.paymentError(), nextAttemptAt, failedRes.message());
     }
 }

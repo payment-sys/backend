@@ -12,8 +12,8 @@ public class PaymentOutboxRecoveryScheduler {
     private final PaymentOutboxRecoveryService paymentOutboxRecoveryService;
 
     @Scheduled(fixedDelayString = "${payment.outbox.recovery.fixed-delay-ms}")
-    public void recoverStaleReady() {
-        int recoveredCount = paymentOutboxRecoveryService.recoverStaleReady();
+    public void recoverReady() {
+        int recoveredCount = paymentOutboxRecoveryService.recoverReady();
         if (recoveredCount > 0) {
             log.info("count = {} 개의 payment 이벤트를 복구하였습니다.", recoveredCount);
         }
