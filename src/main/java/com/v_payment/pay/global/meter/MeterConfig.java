@@ -18,27 +18,6 @@ public class MeterConfig {
     }
 
     @Bean
-    public DistributionSummaryMeter virtualThreadRunSummary(MeterRegistry meterRegistry) {
-        return DistributionSummaryMeter.withBaseUnit(
-                meterRegistry,
-                "virtual_thread_running",
-                "Running payment outbox virtual thread tasks",
-                "tasks"
-        );
-    }
-
-    @Bean
-    public DistributionSummaryMeter virtualThreadWaitSummary(MeterRegistry meterRegistry) {
-        return DistributionSummaryMeter.withBaseUnit(
-                meterRegistry,
-                "virtual_thread_limiter_waiting",
-                "Waiting payment outbox virtual thread tasks",
-                "tasks",
-                "limiter", "payment_outbox_virtual_thread"
-        );
-    }
-
-    @Bean
     public DistributionSummaryMeter resultApplyRunSummary(MeterRegistry meterRegistry) {
         return DistributionSummaryMeter.withBaseUnit(
                 meterRegistry,
@@ -67,38 +46,9 @@ public class MeterConfig {
     }
 
     @Bean
-    public CounterMeter paymentQueueClaimCounter(MeterRegistry meterRegistry) {
-        return new CounterMeter(meterRegistry, "payment_outbox_claimed",
-                "Claimed payment outbox command count");
-    }
-
-    @Bean
-    public CounterMeter paymentQueueRetryCounter(MeterRegistry meterRegistry) {
-        return new CounterMeter(meterRegistry, "payment_outbox_retry_scheduled",
-                "Retry scheduled payment outbox command count");
-    }
-
-    @Bean
     public CounterMeter paymentQueueCompleteCounter(MeterRegistry meterRegistry) {
         return new CounterMeter(meterRegistry, "payment_outbox_completed",
                 "Completed payment outbox command count");
     }
 
-    @Bean
-    public CounterMeter paymentQueueDiscardCounter(MeterRegistry meterRegistry) {
-        return new CounterMeter(meterRegistry, "payment_outbox_discarded",
-                "Discarded payment outbox command count");
-    }
-
-    @Bean
-    public TimerMeter paymentQueueRunTimer(MeterRegistry meterRegistry) {
-        return new TimerMeter(meterRegistry, "payment_outbox_scheduler_cycle",
-                "Payment outbox scheduler cycle elapsed time");
-    }
-
-    @Bean
-    public TimerMeter virtualThreadRunTimer(MeterRegistry meterRegistry) {
-        return new TimerMeter(meterRegistry, "payment_outbox_task_elapsed",
-                "Payment outbox task elapsed time");
-    }
 }
