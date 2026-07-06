@@ -4,13 +4,14 @@ import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.exception.PaymentNotFoundException;
 import com.v_payment.pay.payment.metric.PaymentOutboxMetric;
 import com.v_payment.pay.payment.exception.PaymentOutboxNotFoundException;
+import com.v_payment.pay.payment.infra.Pay;
 import com.v_payment.pay.payment.repository.PaymentOutboxRepository;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.repository.PaymentRepository;
 import com.v_payment.pay.payment.entity.PaymentStatus;
 import com.v_payment.pay.payment.infra.Result;
+import com.v_payment.pay.payment.infra.RetryableResult;
 import com.v_payment.pay.payment.infra.SuccessResult;
-import com.v_payment.pay.payment.infra.TossPayment;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,14 +28,14 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class PaymentOutboxService {
     private final Clock clock;
-    private final TossPayment tossPayment;
+    private final Pay pay;
     private final PaymentRepository paymentRepository;
     private final PaymentOutboxRepository paymentOutboxRepository;
     private final PaymentLedgerService paymentLedgerService;
     private final PaymentOutboxMetric paymentOutboxMetric;
 
     public Result approve(PaymentPayload paymentPayload) {
-        return tossPayment.call(paymentPayload);
+        return pay.approve(paymentPayload);
     }
 
     @Transactional
@@ -49,6 +50,10 @@ public class PaymentOutboxService {
         }
         if (result instanceof FailedResult failedResult) {
             applyFailedResult(failedResult, id, paymentPayload);
+        }
+        if (result instanceof RetryableResult retryableResult) {
+            log.info("Retryable payment result. outboxId = {} orderId = {} error = {} message = {}",
+                    id, retryableResult.orderId(), retryableResult.paymentError(), retryableResult.message());
         }
     }
 
