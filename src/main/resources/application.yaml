@@ -41,14 +41,11 @@ toss:
 payment:
   outbox:
     limiter:
-      max-virtual-thread-tasks: 300
       max-result-apply-tasks: 8
-    scheduler:
-      min-batch-size: 10
-      max-batch-size: 100
-      min-polling-delay-ms: 1000
-      max-polling-delay-ms: 5000
-      polling-delay-multiplier: 2
+    recovery:
+      fixed-delay-ms: 30000
+      stale-after-seconds: 60
+      batch-size: 100
 
 management:
   server:
