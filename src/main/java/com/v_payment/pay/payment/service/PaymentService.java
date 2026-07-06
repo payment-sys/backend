@@ -60,7 +60,9 @@ public class PaymentService {
         PaymentOutbox savedOutbox = paymentOutboxRepository.save(
                 PaymentOutbox.create(approvalReq, LocalDateTime.now(clock)));
 
+        //결제 API 호출 이벤트 발행
         eventPublisher.publishEvent(new PaymentOutboxTask(savedOutbox.getId(), savedOutbox.getPaymentPayload()));
+
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
