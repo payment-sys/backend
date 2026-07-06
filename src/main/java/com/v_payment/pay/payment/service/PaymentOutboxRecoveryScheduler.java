@@ -15,7 +15,7 @@ public class PaymentOutboxRecoveryScheduler {
     public void recoverStaleReady() {
         int recoveredCount = paymentOutboxRecoveryService.recoverStaleReady();
         if (recoveredCount > 0) {
-            log.info("Recovered stale READY payment outbox count = {}", recoveredCount);
+            log.info("count = {} 개의 payment 이벤트를 복구하였습니다.", recoveredCount);
         }
     }
 }
