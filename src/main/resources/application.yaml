@@ -1,9 +1,9 @@
 server:
   tomcat:
     threads:
-      max: 10
-      min-spare: 10
-      max-queue-capacity: 100
+      max: 8
+      min-spare: 8
+      max-queue-capacity: 200
     mbeanregistry:
       enabled: true
 
