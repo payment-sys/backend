@@ -27,11 +27,6 @@ public class PaymentLedgerService {
                 null);
     }
 
-    public void insertPaymentLedgerAPPROVING(Payment payment) {
-        insertPaymentLedger(payment, PaymentStatus.PENDING, PaymentStatus.APPROVING, null, null,
-                null);
-    }
-
     public void insertPaymentLedgerAPPROVING(ApprovalReq approvalReq) {
         paymentLedgerRepository.insertPaymentLedger(
                 approvalReq.orderId(),
@@ -60,11 +55,6 @@ public class PaymentLedgerService {
                 successResult.totalAmount(),
                 LocalDateTime.now(clock)
         );
-    }
-
-    public void insertPaymentLedgerREJECTED(Payment payment, FailedResult failedResult) {
-        insertPaymentLedger(payment, PaymentStatus.APPROVING, PaymentStatus.REJECTED, failedResult.paymentError().name(),
-                failedResult.message(), null);
     }
 
     public void insertPaymentLedgerREJECTED(PaymentPayload paymentPayload, FailedResult failedResult) {

@@ -21,25 +21,31 @@ public class PaymentOutboxRecoveryService {
     private final PaymentOutboxRepository paymentOutboxRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Transactional
-    public int recoverStaleReady() {
+    @Transactional(readOnly = true)
+    public int recoverReady() {
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime cutoff = now.minusSeconds(properties.staleAfterSeconds());
-        List<PaymentOutboxTaskProjection> staleTasks = paymentOutboxRepository.findStaleReady(
-                cutoff, properties.batchSize());
+        int batchSize = properties.batchSize();
 
-        int recoveredCount = 0;
-        for (PaymentOutboxTaskProjection staleTask : staleTasks) {
-            int updated = paymentOutboxRepository.markProcessing(staleTask.getPaymentOutboxId(), now);
-            if (updated != 1) {
-                continue;
-            }
+        List<PaymentOutboxTaskProjection> retryTasks = paymentOutboxRepository.findRetryReady(now, batchSize);
+        int recoveredCount = publish(retryTasks);
 
-            PaymentPayload paymentPayload = PaymentPayload.create(
-                    staleTask.getOrderId(), staleTask.getPaymentKey(), staleTask.getAmount());
-            eventPublisher.publishEvent(new PaymentOutboxTask(staleTask.getPaymentOutboxId(), paymentPayload, true));
-            recoveredCount++;
+        int remainingBatchSize = batchSize - recoveredCount;
+        if (remainingBatchSize > 0) {
+            List<PaymentOutboxTaskProjection> staleTasks = paymentOutboxRepository.findStaleReady(
+                    cutoff, remainingBatchSize);
+            recoveredCount += publish(staleTasks);
         }
+
         return recoveredCount;
+    }
+
+    private int publish(List<PaymentOutboxTaskProjection> tasks) {
+        for (PaymentOutboxTaskProjection task : tasks) {
+            PaymentPayload paymentPayload = PaymentPayload.create(
+                    task.getOrderId(), task.getPaymentKey(), task.getAmount());
+            eventPublisher.publishEvent(new PaymentOutboxTask(task.getPaymentOutboxId(), paymentPayload));
+        }
+        return tasks.size();
     }
 }

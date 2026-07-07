@@ -1,6 +1,7 @@
 package com.v_payment.pay.payment.repository;
 
 import com.v_payment.pay.payment.entity.PaymentOutbox;
+import com.v_payment.pay.payment.entity.PaymentOutboxStatus;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -19,6 +20,22 @@ public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Lo
            po.amount AS amount
     FROM payment_outbox po
     WHERE po.status = 'READY'
+    AND po.next_attempt_at IS NOT NULL
+    AND po.next_attempt_at <= :now
+    ORDER BY po.next_attempt_at ASC, po.payment_outbox_id ASC
+    LIMIT :limit
+    """)
+    List<PaymentOutboxTaskProjection> findRetryReady(@Param("now") LocalDateTime now,
+                                                     @Param("limit") int limit);
+
+    @NativeQuery("""
+    SELECT po.payment_outbox_id AS paymentOutboxId,
+           po.order_id AS orderId,
+           po.payment_key AS paymentKey,
+           po.amount AS amount
+    FROM payment_outbox po
+    WHERE po.status = 'READY'
+    AND po.next_attempt_at IS NULL
     AND po.created_at <= :cutoff
     ORDER BY po.created_at ASC, po.payment_outbox_id ASC
     LIMIT :limit
@@ -29,22 +46,21 @@ public interface PaymentOutboxRepository extends JpaRepository<PaymentOutbox, Lo
     @Modifying
     @NativeQuery("""
     UPDATE payment_outbox FORCE INDEX (PRIMARY)
-    SET status = 'PROCESSING',
-        processing_started_at = :processingStartedAt
+    SET status = 'PUBLISHED',
+        published_at = :publishedAt
     WHERE payment_outbox_id = :id
     AND status = 'READY'
     """)
-    int markProcessing(@Param("id") Long id,
-                       @Param("processingStartedAt") LocalDateTime processingStartedAt);
+    int markPublished(@Param("id") Long id,
+                      @Param("publishedAt") LocalDateTime publishedAt);
 
     @Modifying
     @NativeQuery("""
     UPDATE payment_outbox FORCE INDEX (PRIMARY)
-    SET status = 'PUBLISHED',
-        published_at = :publishedAt
+    SET next_attempt_at = :nextAttemptAt
     WHERE payment_outbox_id = :id
-    AND status = 'PROCESSING'
+    AND status = 'READY'
     """)
-    int markPublished(@Param("id") Long id,
-                      @Param("publishedAt") LocalDateTime publishedAt);
+    int scheduleNextAttempt(@Param("id") Long id,
+                            @Param("nextAttemptAt") LocalDateTime nextAttemptAt);
 }
