@@ -3,7 +3,7 @@ server:
     threads:
       max: 8
       min-spare: 8
-      max-queue-capacity: 100
+      max-queue-capacity: 200
     mbeanregistry:
       enabled: true
 
