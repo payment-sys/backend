@@ -6,11 +6,7 @@
   <property name="EXCEPTION_PATTERN" value="%replace(%wEx{full}){'[\r\n]+','\\n'}"/>
   <property
           name="LOG_PATTERN"
-          value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSSXXX}","level":"%level","type":"%X{LOG_TYPE:-app}","traceId":"%X{TRACE_ID}","method":"%X{METHOD}","path":"%X{PATH}","thread":"%thread","logger":"%logger{40}","message":"%msg","elapsed_ms":%X{ELAPSED_MS:-0},"exception":"${EXCEPTION_PATTERN}"}%n'
-  />
-  <property
-          name="SCHEDULER_LOG_PATTERN"
-          value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSSXXX}","level":"%level","type":"scheduler","thread":"%thread","logger":"%logger{40}","message":"%msg","exception":"${EXCEPTION_PATTERN}"}%n'
+          value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSSXXX}","level":"%level","type":"%X{LOG_TYPE:-app}","traceId":"%X{trace_id}","spanId":"%X{span_id}","method":"%X{METHOD}","path":"%X{PATH}","thread":"%thread","logger":"%logger{40}","message":"%msg","exception":"${EXCEPTION_PATTERN}"}%n'
   />
   <property name="LOG_PATH" value="./logs" />
 
@@ -30,7 +26,7 @@
   <appender name="SCHEDULER_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${LOG_PATH}/scheduler.log</file>
     <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-      <pattern>${SCHEDULER_LOG_PATTERN}</pattern>
+      <pattern>${LOG_PATTERN}</pattern>
     </encoder>
     <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
       <fileNamePattern>${LOG_PATH}/scheduler.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>

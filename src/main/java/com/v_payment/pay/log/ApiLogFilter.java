@@ -1,6 +1,5 @@
 package com.v_payment.pay.log;
 
-import com.v_payment.pay.global.LTimer;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,11 +13,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-import static com.v_payment.pay.log.ApiLogContext.ELAPSED_MS;
 import static com.v_payment.pay.log.ApiLogContext.LOG_TYPE;
 import static com.v_payment.pay.log.ApiLogContext.METHOD;
 import static com.v_payment.pay.log.ApiLogContext.PATH;
-import static com.v_payment.pay.log.ApiLogContext.TRACE_ID;
 
 @Slf4j(topic = "API_LOGGER")
 @Component
@@ -30,22 +27,16 @@ public class ApiLogFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         ApiLogContext apiLogContext = ApiLogContext.create(request);
 
-        long start = LTimer.getCurrTime();
         try {
             MDC.put(LOG_TYPE, "api");
-            MDC.put(TRACE_ID, apiLogContext.traceId());
             MDC.put(METHOD, apiLogContext.method());
             MDC.put(PATH, apiLogContext.path());
 
             filterChain.doFilter(request, response);
         } finally {
-            MDC.put(ELAPSED_MS, String.valueOf(LTimer.getDiff(start)));
-
             MDC.remove(LOG_TYPE);
-            MDC.remove(TRACE_ID);
             MDC.remove(METHOD);
             MDC.remove(PATH);
-            MDC.remove(ELAPSED_MS);
         }
     }
 }
