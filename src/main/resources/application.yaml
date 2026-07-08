@@ -17,10 +17,10 @@ spring:
     username: ${USERNAME}
     password: ${PASSWORD}
     hikari:
-      maximum-pool-size: 30
-      minimum-idle: 30
+      maximum-pool-size: 18
+      minimum-idle: 18
 
-      connection-timeout: 200
+      connection-timeout: 1000
       validation-timeout: 1000
       idle-timeout: 600000
       max-lifetime: 1800000
