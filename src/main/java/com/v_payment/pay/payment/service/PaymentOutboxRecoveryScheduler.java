@@ -1,5 +1,6 @@
 package com.v_payment.pay.payment.service;
 
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 public class PaymentOutboxRecoveryScheduler {
     private final PaymentOutboxRecoveryService paymentOutboxRecoveryService;
 
+    @WithSpan("PaymentOutboxRecoveryScheduler.recoverReady")
     @Scheduled(fixedDelayString = "${payment.outbox.recovery.fixed-delay-ms}")
     public void recoverReady() {
         int recoveredCount = paymentOutboxRecoveryService.recoverReady();
