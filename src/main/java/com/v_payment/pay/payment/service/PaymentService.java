@@ -1,9 +1,6 @@
 package com.v_payment.pay.payment.service;
 
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
-import com.v_payment.pay.payment.entity.Payment;
-import com.v_payment.pay.payment.controller.dto.req.PaymentCreateReq;
-import com.v_payment.pay.payment.controller.dto.res.PaymentCreateRes;
 import com.v_payment.pay.payment.entity.PaymentOutbox;
 import com.v_payment.pay.payment.metric.PaymentOutboxMetric;
 import com.v_payment.pay.payment.repository.PaymentOutboxRepository;
@@ -35,15 +32,6 @@ public class PaymentService {
     private final PaymentOutboxRepository paymentOutboxRepository;
     private final PaymentOutboxMetric paymentOutboxMetric;
     private final ApplicationEventPublisher eventPublisher;
-
-    @Transactional
-    public PaymentCreateRes create(PaymentCreateReq paymentCreateReq) {
-        Payment newPayment = Payment.create(paymentCreateReq, clock);
-        Payment savedPayment = paymentRepository.save(newPayment);
-
-        paymentLedgerService.insertPaymentLedgerPENDING(savedPayment);
-        return PaymentCreateRes.from(savedPayment);
-    }
 
     @Transactional
     public void validateApprovalReq(ApprovalReq approvalReq) {

@@ -1,12 +1,8 @@
 package com.v_payment.pay.payment.controller;
 
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
-import com.v_payment.pay.payment.entity.Payment;
-import com.v_payment.pay.payment.controller.dto.req.PaymentCreateReq;
-import com.v_payment.pay.payment.controller.dto.res.PaymentCreateRes;
 import com.v_payment.pay.payment.service.PaymentService;
 
-import com.v_payment.pay.global.LTimer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,13 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class PaymentController {
     private final PaymentService paymentService;
-
-    @PostMapping
-    public PaymentCreateRes createPayment(
-            @RequestBody PaymentCreateReq paymentCreateReq
-    ){
-        return paymentService.create(paymentCreateReq);
-    }
 
     @PostMapping("/approvals")
     public String approve(

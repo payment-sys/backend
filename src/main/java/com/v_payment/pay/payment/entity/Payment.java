@@ -2,7 +2,6 @@ package com.v_payment.pay.payment.entity;
 
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.infra.FailedResult;
-import com.v_payment.pay.payment.controller.dto.req.PaymentCreateReq;
 import com.v_payment.pay.payment.infra.SuccessResult;
 
 import jakarta.persistence.*;
@@ -12,7 +11,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Getter
 @Entity
@@ -116,13 +114,13 @@ public class Payment {
         this.paymentStatus = PaymentStatus.REJECTED;
     }
 
-    public static Payment create(PaymentCreateReq paymentCreateReq, Clock clock) {
+    public static Payment createForOrder(String orderId, Long amount, PaymentMethod paymentMethod, Clock clock) {
         return Payment.builder()
                 .provider(Provider.TOSS)
-                .paymentMethod(paymentCreateReq.paymentMethod())
-                .orderId(UUID.randomUUID().toString())
+                .paymentMethod(paymentMethod)
+                .orderId(orderId)
                 .paymentKey(null)
-                .requestedAmount(paymentCreateReq.requestedAmount())
+                .requestedAmount(amount)
                 .approvedAmount(null)
                 .paymentStatus(PaymentStatus.PENDING)
                 .requestedAt(LocalDateTime.now(clock))
