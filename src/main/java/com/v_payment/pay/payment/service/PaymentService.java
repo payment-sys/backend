@@ -1,61 +1,117 @@
 package com.v_payment.pay.payment.service;
 
-import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
-import com.v_payment.pay.payment.entity.PaymentOutbox;
-import com.v_payment.pay.payment.metric.PaymentOutboxMetric;
-import com.v_payment.pay.payment.repository.PaymentOutboxRepository;
-import com.v_payment.pay.payment.repository.PaymentRepository;
-import com.v_payment.pay.payment.entity.PaymentStatus;
-import com.v_payment.pay.payment.entity.Provider;
-import static com.v_payment.pay.payment.exception.PaymentException.*;
-
 import com.v_payment.pay.global.exception.BusinessException;
+import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
+import com.v_payment.pay.payment.entity.Payment;
+import com.v_payment.pay.payment.entity.PaymentPayload;
+import com.v_payment.pay.payment.entity.PaymentStatus;
+import com.v_payment.pay.payment.infra.FailedResult;
+import com.v_payment.pay.payment.infra.PaymentError;
+import com.v_payment.pay.payment.infra.Result;
+import com.v_payment.pay.payment.infra.SuccessResult;
+import com.v_payment.pay.payment.infra.TossPayment;
+import com.v_payment.pay.payment.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import java.time.Clock;
-import java.time.LocalDateTime;
-
+import static com.v_payment.pay.payment.exception.PaymentException.PAYMENT_INVALID;
+import static com.v_payment.pay.payment.exception.PaymentException.PAYMENT_NOT_FOUND;
+import static com.v_payment.pay.payment.exception.PaymentException.UNKNOWN_ERROR;
 
 @Slf4j(topic = "API_LOGGER")
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
-    private final Clock clock;
+    private final TossPayment tossPayment;
     private final PaymentRepository paymentRepository;
     private final PaymentLedgerService paymentLedgerService;
-    private final PaymentOutboxRepository paymentOutboxRepository;
-    private final PaymentOutboxMetric paymentOutboxMetric;
-    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public void validateApprovalReq(ApprovalReq approvalReq) {
-        //Payment 검증 및 상태 업뎃
-        int updatedCount = paymentRepository.markApproving(approvalReq.orderId(), approvalReq.paymentKey(),
-                approvalReq.requestedAmount(), approvalReq.provider(), approvalReq.method(), PaymentStatus.PENDING,
-                PaymentStatus.APPROVING);
-        if (updatedCount != 1) throw new BusinessException(PAYMENT_INVALID);
+    public PaymentPayload validateApprovalReq(ApprovalReq approvalReq) {
+        Payment payment = paymentRepository.findByOrderIdAndPaymentStatus(approvalReq.orderId(), PaymentStatus.PENDING)
+                .orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
 
-        //Payment 원장 테이블 저장
+        if (!payment.isSameRequestedAmount(approvalReq.requestedAmount())) throw new BusinessException(PAYMENT_INVALID);
+        if (!payment.isSameMethod(approvalReq.method())) throw new BusinessException(PAYMENT_INVALID);
+        if (!payment.isSameProvider(approvalReq.provider())) throw new BusinessException(PAYMENT_INVALID);
+
+        try {
+            payment.completeValidate(approvalReq);
+            paymentRepository.flush();
+        } catch (OptimisticLockingFailureException e) {
+            throw new BusinessException(PAYMENT_INVALID);
+        }
+
         paymentLedgerService.insertPaymentLedgerAPPROVING(approvalReq);
+        return payment.getPaymentPayload();
+    }
 
-        //Payment 아웃박스 테이블 저장
-        PaymentOutbox savedOutbox = paymentOutboxRepository.save(
-                PaymentOutbox.create(approvalReq, LocalDateTime.now(clock)));
+    public Result approve(PaymentPayload paymentPayload) {
+        return tossPayment.approve(paymentPayload);
+    }
 
-        //결제 API 호출 이벤트 발행
-        eventPublisher.publishEvent(new PaymentOutboxTask(savedOutbox.getId(), savedOutbox.getPaymentPayload()));
+    @Transactional
+    public Payment finalizePaymentPayload(Result approveResult) {
+        if (approveResult instanceof SuccessResult successResult) {
+            return applySuccessResult(successResult);
+        }
+        if (approveResult instanceof FailedResult failedResult) {
+            return applyFailedResult(failedResult);
+        }
+        throw new BusinessException(UNKNOWN_ERROR);
+    }
 
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                paymentOutboxMetric.incrementEnqueued();
-            }
-        });
+    @Transactional
+    public void recoverApproveFailed(PaymentPayload paymentPayload) {
+        Payment retryFailedPayment = paymentRepository.findByOrderIdAndPaymentStatus(
+                paymentPayload.getOrderId(),
+                PaymentStatus.APPROVING
+        ).orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
+
+        try {
+            retryFailedPayment.retryFailed();
+            paymentRepository.flush();
+            paymentLedgerService.insertPaymentLedgerREJECTED(
+                    paymentPayload,
+                    new FailedResult(paymentPayload.getOrderId(), PaymentError.UNKNOWN, "retry max attempts exhausted")
+            );
+        } catch (OptimisticLockingFailureException e) {
+            throw new BusinessException(PAYMENT_INVALID);
+        }
+    }
+
+    private Payment applySuccessResult(SuccessResult successResult) {
+        Payment successedPayment = paymentRepository.findByOrderIdAndPaymentStatus(
+                successResult.orderId(),
+                PaymentStatus.APPROVING
+        ).orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
+
+        try {
+            successedPayment.success(successResult);
+            paymentRepository.flush();
+            paymentLedgerService.insertPaymentLedgerAPPROVED(successedPayment.getPaymentPayload(), successResult);
+            return successedPayment;
+        } catch (OptimisticLockingFailureException e) {
+            throw new BusinessException(PAYMENT_INVALID);
+        }
+    }
+
+    private Payment applyFailedResult(FailedResult failedResult) {
+        Payment failedPayment = paymentRepository.findByOrderIdAndPaymentStatus(
+                failedResult.orderId(),
+                PaymentStatus.APPROVING
+        ).orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
+
+        try {
+            failedPayment.failed(failedResult);
+            paymentRepository.flush();
+            paymentLedgerService.insertPaymentLedgerREJECTED(failedPayment.getPaymentPayload(), failedResult);
+            return failedPayment;
+        } catch (OptimisticLockingFailureException e) {
+            throw new BusinessException(PAYMENT_INVALID);
+        }
     }
 }

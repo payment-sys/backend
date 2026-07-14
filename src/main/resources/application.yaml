@@ -40,15 +40,6 @@ toss:
     content-type: application/json
     timeout: 2
 
-payment:
-  outbox:
-    limiter:
-      max-result-apply-tasks: 8
-    recovery:
-      fixed-delay-ms: 30000
-      stale-after-seconds: 60
-      batch-size: 100
-
 management:
   server:
     port: 8082
