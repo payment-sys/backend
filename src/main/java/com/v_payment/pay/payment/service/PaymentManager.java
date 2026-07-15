@@ -13,11 +13,9 @@ import java.time.Clock;
 public class PaymentManager {
     private final Clock clock;
     private final PaymentRepository paymentRepository;
-    private final PaymentLedgerService paymentLedgerService;
 
     public Payment createForOrder(String orderId, Long amount, PaymentMethod paymentMethod) {
         Payment payment = paymentRepository.save(Payment.createForOrder(orderId, amount, paymentMethod, clock));
-        paymentLedgerService.insertPaymentLedgerPENDING(payment);
         return payment;
     }
 }

@@ -6,7 +6,6 @@ import com.v_payment.pay.payment.entity.Payment;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.entity.PaymentStatus;
 import com.v_payment.pay.payment.infra.FailedResult;
-import com.v_payment.pay.payment.infra.PaymentError;
 import com.v_payment.pay.payment.infra.Result;
 import com.v_payment.pay.payment.infra.SuccessResult;
 import com.v_payment.pay.payment.infra.TossPayment;
@@ -27,7 +26,6 @@ import static com.v_payment.pay.payment.exception.PaymentException.UNKNOWN_ERROR
 public class PaymentService {
     private final TossPayment tossPayment;
     private final PaymentRepository paymentRepository;
-    private final PaymentLedgerService paymentLedgerService;
 
     @Transactional
     public PaymentPayload validateApprovalReq(ApprovalReq approvalReq) {
@@ -45,7 +43,6 @@ public class PaymentService {
             throw new BusinessException(PAYMENT_INVALID);
         }
 
-        paymentLedgerService.insertPaymentLedgerAPPROVING(approvalReq);
         return payment.getPaymentPayload();
     }
 
@@ -74,10 +71,6 @@ public class PaymentService {
         try {
             retryFailedPayment.retryFailed();
             paymentRepository.flush();
-            paymentLedgerService.insertPaymentLedgerREJECTED(
-                    paymentPayload,
-                    new FailedResult(paymentPayload.getOrderId(), PaymentError.UNKNOWN, "retry max attempts exhausted")
-            );
         } catch (OptimisticLockingFailureException e) {
             throw new BusinessException(PAYMENT_INVALID);
         }
@@ -92,7 +85,6 @@ public class PaymentService {
         try {
             successedPayment.success(successResult);
             paymentRepository.flush();
-            paymentLedgerService.insertPaymentLedgerAPPROVED(successedPayment.getPaymentPayload(), successResult);
             return successedPayment;
         } catch (OptimisticLockingFailureException e) {
             throw new BusinessException(PAYMENT_INVALID);
@@ -108,7 +100,6 @@ public class PaymentService {
         try {
             failedPayment.failed(failedResult);
             paymentRepository.flush();
-            paymentLedgerService.insertPaymentLedgerREJECTED(failedPayment.getPaymentPayload(), failedResult);
             return failedPayment;
         } catch (OptimisticLockingFailureException e) {
             throw new BusinessException(PAYMENT_INVALID);
