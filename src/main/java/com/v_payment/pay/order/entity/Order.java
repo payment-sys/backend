@@ -24,12 +24,12 @@ import java.util.UUID;
 @Table(name = "orders")
 public class Order {
     @Id
-    @Column(name = "order_pk")
+    @Column(name = "order_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long orderId;
 
-    @Column(name = "order_id", nullable = false, unique = true)
-    private String orderId;
+    @Column(name = "order_code", nullable = false, unique = true)
+    private String orderCode;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus orderStatus;
@@ -42,7 +42,7 @@ public class Order {
     private List<OrderItem> orderItems = new ArrayList<>();
 
     private Order(LocalDateTime orderedAt) {
-        this.orderId = UUID.randomUUID().toString();
+        this.orderCode = UUID.randomUUID().toString();
         this.orderStatus = OrderStatus.PENDING_PAYMENT;
         this.totalAmount = 0L;
         this.orderedAt = orderedAt;

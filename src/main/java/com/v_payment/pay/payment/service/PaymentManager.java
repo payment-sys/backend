@@ -14,8 +14,7 @@ public class PaymentManager {
     private final Clock clock;
     private final PaymentRepository paymentRepository;
 
-    public Payment createForOrder(String orderId, Long amount, PaymentMethod paymentMethod) {
-        Payment payment = paymentRepository.save(Payment.createForOrder(orderId, amount, paymentMethod, clock));
-        return payment;
+    public void createPendingPayment(String orderCode, Long amount, PaymentMethod paymentMethod) {
+        paymentRepository.save(Payment.createForOrder(orderCode, amount, paymentMethod, clock));
     }
 }

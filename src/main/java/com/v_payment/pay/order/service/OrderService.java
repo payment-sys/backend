@@ -7,7 +7,6 @@ import com.v_payment.pay.order.entity.Order;
 import com.v_payment.pay.order.repository.OrderRepository;
 import com.v_payment.pay.payment.service.PaymentManager;
 import com.v_payment.pay.product.service.ProductManager;
-import com.v_payment.pay.product.service.ProductReservationReq;
 import com.v_payment.pay.product.service.ReservedProduct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,21 +26,27 @@ public class OrderService {
 
     @Transactional
     public OrderCreateRes create(OrderCreateReq req) {
-        List<OrderItemCreateReq> items = req.items();
-        List<ReservedProduct> reservedProducts = productManager.reserve(toProductReservationReq(items));
+        List<ReservedProduct> reservedProducts = reserveProducts(req.items());
 
-        Order order = Order.create(LocalDateTime.now(clock));
-        reservedProducts.forEach(product ->
-                order.addItem(product.productId(), product.productName(), product.unitPrice(), product.quantity()));
-        Order savedOrder = orderRepository.save(order);
-        paymentManager.createForOrder(savedOrder.getOrderId(), savedOrder.getTotalAmount(), req.paymentMethod());
+        Order savedOrder = createOrderWithReservedProducts(reservedProducts);
+
+        paymentManager.createPendingPayment(savedOrder.getOrderCode(), savedOrder.getTotalAmount(), req.paymentMethod());
 
         return OrderCreateRes.from(savedOrder);
     }
 
-    private List<ProductReservationReq> toProductReservationReq(List<OrderItemCreateReq> items) {
-        return items.stream()
-                .map(item -> new ProductReservationReq(item.productId(), item.quantity()))
+    private List<ReservedProduct> reserveProducts(List<OrderItemCreateReq> items) {
+        List<ProductManager.ProductReservationReq> productReservationReq = items.stream()
+                .map(item -> new ProductManager.ProductReservationReq(item.productId(), item.quantity()))
                 .toList();
+        return productManager.reserve(productReservationReq);
+    }
+
+    private Order createOrderWithReservedProducts(List<ReservedProduct> reservedProducts) {
+        Order order = Order.create(LocalDateTime.now(clock));
+        reservedProducts.forEach(product ->
+                order.addItem(product.productId(), product.productName(), product.unitPrice(), product.quantity())
+        );
+        return orderRepository.save(order);
     }
 }

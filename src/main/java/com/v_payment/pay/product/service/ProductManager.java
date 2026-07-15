@@ -41,4 +41,10 @@ public class ProductManager {
             throw new BusinessException(ProductException.OUT_OF_STOCK);
         }
     }
+
+    public record ProductReservationReq(
+            Long productId,
+            Integer quantity
+    ) {
+    }
 }
