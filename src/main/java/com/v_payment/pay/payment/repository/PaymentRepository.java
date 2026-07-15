@@ -15,7 +15,7 @@ import java.util.Optional;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
-    Optional<Payment> findByOrderIdAndPaymentStatus(String orderId, PaymentStatus paymentStatus);
+    Optional<Payment> findByOrderCodeAndPaymentStatus(String orderCode, PaymentStatus paymentStatus);
 
     @Modifying
     @Query("""
@@ -23,13 +23,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     SET p.paymentStatus = :approvingStatus,
         p.paymentKey = :paymentKey,
         p.version = p.version + 1
-    WHERE p.orderId = :orderId
+    WHERE p.orderCode = :orderCode
     AND p.paymentStatus = :pendingStatus
     AND p.requestedAmount = :requestedAmount
     AND p.provider = :provider
     AND p.paymentMethod = :paymentMethod
     """)
-    int markApproving(@Param("orderId") String orderId,
+    int markApproving(@Param("orderCode") String orderCode,
                       @Param("paymentKey") String paymentKey,
                       @Param("requestedAmount") Long requestedAmount,
                       @Param("provider") Provider provider,
@@ -45,10 +45,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         p.approvedAt = :approvedAt,
         p.receiptUrl = :receiptUrl,
         p.version = p.version + 1
-    WHERE p.orderId = :orderId
+    WHERE p.orderCode = :orderCode
     AND p.paymentStatus = :approvingStatus
     """)
-    int markApproved(@Param("orderId") String orderId,
+    int markApproved(@Param("orderCode") String orderCode,
                      @Param("approvingStatus") PaymentStatus approvingStatus,
                      @Param("approvedStatus") PaymentStatus approvedStatus,
                      @Param("approvedAmount") Long approvedAmount,
@@ -61,10 +61,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     SET p.paymentStatus = :rejectedStatus,
         p.failedMessage = :failedMessage,
         p.version = p.version + 1
-    WHERE p.orderId = :orderId
+    WHERE p.orderCode = :orderCode
     AND p.paymentStatus = :approvingStatus
     """)
-    int markRejected(@Param("orderId") String orderId,
+    int markRejected(@Param("orderCode") String orderCode,
                      @Param("approvingStatus") PaymentStatus approvingStatus,
                      @Param("rejectedStatus") PaymentStatus rejectedStatus,
                      @Param("failedMessage") String failedMessage);

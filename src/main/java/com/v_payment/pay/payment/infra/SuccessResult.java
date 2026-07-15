@@ -1,15 +1,14 @@
 package com.v_payment.pay.payment.infra;
 
-import com.v_payment.pay.payment.entity.Payment;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record SuccessResult(
-        String orderId,
+        @JsonProperty("orderId")
+        String orderCode,
         String paymentKey,
         String status,
         Long totalAmount,

@@ -1,23 +1,26 @@
 package com.v_payment.pay.payment.entity;
 
-import lombok.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
+import lombok.Getter;
 
 @Getter
 public class PaymentPayload {
-    private final String orderId;
+    @JsonProperty("orderId")
+    private final String orderCode;
     private final String paymentKey;
     private final Long amount;
 
     @Builder
-    public PaymentPayload(String orderId, String paymentKey, Long amount) {
-        this.orderId = orderId;
+    public PaymentPayload(String orderCode, String paymentKey, Long amount) {
+        this.orderCode = orderCode;
         this.paymentKey = paymentKey;
         this.amount = amount;
     }
 
-    public static PaymentPayload create(String orderId, String paymentKey, Long amount) {
+    public static PaymentPayload create(String orderCode, String paymentKey, Long amount) {
         return PaymentPayload.builder()
-                .orderId(orderId)
+                .orderCode(orderCode)
                 .paymentKey(paymentKey)
                 .amount(amount)
                 .build();

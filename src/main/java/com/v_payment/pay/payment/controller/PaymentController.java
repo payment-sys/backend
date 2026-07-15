@@ -1,12 +1,8 @@
 package com.v_payment.pay.payment.controller;
 
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
-import com.v_payment.pay.payment.entity.Payment;
-import com.v_payment.pay.payment.controller.dto.req.PaymentCreateReq;
-import com.v_payment.pay.payment.controller.dto.res.PaymentCreateRes;
-import com.v_payment.pay.payment.service.PaymentService;
-
-import com.v_payment.pay.global.LTimer;
+import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
+import com.v_payment.pay.payment.service.PaymentServiceFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,20 +15,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/payments")
 @RequiredArgsConstructor
 public class PaymentController {
-    private final PaymentService paymentService;
-
-    @PostMapping
-    public PaymentCreateRes createPayment(
-            @RequestBody PaymentCreateReq paymentCreateReq
-    ){
-        return paymentService.create(paymentCreateReq);
-    }
+    private final PaymentServiceFacade paymentServiceFacade;
 
     @PostMapping("/approvals")
-    public String approve(
+    public ApprovalRes approve(
             @RequestBody ApprovalReq approvalReq
     ) {
-        paymentService.validateApprovalReq(approvalReq);
-        return "결제가 진행중입니다. 잠시만 기다려주세요";
+        return paymentServiceFacade.approvePipeline(approvalReq);
     }
 }
