@@ -6,7 +6,7 @@ import com.v_payment.pay.payment.entity.PaymentStatus;
 import java.time.LocalDateTime;
 
 public record ApprovalRes(
-        String orderId,
+        String orderCode,
         PaymentStatus status,
         Long totalAmount,
         LocalDateTime approvedAt,
@@ -14,7 +14,7 @@ public record ApprovalRes(
 ) {
     public static ApprovalRes from(Payment payment) {
         return new ApprovalRes(
-                payment.getOrderId(),
+                payment.getOrderCode(),
                 payment.getPaymentStatus(),
                 payment.getApprovedAmount(),
                 payment.getApprovedAt(),

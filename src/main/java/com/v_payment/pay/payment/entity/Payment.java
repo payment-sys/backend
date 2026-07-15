@@ -3,8 +3,16 @@ package com.v_payment.pay.payment.entity;
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.infra.SuccessResult;
-
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,7 +25,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Table(name = "payment",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_payment_order_id", columnNames = "orderId")
+                @UniqueConstraint(name = "uk_payment_order_code", columnNames = "order_code")
         })
 public class Payment {
     @Id
@@ -26,29 +34,30 @@ public class Payment {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    private Provider provider;                      //생성 시
+    private Provider provider;
 
     @Enumerated(EnumType.STRING)
-    private PaymentMethod paymentMethod;            //생성 시
+    private PaymentMethod paymentMethod;
 
-    private String orderId;                         //생성 시
+    @Column(name = "order_code")
+    private String orderCode;
 
-    private String paymentKey;                      //검증 시
+    private String paymentKey;
 
-    private Long requestedAmount;                   //생성 시
+    private Long requestedAmount;
 
-    private Long approvedAmount;                    //성공 시
+    private Long approvedAmount;
 
     @Enumerated(EnumType.STRING)
-    private PaymentStatus paymentStatus;            //전체
+    private PaymentStatus paymentStatus;
 
-    private LocalDateTime requestedAt;              //생성 시
+    private LocalDateTime requestedAt;
 
-    private LocalDateTime approvedAt;               //성공 시
+    private LocalDateTime approvedAt;
 
-    private String receiptUrl;                      //성공 시
+    private String receiptUrl;
 
-    private String failedMessage;                   //실패 시
+    private String failedMessage;
 
     @Version
     private Integer version;
@@ -56,7 +65,7 @@ public class Payment {
     @Builder
     public Payment(Provider provider,
                    PaymentMethod paymentMethod,
-                   String orderId,
+                   String orderCode,
                    String paymentKey,
                    Long requestedAmount,
                    Long approvedAmount,
@@ -66,7 +75,7 @@ public class Payment {
                    String receiptUrl) {
         this.provider = provider;
         this.paymentMethod = paymentMethod;
-        this.orderId = orderId;
+        this.orderCode = orderCode;
         this.paymentKey = paymentKey;
         this.requestedAmount = requestedAmount;
         this.approvedAmount = approvedAmount;
@@ -77,7 +86,7 @@ public class Payment {
     }
 
     public PaymentPayload getPaymentPayload() {
-        return PaymentPayload.create(orderId, paymentKey, requestedAmount);
+        return PaymentPayload.create(orderCode, paymentKey, requestedAmount);
     }
 
     public boolean isSameRequestedAmount(Long requestedAmount) {
@@ -110,15 +119,15 @@ public class Payment {
     }
 
     public void retryFailed() {
-        this.failedMessage = "retryFailed : 알 수 없는 에러";
+        this.failedMessage = "retryFailed : unknown error";
         this.paymentStatus = PaymentStatus.REJECTED;
     }
 
-    public static Payment createForOrder(String orderId, Long amount, PaymentMethod paymentMethod, Clock clock) {
+    public static Payment createForOrder(String orderCode, Long amount, PaymentMethod paymentMethod, Clock clock) {
         return Payment.builder()
                 .provider(Provider.TOSS)
                 .paymentMethod(paymentMethod)
-                .orderId(orderId)
+                .orderCode(orderCode)
                 .paymentKey(null)
                 .requestedAmount(amount)
                 .approvedAmount(null)

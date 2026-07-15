@@ -29,7 +29,7 @@ public class PaymentService {
 
     @Transactional
     public PaymentPayload validateApprovalReq(ApprovalReq approvalReq) {
-        Payment payment = paymentRepository.findByOrderIdAndPaymentStatus(approvalReq.orderId(), PaymentStatus.PENDING)
+        Payment payment = paymentRepository.findByOrderCodeAndPaymentStatus(approvalReq.orderCode(), PaymentStatus.PENDING)
                 .orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
 
         if (!payment.isSameRequestedAmount(approvalReq.requestedAmount())) throw new BusinessException(PAYMENT_INVALID);
@@ -63,8 +63,8 @@ public class PaymentService {
 
     @Transactional
     public void recoverApproveFailed(PaymentPayload paymentPayload) {
-        Payment retryFailedPayment = paymentRepository.findByOrderIdAndPaymentStatus(
-                paymentPayload.getOrderId(),
+        Payment retryFailedPayment = paymentRepository.findByOrderCodeAndPaymentStatus(
+                paymentPayload.getOrderCode(),
                 PaymentStatus.APPROVING
         ).orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
 
@@ -77,8 +77,8 @@ public class PaymentService {
     }
 
     private Payment applySuccessResult(SuccessResult successResult) {
-        Payment successedPayment = paymentRepository.findByOrderIdAndPaymentStatus(
-                successResult.orderId(),
+        Payment successedPayment = paymentRepository.findByOrderCodeAndPaymentStatus(
+                successResult.orderCode(),
                 PaymentStatus.APPROVING
         ).orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
 
@@ -92,8 +92,8 @@ public class PaymentService {
     }
 
     private Payment applyFailedResult(FailedResult failedResult) {
-        Payment failedPayment = paymentRepository.findByOrderIdAndPaymentStatus(
-                failedResult.orderId(),
+        Payment failedPayment = paymentRepository.findByOrderCodeAndPaymentStatus(
+                failedResult.orderCode(),
                 PaymentStatus.APPROVING
         ).orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
 
