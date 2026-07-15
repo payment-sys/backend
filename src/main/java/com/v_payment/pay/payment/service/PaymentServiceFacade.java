@@ -23,26 +23,11 @@ public class PaymentServiceFacade {
     private final PaymentService paymentService;
 
     public ApprovalRes approvePipeline(ApprovalReq approvalReq) {
-        long vStartTime = LTimer.getCurrTime();
         PaymentPayload paymentPayload = paymentService.validateApprovalReq(approvalReq);
-        log.debug("approval validation [{}] latency = {}", approvalReq.orderCode(), LTimer.getDiff(vStartTime));
-        if (LTimer.getDiff(vStartTime) >= DB_CONNECTION_TIMEOUT) {
-            log.warn("validateApprovalReq() is slow. orderCode = {}", approvalReq.orderCode());
-        }
 
-        long cStartTime = LTimer.getCurrTime();
         Result approveResult = getApproveResult(paymentPayload);
-        log.debug("approval call [{}] latency = {}", approvalReq.orderCode(), LTimer.getDiff(cStartTime));
-        if (LTimer.getDiff(cStartTime) >= PAYMENT_API_TIMEOUT) {
-            log.warn("payment API call is slow. orderCode = {}", approvalReq.orderCode());
-        }
 
-        long fStartTime = LTimer.getCurrTime();
         Payment finishedPayment = paymentService.finalizePaymentPayload(approveResult);
-        log.debug("approval result apply [{}] latency = {}", approvalReq.orderCode(), LTimer.getDiff(fStartTime));
-        if (LTimer.getDiff(fStartTime) >= DB_CONNECTION_TIMEOUT) {
-            log.warn("finalizePaymentPayload() is slow. orderCode = {}", approvalReq.orderCode());
-        }
 
         return ApprovalRes.from(finishedPayment);
     }
