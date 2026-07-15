@@ -123,7 +123,7 @@ public class Payment {
         this.paymentStatus = PaymentStatus.REJECTED;
     }
 
-    public static Payment createForOrder(String orderCode, Long amount, PaymentMethod paymentMethod, Clock clock) {
+    public static Payment createPendingPayment(String orderCode, Long amount, PaymentMethod paymentMethod, Clock clock) {
         return Payment.builder()
                 .provider(Provider.TOSS)
                 .paymentMethod(paymentMethod)
