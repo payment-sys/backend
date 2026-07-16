@@ -1,10 +1,10 @@
 server:
   tomcat:
     threads:
-      max: 10
+      max: 400
       min-spare: 5
       accept-count: 100
-      connection-timeout: 1800ms
+      connection-timeout: 2000ms
       keep-alive-timeout: 5s
     mbeanregistry:
       enabled: true
