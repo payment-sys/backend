@@ -20,8 +20,10 @@ public class MeterFilter implements io.micrometer.core.instrument.config.MeterFi
                     config,
                     Duration.ofMillis(100).toNanos(),
                     Duration.ofMillis(300).toNanos(),
-                    Duration.ofMillis(500).toNanos(),
-                    Duration.ofSeconds(1).toNanos(),
+                    Duration.ofMillis(600).toNanos(),
+                    Duration.ofMillis(900).toNanos(),
+                    Duration.ofMillis(1200).toNanos(),
+                    Duration.ofMillis(1500).toNanos(),
                     Duration.ofSeconds(2).toNanos()
             );
         }
