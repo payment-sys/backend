@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.concurrent.CompletableFuture;
+
 @Slf4j(topic = "API_LOGGER")
 @RestController
 @RequestMapping("/payments")
@@ -18,7 +20,7 @@ public class PaymentController {
     private final PaymentServiceFacade paymentServiceFacade;
 
     @PostMapping("/approvals")
-    public ApprovalRes approve(
+    public CompletableFuture<ApprovalRes> approve(
             @RequestBody ApprovalReq approvalReq
     ) {
         return paymentServiceFacade.approvePipeline(approvalReq);
