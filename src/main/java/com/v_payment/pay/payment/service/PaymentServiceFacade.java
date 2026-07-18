@@ -1,35 +1,35 @@
 package com.v_payment.pay.payment.service;
 
 import com.v_payment.pay.global.ExecutorWithRetry;
-import com.v_payment.pay.global.LTimer;
+import com.v_payment.pay.payment.config.PaymentExecutorConfig;
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
-import com.v_payment.pay.payment.entity.Payment;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.infra.PaymentError;
 import com.v_payment.pay.payment.infra.Result;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j(topic = "API_LOGGER")
 @Component
 @RequiredArgsConstructor
 public class PaymentServiceFacade {
-    private static final long DB_CONNECTION_TIMEOUT = 2000;
-    private static final long PAYMENT_API_TIMEOUT = 1500;
-
     private final PaymentService paymentService;
+    private final ExecutorService paymentExecutorService;
 
-    public ApprovalRes approvePipeline(ApprovalReq approvalReq) {
-        PaymentPayload paymentPayload = paymentService.validateApprovalReq(approvalReq);
-
-        Result approveResult = getApproveResult(paymentPayload);
-
-        Payment finishedPayment = paymentService.finalizePaymentPayload(approveResult);
-
-        return ApprovalRes.from(finishedPayment);
+    public CompletableFuture<ApprovalRes> approvePipeline(ApprovalReq approvalReq) {
+        return CompletableFuture.supplyAsync(() -> {
+            PaymentPayload payload = paymentService.validateApprovalReq(approvalReq);
+            Result result = getApproveResult(payload);
+            return ApprovalRes.from(paymentService.finalizePaymentPayload(result));
+        }, paymentExecutorService);
     }
 
     private Result getApproveResult(PaymentPayload paymentPayload) {
