@@ -8,6 +8,7 @@ import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.infra.PaymentError;
 import com.v_payment.pay.payment.infra.Result;
 import com.v_payment.pay.payment.limiter.Limiter;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,15 +24,20 @@ public class PaymentServiceFacade {
     private final ExecutorService paymentExecutorService;
     private final Limiter paymentResultApplyLimiter;
 
+    @WithSpan("payment.facade.approve_pipeline")
     public CompletableFuture<ApprovalRes> approvePipeline(ApprovalReq approvalReq) {
-        return CompletableFuture.supplyAsync(() -> {
-            PaymentPayload payload = paymentService.validateApprovalReq(approvalReq);
-            Result result = getApproveResult(payload);
-            paymentService.finalizePaymentPayload(result);
-            return ApprovalRes.from(result);
-        }, paymentExecutorService);
+        return CompletableFuture.supplyAsync(() -> approvePipelineInternal(approvalReq), paymentExecutorService);
     }
 
+    @WithSpan("payment.facade.approve_pipeline_internal")
+    private ApprovalRes approvePipelineInternal(ApprovalReq approvalReq) {
+        PaymentPayload payload = paymentService.validateApprovalReq(approvalReq);
+        Result result = getApproveResult(payload);
+        paymentService.finalizePaymentPayload(result);
+        return ApprovalRes.from(result);
+    }
+
+    @WithSpan("payment.facade.get_approve_result")
     private Result getApproveResult(PaymentPayload paymentPayload) {
         return ExecutorWithRetry
                 .task(() -> paymentService.approve(paymentPayload))
@@ -42,6 +48,7 @@ public class PaymentServiceFacade {
                 .execute();
     }
 
+    @WithSpan("payment.facade.retry_continue_condition")
     private boolean getContinueCondition(Result result) {
         if (result instanceof FailedResult failedResult) {
             return failedResult.paymentError() == PaymentError.NETWORK_TIMEOUT

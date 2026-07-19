@@ -1,6 +1,7 @@
 package com.v_payment.pay.payment.limiter;
 
 import com.v_payment.pay.global.meter.DistributionSummaryMeter;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 
 import java.util.concurrent.Semaphore;
 
@@ -22,6 +23,7 @@ public class SemaphoreLimiter implements Limiter {
     }
 
     @Override
+    @WithSpan("payment.limiter.execute")
     public void execute(int count, Runnable task) {
         acquire(count);
         try {
@@ -51,6 +53,7 @@ public class SemaphoreLimiter implements Limiter {
         return maxConcurrentTasks;
     }
 
+    @WithSpan("payment.limiter.acquire")
     private void acquire(int count) {
         recordWaitBeforeAcquire(count);
         semaphore.acquireUninterruptibly(count);
@@ -58,6 +61,7 @@ public class SemaphoreLimiter implements Limiter {
         recordWait();
     }
 
+    @WithSpan("payment.limiter.release")
     private void release(int count) {
         semaphore.release(count);
         recordRun();

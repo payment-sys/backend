@@ -4,6 +4,7 @@ import com.v_payment.pay.global.LTimer;
 import com.v_payment.pay.payment.config.TossPaymentProperties;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import io.micrometer.core.annotation.Timed;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,7 @@ public class TossPayment {
     private final TossPaymentProperties tossPaymentProperties;
 
     @Timed(value = "pay.api")
+    @WithSpan("payment.toss.approve")
     public Result approve(PaymentPayload paymentPayload) {
         long callStartTime = LTimer.getCurrTime();
 
@@ -49,6 +51,7 @@ public class TossPayment {
         }
     }
 
+    @WithSpan("payment.toss.exchange_approve")
     private Result exchangeApprove(PaymentPayload paymentPayload) {
         return tossPaymentClient.post()
                 .uri(tossPaymentProperties.uri())
@@ -60,6 +63,7 @@ public class TossPayment {
                 .body(SuccessResult.class);
     }
 
+    @WithSpan("payment.toss.encode_auth")
     private String encodeBase64(String secretKey) {
         return "Basic " + Base64.getEncoder().encodeToString((secretKey + ":").getBytes(StandardCharsets.UTF_8));
     }
