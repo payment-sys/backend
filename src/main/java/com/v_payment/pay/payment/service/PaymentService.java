@@ -2,6 +2,7 @@ package com.v_payment.pay.payment.service;
 
 import com.v_payment.pay.global.exception.BusinessException;
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
+import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.entity.PaymentStatus;
 import com.v_payment.pay.payment.infra.FailedResult;
@@ -38,7 +39,7 @@ public class PaymentService {
                 PaymentStatus.PENDING,
                 PaymentStatus.APPROVING
         );
-        validateMarkApprovingUpdatedRows(updatedRows, approvalReq);
+        validateApprovingPaymentUpdatedRows(updatedRows);
 
         return PaymentPayload.create(approvalReq.orderCode(), approvalReq.paymentKey(), approvalReq.requestedAmount());
     }
@@ -50,32 +51,18 @@ public class PaymentService {
 
     @Transactional
     @WithSpan("payment.service.finalize_payment_payload")
-    public void finalizePaymentPayload(Result approveResult) {
+    public ApprovalRes finalizePaymentPayload(Result approveResult) {
         if (approveResult instanceof SuccessResult successResult) {
-            applySuccessResult(successResult);
-            return;
+            return applySuccessResult(successResult);
         }
         if (approveResult instanceof FailedResult failedResult) {
-            applyFailedResult(failedResult);
-            return;
+            return applyFailedResult(failedResult);
         }
         throw new BusinessException(UNKNOWN_ERROR);
     }
 
-    @Transactional
-    @WithSpan("payment.service.recover_approve_failed")
-    public void recoverApproveFailed(PaymentPayload paymentPayload) {
-        int updatedRows = paymentRepository.markRejected(
-                paymentPayload.getOrderCode(),
-                PaymentStatus.APPROVING,
-                PaymentStatus.REJECTED,
-                "retryFailed : unknown error"
-        );
-        validateApprovingPaymentUpdatedRows(updatedRows);
-    }
-
     @WithSpan("payment.service.apply_success_result")
-    private void applySuccessResult(SuccessResult successResult) {
+    private ApprovalRes applySuccessResult(SuccessResult successResult) {
         int updatedRows = paymentRepository.markApproved(
                 successResult.orderCode(),
                 PaymentStatus.APPROVING,
@@ -85,10 +72,11 @@ public class PaymentService {
                 successResult.receipt().url()
         );
         validateApprovingPaymentUpdatedRows(updatedRows);
+        return ApprovalRes.from(successResult);
     }
 
     @WithSpan("payment.service.apply_failed_result")
-    private void applyFailedResult(FailedResult failedResult) {
+    private ApprovalRes applyFailedResult(FailedResult failedResult) {
         int updatedRows = paymentRepository.markRejected(
                 failedResult.orderCode(),
                 PaymentStatus.APPROVING,
@@ -96,17 +84,7 @@ public class PaymentService {
                 failedResult.message()
         );
         validateApprovingPaymentUpdatedRows(updatedRows);
-    }
-
-    @WithSpan("payment.service.validate_mark_approving_updated_rows")
-    private void validateMarkApprovingUpdatedRows(int updatedRows, ApprovalReq approvalReq) {
-        if (updatedRows == 1) return;
-
-        boolean pendingPaymentExists = paymentRepository
-                .findByOrderCodeAndPaymentStatus(approvalReq.orderCode(), PaymentStatus.PENDING)
-                .isPresent();
-        if (pendingPaymentExists) throw new BusinessException(PAYMENT_INVALID);
-        throw new BusinessException(PAYMENT_NOT_FOUND);
+        return ApprovalRes.from(failedResult);
     }
 
     @WithSpan("payment.service.validate_approving_payment_updated_rows")
