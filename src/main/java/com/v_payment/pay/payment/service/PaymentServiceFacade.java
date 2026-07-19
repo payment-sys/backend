@@ -1,21 +1,18 @@
 package com.v_payment.pay.payment.service;
 
 import com.v_payment.pay.global.ExecutorWithRetry;
-import com.v_payment.pay.payment.config.PaymentExecutorConfig;
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.infra.PaymentError;
 import com.v_payment.pay.payment.infra.Result;
-import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Slf4j(topic = "API_LOGGER")
 @Component
@@ -28,7 +25,8 @@ public class PaymentServiceFacade {
         return CompletableFuture.supplyAsync(() -> {
             PaymentPayload payload = paymentService.validateApprovalReq(approvalReq);
             Result result = getApproveResult(payload);
-            return ApprovalRes.from(paymentService.finalizePaymentPayload(result));
+            paymentService.finalizePaymentPayload(result);
+            return ApprovalRes.from(result);
         }, paymentExecutorService);
     }
 
