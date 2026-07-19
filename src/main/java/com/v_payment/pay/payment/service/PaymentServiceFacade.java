@@ -27,7 +27,7 @@ public class PaymentServiceFacade {
         return CompletableFuture.supplyAsync(() -> {
             PaymentPayload payload = paymentService.validateApprovalReq(approvalReq);
             Result result = getApproveResult(payload);
-            paymentResultApplyLimiter.execute(() -> paymentService.finalizePaymentPayload(result));
+            paymentService.finalizePaymentPayload(result);
             return ApprovalRes.from(result);
         }, paymentExecutorService);
     }
