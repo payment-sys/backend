@@ -7,6 +7,7 @@ import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.infra.PaymentError;
 import com.v_payment.pay.payment.infra.Result;
+import com.v_payment.pay.payment.limiter.Limiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -20,12 +21,13 @@ import java.util.concurrent.ExecutorService;
 public class PaymentServiceFacade {
     private final PaymentService paymentService;
     private final ExecutorService paymentExecutorService;
+    private final Limiter paymentResultApplyLimiter;
 
     public CompletableFuture<ApprovalRes> approvePipeline(ApprovalReq approvalReq) {
         return CompletableFuture.supplyAsync(() -> {
             PaymentPayload payload = paymentService.validateApprovalReq(approvalReq);
             Result result = getApproveResult(payload);
-            paymentService.finalizePaymentPayload(result);
+            paymentResultApplyLimiter.execute(() -> paymentService.finalizePaymentPayload(result));
             return ApprovalRes.from(result);
         }, paymentExecutorService);
     }

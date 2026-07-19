@@ -40,6 +40,11 @@ toss:
     content-type: application/json
     timeout: 2
 
+payment:
+  result-apply:
+    limiter:
+      max-concurrent-tasks: 8
+
 management:
   server:
     port: 8082
