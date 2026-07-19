@@ -25,7 +25,6 @@ public class ExecutorWithRetry<T> {
         T lastResult = null;
         Exception exception = null;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            log.info("approval retry attempt = {}", attempt);
             try {
                 lastResult = task.call();
                 T finalLastResult = lastResult;

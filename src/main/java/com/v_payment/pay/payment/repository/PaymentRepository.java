@@ -17,7 +17,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     Optional<Payment> findByOrderCodeAndPaymentStatus(String orderCode, PaymentStatus paymentStatus);
 
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
     UPDATE Payment p
     SET p.paymentStatus = :approvingStatus,
@@ -37,7 +37,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
                       @Param("pendingStatus") PaymentStatus pendingStatus,
                       @Param("approvingStatus") PaymentStatus approvingStatus);
 
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
     UPDATE Payment p
     SET p.paymentStatus = :approvedStatus,
@@ -55,7 +55,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
                      @Param("approvedAt") LocalDateTime approvedAt,
                      @Param("receiptUrl") String receiptUrl);
 
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
     UPDATE Payment p
     SET p.paymentStatus = :rejectedStatus,
