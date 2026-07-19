@@ -1,5 +1,6 @@
 package com.v_payment.pay.global;
 
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,6 +19,7 @@ public class ExecutorWithRetry<T> {
     private long delayMillis;
     private Runnable recovery;
 
+    @WithSpan("executor_with_retry.execute")
     public T execute() {
         if (maxAttempts < 1) throw new IllegalArgumentException("maxAttempts must be at least 1.");
         if (delayMillis < 0) throw new IllegalArgumentException("delayMillis must be 0 or greater.");
@@ -49,6 +51,7 @@ public class ExecutorWithRetry<T> {
         throw new IllegalStateException("retry maxAttempts=" + maxAttempts + " exhausted, lastResult=" + lastResult);
     }
 
+    @WithSpan("executor_with_retry.sleep")
     private static void sleep(long delayMillis) {
         try {
             Thread.sleep(delayMillis);
