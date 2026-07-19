@@ -47,6 +47,7 @@ public class MeterFilter implements io.micrometer.core.instrument.config.MeterFi
                 || name.equals("jvm.memory.used")
                 || name.equals("jvm.memory.committed")
                 || name.equals("jvm.gc.pause")
+                || name.startsWith("jvm.threads.virtual")
                 || name.equals("jvm.threads.live")
                 || name.equals("jvm.threads.peak")
                 || name.equals("jvm.threads.daemon")
