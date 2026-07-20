@@ -19,12 +19,10 @@ public class PaymentServiceFacade {
     private final PaymentService paymentService;
     private final ExecutorService paymentExecutorService;
 
-    @WithSpan("payment.facade.approve_pipeline")
     public CompletableFuture<ApprovalRes> approvePipeline(ApprovalReq approvalReq) {
         return CompletableFuture.supplyAsync(() -> approvePipelineInternal(approvalReq), paymentExecutorService);
     }
 
-    @WithSpan("payment.facade.approve_pipeline_internal")
     private ApprovalRes approvePipelineInternal(ApprovalReq approvalReq) {
         PaymentPayload paymentPayload = paymentService.validateApprovalReq(approvalReq);
 

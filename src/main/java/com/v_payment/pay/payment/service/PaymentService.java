@@ -61,7 +61,6 @@ public class PaymentService {
         throw new BusinessException(UNKNOWN_ERROR);
     }
 
-    @WithSpan("payment.service.apply_success_result")
     private ApprovalRes applySuccessResult(SuccessResult successResult) {
         int updatedRows = paymentRepository.markApproved(
                 successResult.orderCode(),
@@ -75,7 +74,6 @@ public class PaymentService {
         return ApprovalRes.from(successResult);
     }
 
-    @WithSpan("payment.service.apply_failed_result")
     private ApprovalRes applyFailedResult(FailedResult failedResult) {
         int updatedRows = paymentRepository.markRejected(
                 failedResult.orderCode(),
@@ -87,7 +85,6 @@ public class PaymentService {
         return ApprovalRes.from(failedResult);
     }
 
-    @WithSpan("payment.service.validate_approving_payment_updated_rows")
     private void validateApprovingPaymentUpdatedRows(int updatedRows) {
         if (updatedRows != 1) throw new BusinessException(PAYMENT_NOT_FOUND);
     }
