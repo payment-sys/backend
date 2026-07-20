@@ -28,7 +28,6 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
 
     @Transactional
-    @WithSpan("payment.service.validate_approval_request")
     public PaymentPayload validateApprovalReq(ApprovalReq approvalReq) {
         int updatedRows = paymentRepository.markApproving(
                 approvalReq.orderCode(),
@@ -44,13 +43,11 @@ public class PaymentService {
         return PaymentPayload.create(approvalReq.orderCode(), approvalReq.paymentKey(), approvalReq.requestedAmount());
     }
 
-    @WithSpan("payment.service.approve")
     public Result approve(PaymentPayload paymentPayload) {
         return tossPayment.approve(paymentPayload);
     }
 
     @Transactional
-    @WithSpan("payment.service.finalize_payment_payload")
     public ApprovalRes finalizePaymentPayload(Result approveResult) {
         if (approveResult instanceof SuccessResult successResult) {
             return applySuccessResult(successResult);
