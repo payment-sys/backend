@@ -26,32 +26,27 @@ public class TossPayment {
     private final RestClient tossPaymentClient;
     private final TossPaymentProperties tossPaymentProperties;
 
-    @Timed(value = "pay.api")
-    @WithSpan("payment.toss.approve")
     public Result approve(PaymentPayload paymentPayload) {
-        long callStartTime = LTimer.getCurrTime();
-
         try {
             return exchangeApprove(paymentPayload);
         } catch (ResourceAccessException e) {
             log.warn("approval API timeout. orderCode = {} elapsedMs = {} error = {}",
-                    paymentPayload.getOrderCode(), LTimer.getDiff(callStartTime), e.toString());
+                    paymentPayload.getOrderCode(), e.toString());
             return new FailedResult(paymentPayload.getOrderCode(), PaymentError.NETWORK_TIMEOUT, e.getMessage());
         } catch (RestClientResponseException e) {
             log.warn("approval API failed. orderCode = {} elapsedMs = {} error = {}",
-                    paymentPayload.getOrderCode(), LTimer.getDiff(callStartTime), e.toString());
+                    paymentPayload.getOrderCode(), e.toString());
             int statusCode = e.getStatusCode().value();
             if (statusCode == 429) return new FailedResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_429, e.getMessage());
             if (statusCode >= 500) return new FailedResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_5XX, e.getMessage());
             return new FailedResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_4XX, e.getMessage());
         } catch (RuntimeException e) {
             log.warn("approval API failed. orderCode = {} elapsedMs = {} error = {}",
-                    paymentPayload.getOrderCode(), LTimer.getDiff(callStartTime), e.toString());
+                    paymentPayload.getOrderCode(), e.toString());
             return new FailedResult(paymentPayload.getOrderCode(), PaymentError.UNKNOWN, e.getMessage());
         }
     }
 
-    @WithSpan("payment.toss.exchange_approve")
     private Result exchangeApprove(PaymentPayload paymentPayload) {
         return tossPaymentClient.post()
                 .uri(tossPaymentProperties.uri())
@@ -63,7 +58,6 @@ public class TossPayment {
                 .body(SuccessResult.class);
     }
 
-    @WithSpan("payment.toss.encode_auth")
     private String encodeBase64(String secretKey) {
         return "Basic " + Base64.getEncoder().encodeToString((secretKey + ":").getBytes(StandardCharsets.UTF_8));
     }

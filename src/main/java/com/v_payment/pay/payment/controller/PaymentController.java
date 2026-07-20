@@ -21,7 +21,6 @@ public class PaymentController {
     private final PaymentServiceFacade paymentServiceFacade;
 
     @PostMapping("/approvals")
-    @WithSpan("payment.controller.approve")
     public CompletableFuture<ApprovalRes> approve(
             @RequestBody ApprovalReq approvalReq
     ) {
