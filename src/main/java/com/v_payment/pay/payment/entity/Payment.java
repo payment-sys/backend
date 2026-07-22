@@ -57,11 +57,6 @@ public class Payment {
 
     private String receiptUrl;
 
-    private String failedMessage;
-
-    @Version
-    private Integer version;
-
     @Builder
     public Payment(Provider provider,
                    PaymentMethod paymentMethod,
@@ -83,44 +78,6 @@ public class Payment {
         this.requestedAt = requestedAt;
         this.approvedAt = approvedAt;
         this.receiptUrl = receiptUrl;
-    }
-
-    public PaymentPayload getPaymentPayload() {
-        return PaymentPayload.create(orderCode, paymentKey, requestedAmount);
-    }
-
-    public boolean isSameRequestedAmount(Long requestedAmount) {
-        return this.requestedAmount.equals(requestedAmount);
-    }
-
-    public boolean isSameMethod(PaymentMethod paymentMethod) {
-        return this.paymentMethod == paymentMethod;
-    }
-
-    public boolean isSameProvider(Provider provider) {
-        return this.provider.equals(provider);
-    }
-
-    public void completeValidate(ApprovalReq approvalReq) {
-        this.paymentStatus = PaymentStatus.APPROVING;
-        this.paymentKey = approvalReq.paymentKey();
-    }
-
-    public void success(SuccessResult successResult) {
-        this.paymentStatus = PaymentStatus.APPROVED;
-        this.approvedAmount = successResult.totalAmount();
-        this.approvedAt = successResult.approvedAt();
-        this.receiptUrl = successResult.receipt().url();
-    }
-
-    public void failed(FailedResult failedResult) {
-        this.failedMessage = failedResult.message();
-        this.paymentStatus = PaymentStatus.REJECTED;
-    }
-
-    public void retryFailed() {
-        this.failedMessage = "retryFailed : unknown error";
-        this.paymentStatus = PaymentStatus.REJECTED;
     }
 
     public static Payment createPendingPayment(String orderCode, Long amount, PaymentMethod paymentMethod, Clock clock) {

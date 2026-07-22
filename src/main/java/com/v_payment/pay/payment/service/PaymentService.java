@@ -24,7 +24,6 @@ import static com.v_payment.pay.payment.exception.PaymentException.UNKNOWN_ERROR
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
-    private final TossPayment tossPayment;
     private final PaymentRepository paymentRepository;
 
     @Transactional
@@ -41,10 +40,6 @@ public class PaymentService {
         validateApprovingPaymentUpdatedRows(updatedRows);
 
         return PaymentPayload.create(approvalReq.orderCode(), approvalReq.paymentKey(), approvalReq.requestedAmount());
-    }
-
-    public Result approve(PaymentPayload paymentPayload) {
-        return tossPayment.approve(paymentPayload);
     }
 
     @Transactional
@@ -75,8 +70,7 @@ public class PaymentService {
         int updatedRows = paymentRepository.markRejected(
                 failedResult.orderCode(),
                 PaymentStatus.APPROVING,
-                PaymentStatus.REJECTED,
-                failedResult.message()
+                PaymentStatus.REJECTED
         );
         validateApprovingPaymentUpdatedRows(updatedRows);
         return ApprovalRes.from(failedResult);

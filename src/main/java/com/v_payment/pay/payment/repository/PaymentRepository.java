@@ -11,11 +11,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
-
-    Optional<Payment> findByOrderCodeAndPaymentStatus(String orderCode, PaymentStatus paymentStatus);
 
     @Modifying
     @Query("""
@@ -66,7 +63,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     """)
     int markRejected(@Param("orderCode") String orderCode,
                      @Param("approvingStatus") PaymentStatus approvingStatus,
-                     @Param("rejectedStatus") PaymentStatus rejectedStatus,
-                     @Param("failedMessage") String failedMessage);
+                     @Param("rejectedStatus") PaymentStatus rejectedStatus);
 
 }
