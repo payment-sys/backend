@@ -1,9 +1,6 @@
 package com.v_payment.pay.payment.infra;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-public record FailedResult(
+public record UnknownResult(
         String orderCode,
         PaymentError paymentError,
         String message

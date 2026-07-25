@@ -2,9 +2,10 @@ package com.v_payment.pay.payment.controller.dto.res;
 
 import com.v_payment.pay.payment.entity.Payment;
 import com.v_payment.pay.payment.entity.PaymentStatus;
-import com.v_payment.pay.payment.infra.FailedResult;
+import com.v_payment.pay.payment.infra.AbortedResult;
+import com.v_payment.pay.payment.infra.DoneResult;
 import com.v_payment.pay.payment.infra.Result;
-import com.v_payment.pay.payment.infra.SuccessResult;
+import com.v_payment.pay.payment.infra.UnknownResult;
 
 import java.time.LocalDateTime;
 
@@ -16,29 +17,42 @@ public record ApprovalRes(
         String receiptUrl
 ) {
     public static ApprovalRes from(Result result) {
-        if (result instanceof SuccessResult successResult) {
-            return from(successResult);
+        if (result instanceof DoneResult doneResult) {
+            return from(doneResult);
         }
-        if (result instanceof FailedResult failedResult) {
-            return from(failedResult);
+        if (result instanceof AbortedResult abortedResult) {
+            return from(abortedResult);
+        }
+        if (result instanceof UnknownResult unknownResult) {
+            return from(unknownResult);
         }
         throw new IllegalArgumentException("Unsupported approval result type: " + result.getClass().getName());
     }
 
-    public static ApprovalRes from(SuccessResult successResult) {
+    public static ApprovalRes from(DoneResult doneResult) {
         return new ApprovalRes(
-                successResult.orderCode(),
+                doneResult.orderCode(),
                 PaymentStatus.DONE,
-                successResult.totalAmount(),
-                successResult.approvedAt(),
-                successResult.receipt().url()
+                doneResult.totalAmount(),
+                doneResult.approvedAt(),
+                doneResult.receipt().url()
         );
     }
 
-    public static ApprovalRes from(FailedResult failedResult) {
+    public static ApprovalRes from(AbortedResult abortedResult) {
         return new ApprovalRes(
-                failedResult.orderCode(),
+                abortedResult.orderCode(),
                 PaymentStatus.ABORTED,
+                null,
+                null,
+                null
+        );
+    }
+
+    public static ApprovalRes from(UnknownResult unknownResult) {
+        return new ApprovalRes(
+                unknownResult.orderCode(),
+                PaymentStatus.UNKNOWN,
                 null,
                 null,
                 null

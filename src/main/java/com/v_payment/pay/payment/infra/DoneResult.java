@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record SuccessResult(
+public record DoneResult(
         @JsonProperty("orderId")
         String orderCode,
         String paymentKey,
@@ -18,5 +18,6 @@ public record SuccessResult(
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Receipt(
             String url
-    ){}
+    ) {
+    }
 }

@@ -66,15 +66,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Modifying
     @Query("""
     UPDATE Payment p
-    SET p.paymentStatus = :inProgressStatus,
-        p.paymentKey = :paymentKey
+    SET p.paymentStatus = :unknownStatus
     WHERE p.orderCode = :orderCode
-    AND p.paymentStatus = :readyStatus
+    AND p.paymentStatus = :inProgressStatus
     """)
-    int markInProgress(@Param("orderCode") String orderCode,
-                       @Param("paymentKey") String paymentKey,
-                       @Param("readyStatus") PaymentStatus readyStatus,
-                       @Param("inProgressStatus") PaymentStatus inProgressStatus);
+    int markUnknown(@Param("orderCode") String orderCode,
+                    @Param("inProgressStatus") PaymentStatus inProgressStatus,
+                    @Param("unknownStatus") PaymentStatus unknownStatus);
 
     @Modifying
     @Query("""
