@@ -2,21 +2,19 @@ package com.v_payment.pay.payment.service;
 
 import com.v_payment.pay.global.exception.BusinessException;
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
+import com.v_payment.pay.payment.controller.dto.req.TossPaymentWebhookReq;
 import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.entity.PaymentStatus;
 import com.v_payment.pay.payment.infra.FailedResult;
 import com.v_payment.pay.payment.infra.Result;
 import com.v_payment.pay.payment.infra.SuccessResult;
-import com.v_payment.pay.payment.infra.TossPayment;
 import com.v_payment.pay.payment.repository.PaymentRepository;
-import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static com.v_payment.pay.payment.exception.PaymentException.PAYMENT_INVALID;
 import static com.v_payment.pay.payment.exception.PaymentException.PAYMENT_NOT_FOUND;
 import static com.v_payment.pay.payment.exception.PaymentException.UNKNOWN_ERROR;
 
@@ -24,6 +22,8 @@ import static com.v_payment.pay.payment.exception.PaymentException.UNKNOWN_ERROR
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
+    private static final String PAYMENT_STATUS_CHANGED_EVENT = "PAYMENT_STATUS_CHANGED";
+
     private final PaymentRepository paymentRepository;
 
     @Transactional
@@ -53,6 +53,58 @@ public class PaymentService {
         throw new BusinessException(UNKNOWN_ERROR);
     }
 
+    @Transactional
+    public void syncTossPaymentStatus(TossPaymentWebhookReq webhookReq) {
+        if (webhookReq == null || !isPaymentStatusChanged(webhookReq)) return;
+
+        TossPaymentWebhookReq.Data payment = webhookReq.data();
+        if (payment == null || payment.orderCode() == null || payment.status() == null) {
+            log.warn("invalid toss payment webhook payload. eventType = {}", webhookReq.eventType());
+            return;
+        }
+
+        try {
+            PaymentStatus paymentStatus = PaymentStatus.valueOf(payment.status());
+            applyWebhookPaymentStatus(payment, paymentStatus);
+        } catch (IllegalArgumentException e) {
+            log.warn("unsupported toss payment webhook status. eventType = {}, status = {}",
+                    webhookReq.eventType(), payment.status());
+        }
+    }
+
+    private void applyWebhookPaymentStatus(TossPaymentWebhookReq.Data payment, PaymentStatus paymentStatus) {
+        int updatedRows = switch (paymentStatus) {
+            case READY, IN_PROGRESS -> 0;
+            case DONE -> paymentRepository.markDone(
+                    payment.orderCode(),
+                    payment.paymentKey(),
+                    PaymentStatus.DONE,
+                    payment.totalAmount(),
+                    payment.approvedAt() == null ? null : payment.approvedAt().toLocalDateTime(),
+                    payment.receipt() == null ? null : payment.receipt().url()
+            );
+            case ABORTED -> paymentRepository.markAborted(
+                    payment.orderCode(),
+                    payment.paymentKey(),
+                    PaymentStatus.ABORTED,
+                    PaymentStatus.DONE
+            );
+            case EXPIRED -> paymentRepository.markExpired(
+                    payment.orderCode(),
+                    payment.paymentKey(),
+                    PaymentStatus.EXPIRED,
+                    PaymentStatus.DONE
+            );
+        };
+
+        log.info("toss payment webhook applied. orderCode = {}, status = {}, updatedRows = {}",
+                payment.orderCode(), paymentStatus, updatedRows);
+    }
+
+    private boolean isPaymentStatusChanged(TossPaymentWebhookReq webhookReq) {
+        return PAYMENT_STATUS_CHANGED_EVENT.equals(webhookReq.eventType());
+    }
+
     private ApprovalRes applySuccessResult(SuccessResult successResult) {
         int updatedRows = paymentRepository.markDone(
                 successResult.orderCode(),
@@ -70,8 +122,7 @@ public class PaymentService {
         int updatedRows = paymentRepository.markAborted(
                 failedResult.orderCode(),
                 PaymentStatus.IN_PROGRESS,
-                PaymentStatus.ABORTED,
-                failedResult.message()
+                PaymentStatus.ABORTED
         );
         validatePaymentUpdatedRows(updatedRows);
         return ApprovalRes.from(failedResult);
