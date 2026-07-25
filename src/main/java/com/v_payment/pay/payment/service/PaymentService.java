@@ -24,27 +24,22 @@ import static com.v_payment.pay.payment.exception.PaymentException.UNKNOWN_ERROR
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
-    private final TossPayment tossPayment;
     private final PaymentRepository paymentRepository;
 
     @Transactional
     public PaymentPayload validateApprovalReq(ApprovalReq approvalReq) {
-        int updatedRows = paymentRepository.markApproving(
+        int updatedRows = paymentRepository.markInProgress(
                 approvalReq.orderCode(),
                 approvalReq.paymentKey(),
                 approvalReq.requestedAmount(),
                 approvalReq.provider(),
                 approvalReq.method(),
-                PaymentStatus.PENDING,
-                PaymentStatus.APPROVING
+                PaymentStatus.READY,
+                PaymentStatus.IN_PROGRESS
         );
-        validateApprovingPaymentUpdatedRows(updatedRows);
+        validatePaymentUpdatedRows(updatedRows);
 
         return PaymentPayload.create(approvalReq.orderCode(), approvalReq.paymentKey(), approvalReq.requestedAmount());
-    }
-
-    public Result approve(PaymentPayload paymentPayload) {
-        return tossPayment.approve(paymentPayload);
     }
 
     @Transactional
@@ -59,30 +54,30 @@ public class PaymentService {
     }
 
     private ApprovalRes applySuccessResult(SuccessResult successResult) {
-        int updatedRows = paymentRepository.markApproved(
+        int updatedRows = paymentRepository.markDone(
                 successResult.orderCode(),
-                PaymentStatus.APPROVING,
-                PaymentStatus.APPROVED,
+                PaymentStatus.IN_PROGRESS,
+                PaymentStatus.DONE,
                 successResult.totalAmount(),
                 successResult.approvedAt(),
                 successResult.receipt().url()
         );
-        validateApprovingPaymentUpdatedRows(updatedRows);
+        validatePaymentUpdatedRows(updatedRows);
         return ApprovalRes.from(successResult);
     }
 
     private ApprovalRes applyFailedResult(FailedResult failedResult) {
-        int updatedRows = paymentRepository.markRejected(
+        int updatedRows = paymentRepository.markAborted(
                 failedResult.orderCode(),
-                PaymentStatus.APPROVING,
-                PaymentStatus.REJECTED,
+                PaymentStatus.IN_PROGRESS,
+                PaymentStatus.ABORTED,
                 failedResult.message()
         );
-        validateApprovingPaymentUpdatedRows(updatedRows);
+        validatePaymentUpdatedRows(updatedRows);
         return ApprovalRes.from(failedResult);
     }
 
-    private void validateApprovingPaymentUpdatedRows(int updatedRows) {
+    private void validatePaymentUpdatedRows(int updatedRows) {
         if (updatedRows != 1) throw new BusinessException(PAYMENT_NOT_FOUND);
     }
 }
