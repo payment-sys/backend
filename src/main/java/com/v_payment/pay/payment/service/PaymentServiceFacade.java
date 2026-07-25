@@ -1,6 +1,7 @@
 package com.v_payment.pay.payment.service;
 
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
+import com.v_payment.pay.payment.controller.dto.req.TossPaymentWebhookReq;
 import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.infra.Result;
@@ -44,5 +45,10 @@ public class PaymentServiceFacade {
     @WithSpan("payment.service.finalize_payment_payload")
     private ApprovalRes finalize(Result result) {
         return paymentService.finalizePaymentPayload(result);
+    }
+
+    @WithSpan("payment.service.sync_toss_payment_status")
+    public void syncTossPaymentStatus(TossPaymentWebhookReq webhookReq) {
+        paymentService.syncTossPaymentStatus(webhookReq);
     }
 }
