@@ -4,7 +4,6 @@ import com.v_payment.pay.payment.entity.Payment;
 import com.v_payment.pay.payment.entity.PaymentStatus;
 import com.v_payment.pay.payment.infra.AbortedResult;
 import com.v_payment.pay.payment.infra.DoneResult;
-import com.v_payment.pay.payment.infra.Result;
 import com.v_payment.pay.payment.infra.UnknownResult;
 
 import java.time.LocalDateTime;
@@ -16,19 +15,6 @@ public record ApprovalRes(
         LocalDateTime approvedAt,
         String receiptUrl
 ) {
-    public static ApprovalRes from(Result result) {
-        if (result instanceof DoneResult doneResult) {
-            return from(doneResult);
-        }
-        if (result instanceof AbortedResult abortedResult) {
-            return from(abortedResult);
-        }
-        if (result instanceof UnknownResult unknownResult) {
-            return from(unknownResult);
-        }
-        throw new IllegalArgumentException("Unsupported approval result type: " + result.getClass().getName());
-    }
-
     public static ApprovalRes from(DoneResult doneResult) {
         return new ApprovalRes(
                 doneResult.orderCode(),
