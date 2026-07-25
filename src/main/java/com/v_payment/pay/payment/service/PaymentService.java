@@ -6,9 +6,10 @@ import com.v_payment.pay.payment.controller.dto.req.TossPaymentWebhookReq;
 import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.entity.PaymentStatus;
-import com.v_payment.pay.payment.infra.FailedResult;
+import com.v_payment.pay.payment.infra.AbortedResult;
+import com.v_payment.pay.payment.infra.DoneResult;
 import com.v_payment.pay.payment.infra.Result;
-import com.v_payment.pay.payment.infra.SuccessResult;
+import com.v_payment.pay.payment.infra.UnknownResult;
 import com.v_payment.pay.payment.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,11 +45,14 @@ public class PaymentService {
 
     @Transactional
     public ApprovalRes finalizePaymentPayload(Result approveResult) {
-        if (approveResult instanceof SuccessResult successResult) {
-            return applySuccessResult(successResult);
+        if (approveResult instanceof DoneResult doneResult) {
+            return applyDoneResult(doneResult);
         }
-        if (approveResult instanceof FailedResult failedResult) {
-            return applyFailedResult(failedResult);
+        if (approveResult instanceof AbortedResult abortedResult) {
+            return applyAbortedResult(abortedResult);
+        }
+        if (approveResult instanceof UnknownResult unknownResult) {
+            return applyUnknownResult(unknownResult);
         }
         throw new BusinessException(UNKNOWN_ERROR);
     }
@@ -74,7 +78,7 @@ public class PaymentService {
 
     private void applyWebhookPaymentStatus(TossPaymentWebhookReq.Data payment, PaymentStatus paymentStatus) {
         int updatedRows = switch (paymentStatus) {
-            case READY, IN_PROGRESS -> 0;
+            case READY, UNKNOWN, IN_PROGRESS -> 0;
             case DONE -> paymentRepository.markDone(
                     payment.orderCode(),
                     payment.paymentKey(),
@@ -105,27 +109,37 @@ public class PaymentService {
         return PAYMENT_STATUS_CHANGED_EVENT.equals(webhookReq.eventType());
     }
 
-    private ApprovalRes applySuccessResult(SuccessResult successResult) {
+    private ApprovalRes applyDoneResult(DoneResult doneResult) {
         int updatedRows = paymentRepository.markDone(
-                successResult.orderCode(),
+                doneResult.orderCode(),
                 PaymentStatus.IN_PROGRESS,
                 PaymentStatus.DONE,
-                successResult.totalAmount(),
-                successResult.approvedAt(),
-                successResult.receipt().url()
+                doneResult.totalAmount(),
+                doneResult.approvedAt(),
+                doneResult.receipt().url()
         );
         validatePaymentUpdatedRows(updatedRows);
-        return ApprovalRes.from(successResult);
+        return ApprovalRes.from(doneResult);
     }
 
-    private ApprovalRes applyFailedResult(FailedResult failedResult) {
+    private ApprovalRes applyAbortedResult(AbortedResult abortedResult) {
         int updatedRows = paymentRepository.markAborted(
-                failedResult.orderCode(),
+                abortedResult.orderCode(),
                 PaymentStatus.IN_PROGRESS,
                 PaymentStatus.ABORTED
         );
         validatePaymentUpdatedRows(updatedRows);
-        return ApprovalRes.from(failedResult);
+        return ApprovalRes.from(abortedResult);
+    }
+
+    private ApprovalRes applyUnknownResult(UnknownResult unknownResult) {
+        int updatedRows = paymentRepository.markUnknown(
+                unknownResult.orderCode(),
+                PaymentStatus.IN_PROGRESS,
+                PaymentStatus.UNKNOWN
+        );
+        validatePaymentUpdatedRows(updatedRows);
+        return ApprovalRes.from(unknownResult);
     }
 
     private void validatePaymentUpdatedRows(int updatedRows) {

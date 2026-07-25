@@ -1,10 +1,7 @@
 package com.v_payment.pay.payment.infra;
 
-import com.v_payment.pay.global.LTimer;
 import com.v_payment.pay.payment.config.TossPaymentProperties;
 import com.v_payment.pay.payment.entity.PaymentPayload;
-import io.micrometer.core.annotation.Timed;
-import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -32,18 +29,18 @@ public class TossPayment {
         } catch (ResourceAccessException e) {
             log.warn("approval API timeout. orderCode = {} elapsedMs = {} error = {}",
                     paymentPayload.getOrderCode(), e.toString());
-            return new FailedResult(paymentPayload.getOrderCode(), PaymentError.NETWORK_TIMEOUT, e.getMessage());
+            return new UnknownResult(paymentPayload.getOrderCode(), PaymentError.NETWORK_TIMEOUT, e.getMessage());
         } catch (RestClientResponseException e) {
             log.warn("approval API failed. orderCode = {} elapsedMs = {} error = {}",
                     paymentPayload.getOrderCode(), e.toString());
             int statusCode = e.getStatusCode().value();
-            if (statusCode == 429) return new FailedResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_429, e.getMessage());
-            if (statusCode >= 500) return new FailedResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_5XX, e.getMessage());
-            return new FailedResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_4XX, e.getMessage());
+            if (statusCode == 429) return new UnknownResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_429, e.getMessage());
+            if (statusCode >= 500) return new UnknownResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_5XX, e.getMessage());
+            return new AbortedResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_4XX, e.getMessage());
         } catch (RuntimeException e) {
             log.warn("approval API failed. orderCode = {} elapsedMs = {} error = {}",
                     paymentPayload.getOrderCode(), e.toString());
-            return new FailedResult(paymentPayload.getOrderCode(), PaymentError.UNKNOWN, e.getMessage());
+            return new UnknownResult(paymentPayload.getOrderCode(), PaymentError.UNKNOWN, e.getMessage());
         }
     }
 
@@ -55,7 +52,7 @@ public class TossPayment {
                 .header(IDEMPOTENCY_KEY_HEADER_KEY, paymentPayload.getOrderCode())
                 .body(paymentPayload)
                 .retrieve()
-                .body(SuccessResult.class);
+                .body(DoneResult.class);
     }
 
     private String encodeBase64(String secretKey) {
