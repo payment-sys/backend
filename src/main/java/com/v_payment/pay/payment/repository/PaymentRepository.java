@@ -20,53 +20,53 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Modifying
     @Query("""
     UPDATE Payment p
-    SET p.paymentStatus = :approvingStatus,
+    SET p.paymentStatus = :inProgressStatus,
         p.paymentKey = :paymentKey,
         p.version = p.version + 1
     WHERE p.orderCode = :orderCode
-    AND p.paymentStatus = :pendingStatus
+    AND p.paymentStatus = :readyStatus
     AND p.requestedAmount = :requestedAmount
     AND p.provider = :provider
     AND p.paymentMethod = :paymentMethod
     """)
-    int markApproving(@Param("orderCode") String orderCode,
-                      @Param("paymentKey") String paymentKey,
-                      @Param("requestedAmount") Long requestedAmount,
-                      @Param("provider") Provider provider,
-                      @Param("paymentMethod") PaymentMethod paymentMethod,
-                      @Param("pendingStatus") PaymentStatus pendingStatus,
-                      @Param("approvingStatus") PaymentStatus approvingStatus);
+    int markInProgress(@Param("orderCode") String orderCode,
+                       @Param("paymentKey") String paymentKey,
+                       @Param("requestedAmount") Long requestedAmount,
+                       @Param("provider") Provider provider,
+                       @Param("paymentMethod") PaymentMethod paymentMethod,
+                       @Param("readyStatus") PaymentStatus readyStatus,
+                       @Param("inProgressStatus") PaymentStatus inProgressStatus);
 
     @Modifying
     @Query("""
     UPDATE Payment p
-    SET p.paymentStatus = :approvedStatus,
+    SET p.paymentStatus = :doneStatus,
         p.approvedAmount = :approvedAmount,
         p.approvedAt = :approvedAt,
         p.receiptUrl = :receiptUrl,
         p.version = p.version + 1
     WHERE p.orderCode = :orderCode
-    AND p.paymentStatus = :approvingStatus
+    AND p.paymentStatus = :inProgressStatus
     """)
-    int markApproved(@Param("orderCode") String orderCode,
-                     @Param("approvingStatus") PaymentStatus approvingStatus,
-                     @Param("approvedStatus") PaymentStatus approvedStatus,
-                     @Param("approvedAmount") Long approvedAmount,
-                     @Param("approvedAt") LocalDateTime approvedAt,
-                     @Param("receiptUrl") String receiptUrl);
+    int markDone(@Param("orderCode") String orderCode,
+                 @Param("inProgressStatus") PaymentStatus inProgressStatus,
+                 @Param("doneStatus") PaymentStatus doneStatus,
+                 @Param("approvedAmount") Long approvedAmount,
+                 @Param("approvedAt") LocalDateTime approvedAt,
+                 @Param("receiptUrl") String receiptUrl);
 
     @Modifying
     @Query("""
     UPDATE Payment p
-    SET p.paymentStatus = :rejectedStatus,
+    SET p.paymentStatus = :abortedStatus,
         p.failedMessage = :failedMessage,
         p.version = p.version + 1
     WHERE p.orderCode = :orderCode
-    AND p.paymentStatus = :approvingStatus
+    AND p.paymentStatus = :inProgressStatus
     """)
-    int markRejected(@Param("orderCode") String orderCode,
-                     @Param("approvingStatus") PaymentStatus approvingStatus,
-                     @Param("rejectedStatus") PaymentStatus rejectedStatus,
-                     @Param("failedMessage") String failedMessage);
+    int markAborted(@Param("orderCode") String orderCode,
+                    @Param("inProgressStatus") PaymentStatus inProgressStatus,
+                    @Param("abortedStatus") PaymentStatus abortedStatus,
+                    @Param("failedMessage") String failedMessage);
 
 }

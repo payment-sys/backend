@@ -28,7 +28,7 @@ public record ApprovalRes(
     public static ApprovalRes from(SuccessResult successResult) {
         return new ApprovalRes(
                 successResult.orderCode(),
-                PaymentStatus.APPROVED,
+                PaymentStatus.DONE,
                 successResult.totalAmount(),
                 successResult.approvedAt(),
                 successResult.receipt().url()
@@ -38,7 +38,7 @@ public record ApprovalRes(
     public static ApprovalRes from(FailedResult failedResult) {
         return new ApprovalRes(
                 failedResult.orderCode(),
-                PaymentStatus.REJECTED,
+                PaymentStatus.ABORTED,
                 null,
                 null,
                 null
