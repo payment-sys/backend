@@ -4,6 +4,7 @@ import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.infra.Result;
+import com.v_payment.pay.payment.infra.TossPayment;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import java.util.concurrent.ExecutorService;
 @Component
 @RequiredArgsConstructor
 public class PaymentServiceFacade {
+    private final TossPayment tossPayment;
     private final PaymentService paymentService;
     private final ExecutorService paymentExecutorService;
 
@@ -36,7 +38,7 @@ public class PaymentServiceFacade {
 
     @WithSpan("payment.service.approve")
     private Result approve(PaymentPayload paymentPayload) {
-        return paymentService.approve(paymentPayload);
+        return tossPayment.approve(paymentPayload);
     }
 
     @WithSpan("payment.service.finalize_payment_payload")
