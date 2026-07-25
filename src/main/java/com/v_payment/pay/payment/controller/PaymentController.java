@@ -1,7 +1,9 @@
 package com.v_payment.pay.payment.controller;
 
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
+import com.v_payment.pay.payment.controller.dto.req.TossPaymentWebhookReq;
 import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
+import com.v_payment.pay.payment.service.PaymentService;
 import com.v_payment.pay.payment.service.PaymentServiceFacade;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
@@ -19,11 +21,19 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class PaymentController {
     private final PaymentServiceFacade paymentServiceFacade;
+    private final PaymentService paymentService;
 
     @PostMapping("/approvals")
     public CompletableFuture<ApprovalRes> approve(
             @RequestBody ApprovalReq approvalReq
     ) {
         return paymentServiceFacade.approvePipeline(approvalReq);
+    }
+
+    @PostMapping("/webhooks/toss")
+    public void syncTossPaymentStatus(
+            @RequestBody TossPaymentWebhookReq webhookReq
+    ) {
+        paymentServiceFacade.syncTossPaymentStatus(webhookReq);
     }
 }
