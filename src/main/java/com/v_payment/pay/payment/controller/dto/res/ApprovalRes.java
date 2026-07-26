@@ -4,6 +4,7 @@ import com.v_payment.pay.payment.entity.Payment;
 import com.v_payment.pay.payment.entity.PaymentStatus;
 import com.v_payment.pay.payment.infra.AbortedResult;
 import com.v_payment.pay.payment.infra.DoneResult;
+import com.v_payment.pay.payment.infra.ExpiredResult;
 import com.v_payment.pay.payment.infra.UnknownResult;
 
 import java.time.LocalDateTime;
@@ -45,13 +46,13 @@ public record ApprovalRes(
         );
     }
 
-    public static ApprovalRes from(Payment payment) {
+    public static ApprovalRes from(ExpiredResult expiredResult) {
         return new ApprovalRes(
-                payment.getOrderCode(),
-                payment.getPaymentStatus(),
-                payment.getApprovedAmount(),
-                payment.getApprovedAt(),
-                payment.getReceiptUrl()
+                expiredResult.orderCode(),
+                PaymentStatus.EXPIRED,
+                null,
+                null,
+                null
         );
     }
 }

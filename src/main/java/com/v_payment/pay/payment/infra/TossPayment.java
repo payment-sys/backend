@@ -19,6 +19,7 @@ public class TossPayment {
     private static final String AUTHORIZATION_HEADER_KEY = "Authorization";
     private static final String CONTENT_TYPE_HEADER_KEY = "Content-Type";
     private static final String IDEMPOTENCY_KEY_HEADER_KEY = "Idempotency-Key";
+    private static final String NOT_FOUND_PAYMENT_SESSION = "NOT_FOUND_PAYMENT_SESSION";
 
     private final RestClient tossPaymentClient;
     private final TossPaymentProperties tossPaymentProperties;
@@ -36,6 +37,7 @@ public class TossPayment {
             int statusCode = e.getStatusCode().value();
             if (statusCode == 429) return new UnknownResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_429, e.getMessage());
             if (statusCode >= 500) return new UnknownResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_5XX, e.getMessage());
+            if (isExpiredPayment(e)) return new ExpiredResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_4XX, e.getMessage());
             return new AbortedResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_4XX, e.getMessage());
         } catch (RuntimeException e) {
             log.warn("approval API failed. orderCode = {} elapsedMs = {} error = {}",
@@ -57,5 +59,20 @@ public class TossPayment {
 
     private String encodeBase64(String secretKey) {
         return "Basic " + Base64.getEncoder().encodeToString((secretKey + ":").getBytes(StandardCharsets.UTF_8));
+    }
+
+    private boolean isExpiredPayment(RestClientResponseException e) {
+        try {
+            TossPaymentErrorRes errorRes = e.getResponseBodyAs(TossPaymentErrorRes.class);
+            return errorRes != null && NOT_FOUND_PAYMENT_SESSION.equals(errorRes.code());
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private record TossPaymentErrorRes(
+            String code,
+            String message
+    ) {
     }
 }
