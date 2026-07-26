@@ -4,17 +4,24 @@ import com.v_payment.pay.global.exception.BusinessException;
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.controller.dto.req.TossPaymentWebhookReq;
 import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
+import com.v_payment.pay.payment.config.PaymentRecoveryProperties;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.entity.PaymentStatus;
 import com.v_payment.pay.payment.infra.AbortedResult;
 import com.v_payment.pay.payment.infra.DoneResult;
+import com.v_payment.pay.payment.infra.ExpiredResult;
 import com.v_payment.pay.payment.infra.Result;
 import com.v_payment.pay.payment.infra.UnknownResult;
 import com.v_payment.pay.payment.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.util.List;
 
 import static com.v_payment.pay.payment.exception.PaymentException.PAYMENT_NOT_FOUND;
 import static com.v_payment.pay.payment.exception.PaymentException.UNKNOWN_ERROR;
@@ -25,7 +32,9 @@ import static com.v_payment.pay.payment.exception.PaymentException.UNKNOWN_ERROR
 public class PaymentService {
     private static final String PAYMENT_STATUS_CHANGED_EVENT = "PAYMENT_STATUS_CHANGED";
 
+    private final Clock clock;
     private final PaymentRepository paymentRepository;
+    private final PaymentRecoveryProperties paymentRecoveryProperties;
 
     @Transactional
     public PaymentPayload validateApprovalReq(ApprovalReq approvalReq) {
@@ -54,7 +63,39 @@ public class PaymentService {
         if (approveResult instanceof UnknownResult unknownResult) {
             return applyUnknownResult(unknownResult);
         }
+        if (approveResult instanceof ExpiredResult expiredResult) {
+            return applyExpiredResult(expiredResult);
+        }
         throw new BusinessException(UNKNOWN_ERROR);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PaymentRecoveryTarget> findRecoveryTargets() {
+        LocalDateTime requestedBefore = LocalDateTime.now(clock)
+                .minusSeconds(paymentRecoveryProperties.staleAfterSeconds());
+        return paymentRepository.findRecoverablePayments(
+                List.of(PaymentStatus.IN_PROGRESS, PaymentStatus.UNKNOWN),
+                requestedBefore,
+                PageRequest.of(0, paymentRecoveryProperties.batchSize())
+        ).stream()
+                .map(payment -> new PaymentRecoveryTarget(
+                        PaymentPayload.create(
+                                payment.getOrderCode(),
+                                payment.getPaymentKey(),
+                                payment.getRequestedAmount()
+                        ),
+                        payment.getRecoveryAttemptCount() == null ? 0 : payment.getRecoveryAttemptCount()
+                ))
+                .toList();
+    }
+
+    @Transactional
+    public void increaseRecoveryAttemptCount(String orderCode) {
+        paymentRepository.increaseRecoveryAttemptCount(
+                orderCode,
+                PaymentStatus.IN_PROGRESS,
+                PaymentStatus.UNKNOWN
+        );
     }
 
     @Transactional
@@ -113,6 +154,7 @@ public class PaymentService {
         int updatedRows = paymentRepository.markDone(
                 doneResult.orderCode(),
                 PaymentStatus.IN_PROGRESS,
+                PaymentStatus.UNKNOWN,
                 PaymentStatus.DONE,
                 doneResult.totalAmount(),
                 doneResult.approvedAt(),
@@ -126,6 +168,7 @@ public class PaymentService {
         int updatedRows = paymentRepository.markAborted(
                 abortedResult.orderCode(),
                 PaymentStatus.IN_PROGRESS,
+                PaymentStatus.UNKNOWN,
                 PaymentStatus.ABORTED
         );
         validatePaymentUpdatedRows(updatedRows);
@@ -140,6 +183,17 @@ public class PaymentService {
         );
         validatePaymentUpdatedRows(updatedRows);
         return ApprovalRes.from(unknownResult);
+    }
+
+    private ApprovalRes applyExpiredResult(ExpiredResult expiredResult) {
+        int updatedRows = paymentRepository.markExpired(
+                expiredResult.orderCode(),
+                PaymentStatus.IN_PROGRESS,
+                PaymentStatus.UNKNOWN,
+                PaymentStatus.EXPIRED
+        );
+        validatePaymentUpdatedRows(updatedRows);
+        return ApprovalRes.from(expiredResult);
     }
 
     private void validatePaymentUpdatedRows(int updatedRows) {

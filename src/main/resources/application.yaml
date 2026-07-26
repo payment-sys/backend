@@ -44,6 +44,10 @@ payment:
   result-apply:
     limiter:
       max-concurrent-tasks: 8
+  recovery:
+    fixed-delay-ms: 30000
+    stale-after-seconds: 600
+    batch-size: 100
 
 management:
   server:
