@@ -1,5 +1,6 @@
 package com.v_payment.pay.payment.infra;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.v_payment.pay.payment.config.TossPaymentProperties;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class TossPayment {
     private static final String AUTHORIZATION_HEADER_KEY = "Authorization";
     private static final String CONTENT_TYPE_HEADER_KEY = "Content-Type";
     private static final String IDEMPOTENCY_KEY_HEADER_KEY = "Idempotency-Key";
+    private static final String NOT_FOUND_PAYMENT_SESSION = "NOT_FOUND_PAYMENT_SESSION";
 
     private final RestClient tossPaymentClient;
     private final TossPaymentProperties tossPaymentProperties;
@@ -34,6 +36,7 @@ public class TossPayment {
             log.warn("approval API failed. orderCode = {} elapsedMs = {} error = {}",
                     paymentPayload.getOrderCode(), e.toString());
             int statusCode = e.getStatusCode().value();
+            if (isExpiredPayment(e)) return new ExpiredResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_4XX, e.getMessage());
             if (statusCode == 429) return new UnknownResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_429, e.getMessage());
             if (statusCode >= 500) return new UnknownResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_5XX, e.getMessage());
             return new AbortedResult(paymentPayload.getOrderCode(), PaymentError.UPSTREAM_4XX, e.getMessage());
@@ -57,5 +60,21 @@ public class TossPayment {
 
     private String encodeBase64(String secretKey) {
         return "Basic " + Base64.getEncoder().encodeToString((secretKey + ":").getBytes(StandardCharsets.UTF_8));
+    }
+
+    private boolean isExpiredPayment(RestClientResponseException e) {
+        try {
+            TossPaymentErrorRes errorRes = e.getResponseBodyAs(TossPaymentErrorRes.class);
+            return errorRes != null && NOT_FOUND_PAYMENT_SESSION.equals(errorRes.code());
+        } catch (RuntimeException parseException) {
+            return false;
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record TossPaymentErrorRes(
+            String code,
+            String message
+    ) {
     }
 }
