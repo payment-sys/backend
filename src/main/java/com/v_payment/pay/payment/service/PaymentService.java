@@ -9,6 +9,7 @@ import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.entity.PaymentStatus;
 import com.v_payment.pay.payment.infra.AbortedResult;
 import com.v_payment.pay.payment.infra.DoneResult;
+import com.v_payment.pay.payment.infra.ExpiredResult;
 import com.v_payment.pay.payment.infra.Result;
 import com.v_payment.pay.payment.infra.UnknownResult;
 import com.v_payment.pay.payment.repository.PaymentRepository;
@@ -55,6 +56,9 @@ public class PaymentService {
         }
         if (approveResult instanceof UnknownResult unknownResult) {
             return applyUnknownResult(unknownResult);
+        }
+        if (approveResult instanceof ExpiredResult expiredResult) {
+            return applyExpiredResult(expiredResult);
         }
         throw new BusinessException(UNKNOWN_ERROR);
     }
@@ -126,10 +130,11 @@ public class PaymentService {
         int updatedRows = paymentRepository.markDone(
                 doneResult.orderCode(),
                 PaymentStatus.IN_PROGRESS,
+                PaymentStatus.UNKNOWN,
                 PaymentStatus.DONE,
                 doneResult.totalAmount(),
                 doneResult.approvedAt(),
-                doneResult.receipt().url()
+                doneResult.receipt() == null ? null : doneResult.receipt().url()
         );
         validatePaymentUpdatedRows(updatedRows);
         orderManager.markPaid(doneResult.orderCode());
@@ -140,6 +145,7 @@ public class PaymentService {
         int updatedRows = paymentRepository.markAborted(
                 abortedResult.orderCode(),
                 PaymentStatus.IN_PROGRESS,
+                PaymentStatus.UNKNOWN,
                 PaymentStatus.ABORTED
         );
         validatePaymentUpdatedRows(updatedRows);
@@ -155,6 +161,18 @@ public class PaymentService {
         );
         validatePaymentUpdatedRows(updatedRows);
         return ApprovalRes.from(unknownResult);
+    }
+
+    private ApprovalRes applyExpiredResult(ExpiredResult expiredResult) {
+        int updatedRows = paymentRepository.markExpired(
+                expiredResult.orderCode(),
+                PaymentStatus.IN_PROGRESS,
+                PaymentStatus.UNKNOWN,
+                PaymentStatus.EXPIRED
+        );
+        validatePaymentUpdatedRows(updatedRows);
+        orderManager.markPaymentFailed(expiredResult.orderCode());
+        return ApprovalRes.from(expiredResult);
     }
 
     private void validatePaymentUpdatedRows(int updatedRows) {

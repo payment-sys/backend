@@ -43,10 +43,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         p.approvedAt = :approvedAt,
         p.receiptUrl = :receiptUrl
     WHERE p.orderCode = :orderCode
-    AND p.paymentStatus = :inProgressStatus
+    AND (p.paymentStatus = :inProgressStatus
+        OR p.paymentStatus = :unknownStatus
+        OR p.paymentStatus = :doneStatus)
     """)
     int markDone(@Param("orderCode") String orderCode,
                  @Param("inProgressStatus") PaymentStatus inProgressStatus,
+                 @Param("unknownStatus") PaymentStatus unknownStatus,
                  @Param("doneStatus") PaymentStatus doneStatus,
                  @Param("approvedAmount") Long approvedAmount,
                  @Param("approvedAt") LocalDateTime approvedAt,
@@ -57,10 +60,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     UPDATE Payment p
     SET p.paymentStatus = :abortedStatus
     WHERE p.orderCode = :orderCode
-    AND p.paymentStatus = :inProgressStatus
+    AND (p.paymentStatus = :inProgressStatus
+        OR p.paymentStatus = :unknownStatus
+        OR p.paymentStatus = :abortedStatus)
     """)
     int markAborted(@Param("orderCode") String orderCode,
                     @Param("inProgressStatus") PaymentStatus inProgressStatus,
+                    @Param("unknownStatus") PaymentStatus unknownStatus,
                     @Param("abortedStatus") PaymentStatus abortedStatus);
 
     @Modifying
@@ -68,11 +74,25 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     UPDATE Payment p
     SET p.paymentStatus = :unknownStatus
     WHERE p.orderCode = :orderCode
-    AND p.paymentStatus = :inProgressStatus
+    AND (p.paymentStatus = :inProgressStatus OR p.paymentStatus = :unknownStatus)
     """)
     int markUnknown(@Param("orderCode") String orderCode,
                     @Param("inProgressStatus") PaymentStatus inProgressStatus,
                     @Param("unknownStatus") PaymentStatus unknownStatus);
+
+    @Modifying
+    @Query("""
+    UPDATE Payment p
+    SET p.paymentStatus = :expiredStatus
+    WHERE p.orderCode = :orderCode
+    AND (p.paymentStatus = :inProgressStatus
+        OR p.paymentStatus = :unknownStatus
+        OR p.paymentStatus = :expiredStatus)
+    """)
+    int markExpired(@Param("orderCode") String orderCode,
+                    @Param("inProgressStatus") PaymentStatus inProgressStatus,
+                    @Param("unknownStatus") PaymentStatus unknownStatus,
+                    @Param("expiredStatus") PaymentStatus expiredStatus);
 
     @Modifying
     @Query("""
