@@ -53,6 +53,8 @@ public class Payment {
 
     private String receiptUrl;
 
+    private Integer recoveryAttemptCount;
+
     @Builder
     public Payment(Provider provider,
                    PaymentMethod paymentMethod,
@@ -63,7 +65,8 @@ public class Payment {
                    PaymentStatus paymentStatus,
                    LocalDateTime requestedAt,
                    LocalDateTime approvedAt,
-                   String receiptUrl) {
+                   String receiptUrl,
+                   Integer recoveryAttemptCount) {
         this.provider = provider;
         this.paymentMethod = paymentMethod;
         this.orderCode = orderCode;
@@ -74,6 +77,7 @@ public class Payment {
         this.requestedAt = requestedAt;
         this.approvedAt = approvedAt;
         this.receiptUrl = receiptUrl;
+        this.recoveryAttemptCount = recoveryAttemptCount;
     }
 
     public static Payment createPendingPayment(String orderCode, Long amount, PaymentMethod paymentMethod, Clock clock) {
@@ -88,6 +92,7 @@ public class Payment {
                 .requestedAt(LocalDateTime.now(clock))
                 .approvedAt(null)
                 .receiptUrl(null)
+                .recoveryAttemptCount(0)
                 .build();
     }
 }
