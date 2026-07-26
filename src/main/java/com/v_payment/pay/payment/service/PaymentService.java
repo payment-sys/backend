@@ -1,6 +1,7 @@
 package com.v_payment.pay.payment.service;
 
 import com.v_payment.pay.global.exception.BusinessException;
+import com.v_payment.pay.order.service.OrderManager;
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.controller.dto.req.TossPaymentWebhookReq;
 import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
@@ -26,6 +27,7 @@ public class PaymentService {
     private static final String PAYMENT_STATUS_CHANGED_EVENT = "PAYMENT_STATUS_CHANGED";
 
     private final PaymentRepository paymentRepository;
+    private final OrderManager orderManager;
 
     @Transactional
     public PaymentPayload validateApprovalReq(ApprovalReq approvalReq) {
@@ -77,29 +79,40 @@ public class PaymentService {
     }
 
     private void applyWebhookPaymentStatus(TossPaymentWebhookReq.Data payment, PaymentStatus paymentStatus) {
-        int updatedRows = switch (paymentStatus) {
-            case READY, UNKNOWN, IN_PROGRESS -> 0;
-            case DONE -> paymentRepository.markDone(
-                    payment.orderCode(),
-                    payment.paymentKey(),
-                    PaymentStatus.DONE,
-                    payment.totalAmount(),
-                    payment.approvedAt() == null ? null : payment.approvedAt().toLocalDateTime(),
-                    payment.receipt() == null ? null : payment.receipt().url()
-            );
-            case ABORTED -> paymentRepository.markAborted(
-                    payment.orderCode(),
-                    payment.paymentKey(),
-                    PaymentStatus.ABORTED,
-                    PaymentStatus.DONE
-            );
-            case EXPIRED -> paymentRepository.markExpired(
-                    payment.orderCode(),
-                    payment.paymentKey(),
-                    PaymentStatus.EXPIRED,
-                    PaymentStatus.DONE
-            );
-        };
+        int updatedRows = 0;
+        switch (paymentStatus) {
+            case READY, UNKNOWN, IN_PROGRESS -> {
+            }
+            case DONE -> {
+                updatedRows = paymentRepository.markDone(
+                        payment.orderCode(),
+                        payment.paymentKey(),
+                        PaymentStatus.DONE,
+                        payment.totalAmount(),
+                        payment.approvedAt() == null ? null : payment.approvedAt().toLocalDateTime(),
+                        payment.receipt() == null ? null : payment.receipt().url()
+                );
+                if (updatedRows == 1) orderManager.markPaid(payment.orderCode());
+            }
+            case ABORTED -> {
+                updatedRows = paymentRepository.markAborted(
+                        payment.orderCode(),
+                        payment.paymentKey(),
+                        PaymentStatus.ABORTED,
+                        PaymentStatus.DONE
+                );
+                if (updatedRows == 1) orderManager.markPaymentFailed(payment.orderCode());
+            }
+            case EXPIRED -> {
+                updatedRows = paymentRepository.markExpired(
+                        payment.orderCode(),
+                        payment.paymentKey(),
+                        PaymentStatus.EXPIRED,
+                        PaymentStatus.DONE
+                );
+                if (updatedRows == 1) orderManager.markPaymentFailed(payment.orderCode());
+            }
+        }
 
         log.info("toss payment webhook applied. orderCode = {}, status = {}, updatedRows = {}",
                 payment.orderCode(), paymentStatus, updatedRows);
@@ -119,6 +132,7 @@ public class PaymentService {
                 doneResult.receipt().url()
         );
         validatePaymentUpdatedRows(updatedRows);
+        orderManager.markPaid(doneResult.orderCode());
         return ApprovalRes.from(doneResult);
     }
 
@@ -129,6 +143,7 @@ public class PaymentService {
                 PaymentStatus.ABORTED
         );
         validatePaymentUpdatedRows(updatedRows);
+        orderManager.markPaymentFailed(abortedResult.orderCode());
         return ApprovalRes.from(abortedResult);
     }
 
