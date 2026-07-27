@@ -54,6 +54,10 @@ public class Order {
         totalAmount += orderItem.getOrderAmount();
     }
 
+    public void updateStatus(OrderStatus orderStatus) {
+        this.orderStatus = orderStatus;
+    }
+
     public static Order create(LocalDateTime orderedAt) {
         return new Order(orderedAt);
     }

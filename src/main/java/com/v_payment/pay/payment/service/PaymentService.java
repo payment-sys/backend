@@ -1,6 +1,8 @@
 package com.v_payment.pay.payment.service;
 
 import com.v_payment.pay.global.exception.BusinessException;
+import com.v_payment.pay.order.entity.OrderStatus;
+import com.v_payment.pay.order.service.OrderManager;
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.controller.dto.req.TossPaymentWebhookReq;
 import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
@@ -13,6 +15,7 @@ import com.v_payment.pay.payment.infra.ExpiredResult;
 import com.v_payment.pay.payment.infra.Result;
 import com.v_payment.pay.payment.infra.UnknownResult;
 import com.v_payment.pay.payment.repository.PaymentRepository;
+import com.v_payment.pay.product.service.ProductManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +38,8 @@ public class PaymentService {
     private final Clock clock;
     private final PaymentRepository paymentRepository;
     private final PaymentRecoveryProperties paymentRecoveryProperties;
+    private final OrderManager orderManager;
+    private final ProductManager productManager;
 
     @Transactional
     public PaymentPayload validateApprovalReq(ApprovalReq approvalReq) {
@@ -108,13 +113,16 @@ public class PaymentService {
             return;
         }
 
+        PaymentStatus paymentStatus;
         try {
-            PaymentStatus paymentStatus = PaymentStatus.valueOf(payment.status());
-            applyWebhookPaymentStatus(payment, paymentStatus);
+            paymentStatus = PaymentStatus.valueOf(payment.status());
         } catch (IllegalArgumentException e) {
             log.warn("unsupported toss payment webhook status. eventType = {}, status = {}",
                     webhookReq.eventType(), payment.status());
+            return;
         }
+
+        applyWebhookPaymentStatus(payment, paymentStatus);
     }
 
     private void applyWebhookPaymentStatus(TossPaymentWebhookReq.Data payment, PaymentStatus paymentStatus) {
@@ -142,6 +150,8 @@ public class PaymentService {
             );
         };
 
+        applyOrderPaymentStatus(payment.orderCode(), paymentStatus, updatedRows);
+
         log.info("toss payment webhook applied. orderCode = {}, status = {}, updatedRows = {}",
                 payment.orderCode(), paymentStatus, updatedRows);
     }
@@ -161,6 +171,7 @@ public class PaymentService {
                 doneResult.receipt().url()
         );
         validatePaymentUpdatedRows(updatedRows);
+        applyOrderPaid(doneResult.orderCode());
         return ApprovalRes.from(doneResult);
     }
 
@@ -172,6 +183,7 @@ public class PaymentService {
                 PaymentStatus.ABORTED
         );
         validatePaymentUpdatedRows(updatedRows);
+        applyOrderPaymentFailed(abortedResult.orderCode());
         return ApprovalRes.from(abortedResult);
     }
 
@@ -193,7 +205,40 @@ public class PaymentService {
                 PaymentStatus.EXPIRED
         );
         validatePaymentUpdatedRows(updatedRows);
+        applyOrderPaymentExpired(expiredResult.orderCode());
         return ApprovalRes.from(expiredResult);
+    }
+
+    private void applyOrderPaymentStatus(String orderCode, PaymentStatus paymentStatus, int updatedRows) {
+        if (updatedRows != 1) return;
+
+        switch (paymentStatus) {
+            case DONE -> applyOrderPaid(orderCode);
+            case ABORTED -> applyOrderPaymentFailed(orderCode);
+            case EXPIRED -> applyOrderPaymentExpired(orderCode);
+            case READY, UNKNOWN, IN_PROGRESS -> {
+            }
+        }
+    }
+
+    private void applyOrderPaid(String orderCode) {
+        orderManager.updateStatus(orderCode, OrderStatus.PAID);
+    }
+
+    private void applyOrderPaymentFailed(String orderCode) {
+        restoreOrderProducts(orderManager.updateStatus(orderCode, OrderStatus.PAYMENT_FAILED));
+    }
+
+    private void applyOrderPaymentExpired(String orderCode) {
+        restoreOrderProducts(orderManager.updateStatus(orderCode, OrderStatus.CANCELLED));
+    }
+
+    private void restoreOrderProducts(OrderManager.OrderStatusUpdateResult updateResult) {
+        if (!updateResult.updated()) return;
+
+        productManager.restore(updateResult.orderItems().stream()
+                .map(orderItem -> new ProductManager.ProductRestoreReq(orderItem.productId(), orderItem.quantity()))
+                .toList());
     }
 
     private void validatePaymentUpdatedRows(int updatedRows) {
