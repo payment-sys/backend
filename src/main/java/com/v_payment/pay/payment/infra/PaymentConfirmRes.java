@@ -1,4 +1,4 @@
 package com.v_payment.pay.payment.infra;
 
-public interface Result {
+public interface PaymentConfirmRes {
 }

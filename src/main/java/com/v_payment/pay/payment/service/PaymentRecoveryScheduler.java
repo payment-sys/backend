@@ -1,7 +1,7 @@
 package com.v_payment.pay.payment.service;
 
 import com.v_payment.pay.payment.entity.PaymentPayload;
-import com.v_payment.pay.payment.infra.TossPayment;
+import com.v_payment.pay.payment.infra.toss.TossPayment;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

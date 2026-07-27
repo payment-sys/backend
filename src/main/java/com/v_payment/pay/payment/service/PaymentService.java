@@ -7,11 +7,11 @@ import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
 import com.v_payment.pay.payment.config.PaymentRecoveryProperties;
 import com.v_payment.pay.payment.entity.PaymentPayload;
 import com.v_payment.pay.payment.entity.PaymentStatus;
-import com.v_payment.pay.payment.infra.AbortedResult;
-import com.v_payment.pay.payment.infra.DoneResult;
-import com.v_payment.pay.payment.infra.ExpiredResult;
-import com.v_payment.pay.payment.infra.Result;
-import com.v_payment.pay.payment.infra.UnknownResult;
+import com.v_payment.pay.payment.infra.result.AbortedResult;
+import com.v_payment.pay.payment.infra.result.DoneResult;
+import com.v_payment.pay.payment.infra.result.ExpiredResult;
+import com.v_payment.pay.payment.infra.result.Result;
+import com.v_payment.pay.payment.infra.result.UnknownResult;
 import com.v_payment.pay.payment.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -158,7 +158,7 @@ public class PaymentService {
                 PaymentStatus.DONE,
                 doneResult.totalAmount(),
                 doneResult.approvedAt(),
-                doneResult.receipt().url()
+                doneResult.receipt() == null ? null : doneResult.receipt().url()
         );
         validatePaymentUpdatedRows(updatedRows);
         return ApprovalRes.from(doneResult);

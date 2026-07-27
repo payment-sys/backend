@@ -1,11 +1,10 @@
 package com.v_payment.pay.payment.controller.dto.res;
 
-import com.v_payment.pay.payment.entity.Payment;
 import com.v_payment.pay.payment.entity.PaymentStatus;
-import com.v_payment.pay.payment.infra.AbortedResult;
-import com.v_payment.pay.payment.infra.DoneResult;
-import com.v_payment.pay.payment.infra.ExpiredResult;
-import com.v_payment.pay.payment.infra.UnknownResult;
+import com.v_payment.pay.payment.infra.result.AbortedResult;
+import com.v_payment.pay.payment.infra.result.DoneResult;
+import com.v_payment.pay.payment.infra.result.ExpiredResult;
+import com.v_payment.pay.payment.infra.result.UnknownResult;
 
 import java.time.LocalDateTime;
 
@@ -22,7 +21,7 @@ public record ApprovalRes(
                 PaymentStatus.DONE,
                 doneResult.totalAmount(),
                 doneResult.approvedAt(),
-                doneResult.receipt().url()
+                doneResult.receipt() == null ? null : doneResult.receipt().url()
         );
     }
 
