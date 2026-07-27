@@ -29,6 +29,21 @@ public class ProductManager {
                 .toList();
     }
 
+    public void restore(List<ProductRestoreReq> requests) {
+        if (requests.isEmpty()) return;
+
+        Map<Long, Integer> quantityByProductId = requests.stream()
+                .collect(Collectors.groupingBy(
+                        ProductRestoreReq::productId,
+                        Collectors.summingInt(ProductRestoreReq::quantity)
+                ));
+        List<Long> productIds = quantityByProductId.keySet().stream().sorted().toList();
+        List<Product> products = productRepository.findAllByIdInForUpdate(productIds);
+        if (isNotFoundProductsExist(productIds, products)) throw new BusinessException(ProductException.PRODUCT_NOT_FOUND);
+
+        products.forEach(product -> product.restoreQuantity(quantityByProductId.get(product.getId())));
+    }
+
     private boolean isNotFoundProductsExist(List<Long> productIds, List<Product> products) {
         return productIds.size() != products.size();
     }
@@ -43,6 +58,12 @@ public class ProductManager {
     }
 
     public record ProductReservationReq(
+            Long productId,
+            Integer quantity
+    ) {
+    }
+
+    public record ProductRestoreReq(
             Long productId,
             Integer quantity
     ) {

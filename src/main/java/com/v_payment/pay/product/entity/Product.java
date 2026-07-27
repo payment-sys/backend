@@ -38,6 +38,13 @@ public class Product {
         stockQuantity -= quantity;
     }
 
+    public void restoreQuantity(Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException("Restore quantity must be positive.");
+        }
+        stockQuantity += quantity;
+    }
+
     public static Product create(String name, Long price, Integer stockQuantity) {
         return new Product(name, price, stockQuantity);
     }
