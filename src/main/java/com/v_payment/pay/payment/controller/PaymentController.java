@@ -13,18 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.CompletableFuture;
 
-/**
- * unit test
- * DisplayName: 결제 승인 요청이 올 시 paymentServiceFacade에 정상적으로 위임 후 return 받을 수 있다.
- * Given : 유효한 ApprovalReq, PaymentServiceFacade는 CompletableFuture<ApprovalRes> 응답 Stub
- * When : approve() 호출
- * Then : approvePipeLine()이 호출돼야 한다.CompletableFuture<ApprovalRes>가 응답돼야 한다.
- *
- * DisplayName: 결제 상태 변경 웹 훅이 올 시 paymentServiceFacade에 정상적으로 위임 후 return 받을 수 있다.
- * Given : 유효한 TossPaymentWebhookReq, PaymentServiceFacade 모킹
- * When : syncTossPaymentStatus 호출
- * Then : facade.syncTossPaymentStatus()가 호출돼야 한다.
- */
 @Slf4j(topic = "API_LOGGER")
 @RestController
 @RequestMapping("/payments")

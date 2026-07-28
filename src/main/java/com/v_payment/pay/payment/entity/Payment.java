@@ -16,14 +16,6 @@ import lombok.NoArgsConstructor;
 import java.time.Clock;
 import java.time.LocalDateTime;
 
-/**
- * unit test
- * DisplayName: Payment 엔티티 생성 시 paymentKey, approvedAmount, approvedAt, receiptUrl을 제외한 나머지 필드의 값이 세팅된다.
- * Given : 엔티티의 모든 필드 값
- * When : createPendingPayment 호출
- * Then : 값과 생성된 payment의 값이 같아야 한다.
- */
-
 @Getter
 @Entity
 @NoArgsConstructor

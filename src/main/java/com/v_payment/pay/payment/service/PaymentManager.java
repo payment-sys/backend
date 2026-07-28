@@ -8,13 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 
-/**
- * unit test
- * DisplayName: createPendingPayment 시 paymentRepository를 잘 호출한다.
- * Given: paymentRepository 목킹
- * When: createPendingPayment 호출
- * Then: paymentRepository가 호출됐는지 verify
- */
 @Component
 @RequiredArgsConstructor
 public class PaymentManager {

@@ -14,49 +14,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-/**
- * unit test
- * DisplayName: tossPaymentClient가 2XX성공 응답 반환 시 translator.translate()를 호출한다.
- * Given: tossPaymentClient가 TossPaymentConfirmSuccessRes 반환 stub
- * When: approve() 호출
- * Then: translateor.translate() 호출해야함
- *
- * DisplayName: tossPaymentClient가 4xx/5xx 에러 응답 반환 시 translator.translate()를 호출한다.
- * Given: tossPaymentClient가 TossPaymentConfirmErrorRes 반환 stub
- * When: approve() 호출
- * Then: translateor.translate() 호출해야함
- *
- * DisplayName: tossPaymentClient가 timeout예외 반환 시 translator.translateTimeout()을 호출한다.
- * Given: tossPaymentClient가 ResourceAccessException 반환 stub
- * When: approve() 호출
- * Then: translateor.translateTimeout() 호출해야함
- *
- * DisplayName: tossPaymentClient가 2xx/4xx/5xx/timeout 계열 예외가 아닌 알 수 없는 예외 반환 시 translator.translateUnknown()을 호출한다.
- * Given: tossPaymentClient가 RuntimeException 반환 stub
- * When: approve() 호출
- * Then: translateor.translateUnknown() 호출해야함
- *
- * DisplayName: tossPaymentClient 호출 시 요청 uri는 tossPaymentProperties.uri()와 같다.
- * Given: tossPaymentProperties.uri() 특정 Uri 반환 stub
- * When: approve() 호출
- * Then: tossPaymentClient.post().uri() 확인
- *
- * DisplayName: tossPaymentClient 호출 시 요청 헤더는 Authorization, Content-Type, Idempotency-Key를 key로 하는 필드에 properties의 값이 정상적으로 들어간다.
- * Given: secret, contentType, orderCode 준비
- * When: approve() 호출
- * Then: Authorization, Content-Type, Idempotency-Key 헤더 Assertion
- *
- * DisplayName: tossPaymentClient 호출 시 요청 헤더 중 Authorization을 키로하는 필드의 값은 Base64 암호화된다.
- * Given: tossPaymentProperties.secret()이 "test_secret"을 반환한다.
- * When: approve(paymentPayload)를 호출한다.
- * Then: Authorization 헤더 값은 "Basic " + Base64("test_secret:") 이다.
- *
- * DisplayName: tossPaymentClient 호출 시 요청 body는 PaymentPayload이다.
- * Given: paymentPayload가 준비되어 있다.
- * When: approve(paymentPayload)를 호출한다.
- * Then: tossPaymentClient 요청 body에 paymentPayload가 전달된다.
- */
-
 @Slf4j(topic = "SCHEDULER_LOGGER")
 @Component
 @RequiredArgsConstructor
