@@ -49,6 +49,13 @@ payment:
     stale-after-seconds: 600
     batch-size: 100
 
+product:
+  cache:
+    restore:
+      fixed-delay-ms: 30000
+    wal:
+      path: ${PRODUCT_RESERVATION_WAL_PATH:./data/product-reservation.wal}
+
 management:
   server:
     port: 8082
