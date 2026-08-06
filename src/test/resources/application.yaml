@@ -20,3 +20,10 @@ payment:
       fixed-delay-ms: 30000
       stale-after-seconds: 60
       batch-size: 100
+
+product:
+  cache:
+    restore:
+      fixed-delay-ms: 30000
+    wal:
+      path: ${PRODUCT_RESERVATION_WAL_PATH:./build/test-data/product-reservation.wal}
