@@ -1,6 +1,7 @@
 package com.v_payment.pay.product.cache.wal;
 
 import com.v_payment.pay.product.service.ProductManager;
+import com.v_payment.pay.product.service.ProductManager.ReserveProduct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -35,8 +36,8 @@ public class WriteAheadLog {
         initialize();
     }
 
-    public Entry reserve(List<ProductManager.ProductReservationReq> requests) {
-        return write(RESERVE, toReserveItems(requests));
+    public Entry reserve(List<ReserveProduct> reserveProducts) {
+        return write(RESERVE, toReserveItems(reserveProducts));
     }
 
     public Entry restore(List<ProductManager.ProductRestoreReq> requests) {
@@ -70,9 +71,9 @@ public class WriteAheadLog {
         return version.incrementAndGet();
     }
 
-    private List<Item> toReserveItems(List<ProductManager.ProductReservationReq> requests) {
-        return requests.stream()
-                .map(request -> new Item(request.productId(), request.quantity()))
+    private List<Item> toReserveItems(List<ReserveProduct> reserveProducts) {
+        return reserveProducts.stream()
+                .map(product -> new Item(product.productId(), product.quantity()))
                 .toList();
     }
 

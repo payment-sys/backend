@@ -6,6 +6,7 @@ import com.v_payment.pay.product.entity.Product;
 import com.v_payment.pay.product.exception.ProductException;
 import com.v_payment.pay.product.repository.ProductRepository;
 import com.v_payment.pay.product.service.ProductManager;
+import com.v_payment.pay.product.service.ProductManager.ReserveContext;
 import com.v_payment.pay.product.service.ReservedProduct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -15,6 +16,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -35,22 +37,16 @@ public class ProductCaffeineCache implements ProductCache {
 
     @Override
     @Transactional
-    public List<ReservedProduct> reserve(List<ProductManager.ProductReservationReq> requests) {
-        if (requests.isEmpty()) return List.of();
-
-        List<Long> productIds = requests.stream()
-                .map(ProductManager.ProductReservationReq::productId)
-                .distinct()
-                .sorted()
-                .toList();
-
-        List<ReentrantLock> acquiredLocks = lockAll(productIds);
+    public List<ReservedProduct> reserve(ReserveContext reserveContext) {
+        List<ReentrantLock> acquiredLocks = lockAll(reserveContext.productIds());
         try {
-            allocateProductsIfNeeded(productIds);
-            validateStock(requests);
-            writeAheadLog.reserve(requests);
-            subtractStock(requests);
-            return createReservedProducts(requests);
+            Map<Long, CachedProduct> cachedProducts = loadCache(reserveContext);
+
+            writeAheadLog.reserve(reserveContext.reserveProducts());
+
+            subtractStock(reserveContext);
+
+            return createReservedProducts(reserveContext, cachedProducts);
         } finally {
             unlockAll(acquiredLocks);
         }
@@ -103,7 +99,7 @@ public class ProductCaffeineCache implements ProductCache {
                 return 0;
             }
 
-            int updatedRows = productRepository.increaseStock(product.productId(), product.stockQuantity());
+            int updatedRows = productRepository.changeStock(product.productId(), product.stockQuantity());
             if (updatedRows != 1) {
                 throw new BusinessException(ProductException.PRODUCT_NOT_FOUND);
             }
@@ -146,61 +142,89 @@ public class ProductCaffeineCache implements ProductCache {
                 .forEach(product -> products.put(product.productId(), product));
     }
 
-    private void allocateProductsIfNeeded(List<Long> productIds) {
-        List<Long> allocationTargetProductIds = productIds.stream()
-                .filter(productId -> {
-                    CachedProduct product = products.get(productId);
-                    return product == null || product.stockQuantity() == 0;
-                })
+    private Map<Long, CachedProduct> loadCache(ReserveContext reserveContext) {
+        // 현재 캐시 수량으로 요청을 감당할 수 없는 상품만 DB에서 가져온다.
+        List<Long> forLoadIds = reserveContext.productIds().stream()
+                .filter(productId -> isInsufficientStock(products.get(productId), reserveContext.quantity(productId)))
                 .toList();
-        if (allocationTargetProductIds.isEmpty()) return;
 
-        Map<Long, Product> loadedProductById = productRepository.findAllById(allocationTargetProductIds).stream()
-                .collect(Collectors.toMap(Product::getId, Function.identity()));
-        if (loadedProductById.size() != allocationTargetProductIds.size()) {
-            throw new BusinessException(ProductException.PRODUCT_NOT_FOUND);
-        }
+        if (!forLoadIds.isEmpty()) {
+            // 동시 예약으로 재고가 초과 차감되지 않도록 할당량 계산 전에 row lock을 잡는다.
+            Map<Long, Product> productsForLoad = productRepository.findAllByIdInForUpdate(forLoadIds).stream()
+                    .collect(Collectors.toMap(Product::getId, Function.identity()));
+            if (productsForLoad.size() != forLoadIds.size()) throw new BusinessException(ProductException.PRODUCT_NOT_FOUND);
 
-        for (Long productId : allocationTargetProductIds) {
-            int updatedRows = productRepository.decreaseStockIfAvailable(productId, CACHE_ALLOCATION_QUANTITY);
-            if (updatedRows != 1) {
-                throw new BusinessException(ProductException.OUT_OF_STOCK);
+            // 중간 품절 시 메모리 캐시가 앞서가지 않도록 DB/cache 변경 전에 모든 할당량을 계산한다.
+            Map<Long, Integer> allocationQuantityByProductId = new HashMap<>();
+            for (Long productId : forLoadIds) {
+                CachedProduct cachedProduct = products.get(productId);
+                Product loadedProduct = productsForLoad.get(productId);
+                int requestedQuantity = reserveContext.quantity(productId);
+                int cachedQuantity = cachedProduct == null ? 0 : cachedProduct.stockQuantity();
+                int allocationQuantity = allocationQuantity(loadedProduct, requestedQuantity - cachedQuantity);
+
+                if (cachedQuantity + allocationQuantity < requestedQuantity) {
+                    throw new BusinessException(ProductException.OUT_OF_STOCK);
+                }
+                allocationQuantityByProductId.put(productId, allocationQuantity);
             }
+
+            // DB 재고에서 할당 수량만큼 차감해 메모리 캐시로 옮긴다.
+            for (Long productId : forLoadIds) {
+                int allocationQuantity = allocationQuantityByProductId.get(productId);
+                int updatedRows = productRepository.changeStock(productId, -allocationQuantity);
+                if (updatedRows != 1) throw new BusinessException(ProductException.OUT_OF_STOCK);
+            }
+
+            LocalDateTime lastModifiedAt = LocalDateTime.now(clock);
+            forLoadIds.forEach(productId -> {
+                CachedProduct cachedProduct = products.get(productId);
+                Product loadedProduct = productsForLoad.get(productId);
+                int allocationQuantity = allocationQuantityByProductId.get(productId);
+                products.put(
+                        productId,
+                        CachedProduct.from(loadedProduct, stockQuantity(cachedProduct) + allocationQuantity, lastModifiedAt)
+                );
+            });
         }
 
-        LocalDateTime lastModifiedAt = LocalDateTime.now(clock);
-        allocationTargetProductIds.forEach(productId -> {
-            Product loadedProduct = loadedProductById.get(productId);
-            products.put(productId, CachedProduct.from(loadedProduct, CACHE_ALLOCATION_QUANTITY, lastModifiedAt));
-        });
+        // 요청 수량을 만족하는지 검증된 예약용 캐시 스냅샷을 반환한다.
+        Map<Long, CachedProduct> cachedProducts = productIds.stream()
+                .collect(Collectors.toMap(Function.identity(), products::get));
+        validateStock(reserveContext, cachedProducts);
+        return cachedProducts;
     }
 
-    private void validateStock(List<ProductManager.ProductReservationReq> requests) {
-        Map<Long, Integer> quantityByProductId = requests.stream()
-                .collect(Collectors.groupingBy(
-                        ProductManager.ProductReservationReq::productId,
-                        Collectors.summingInt(ProductManager.ProductReservationReq::quantity)
-                ));
+    private int allocationQuantity(Product product, int requiredQuantity) {
+        if (requiredQuantity <= 0) return 0;
+        if (product.getStockQuantity() <= 0) throw new BusinessException(ProductException.OUT_OF_STOCK);
+        return Math.min(product.getStockQuantity(), Math.max(CACHE_ALLOCATION_QUANTITY, requiredQuantity));
+    }
 
-        quantityByProductId.forEach((productId, quantity) -> {
-            CachedProduct product = products.get(productId);
+    private int stockQuantity(CachedProduct product) {
+        return product == null ? 0 : product.stockQuantity();
+    }
+
+    private boolean isInsufficientStock(CachedProduct product, Integer quantity) {
+        return product == null || product.stockQuantity() < quantity;
+    }
+
+    private void validateStock(ReserveContext reserveContext, Map<Long, CachedProduct> cachedProducts) {
+        reserveContext.reserveProducts().forEach(reserveProduct -> {
+            CachedProduct product = cachedProducts.get(reserveProduct.productId());
             if (product == null) throw new BusinessException(ProductException.PRODUCT_NOT_FOUND);
-            if (product.stockQuantity() < quantity) throw new BusinessException(ProductException.OUT_OF_STOCK);
+            if (product.stockQuantity() < reserveProduct.quantity()) throw new BusinessException(ProductException.OUT_OF_STOCK);
         });
     }
 
-    private void subtractStock(List<ProductManager.ProductReservationReq> requests) {
+    private void subtractStock(ReserveContext reserveContext) {
         LocalDateTime lastModifiedAt = LocalDateTime.now(clock);
-        Map<Long, Integer> quantityByProductId = requests.stream()
-                .collect(Collectors.groupingBy(
-                        ProductManager.ProductReservationReq::productId,
-                        Collectors.summingInt(ProductManager.ProductReservationReq::quantity)
-                ));
-
-        quantityByProductId.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> {
-                    products.computeIfPresent(entry.getKey(), (k, product) -> product.subtractQuantity(entry.getValue(), lastModifiedAt));
+        reserveContext.reserveProducts()
+                .forEach(reserveProduct -> {
+                    products.computeIfPresent(
+                            reserveProduct.productId(),
+                            (k, product) -> product.subtractQuantity(reserveProduct.quantity(), lastModifiedAt)
+                    );
                 });
     }
 
@@ -217,11 +241,14 @@ public class ProductCaffeineCache implements ProductCache {
                 .forEach(entry -> products.computeIfPresent(entry.getKey(), (k, product) -> product.addQuantity(entry.getValue(), lastModifiedAt)));
     }
 
-    private List<ReservedProduct> createReservedProducts(List<ProductManager.ProductReservationReq> requests) {
-        return requests.stream()
-                .map(request -> {
-                    CachedProduct product = products.get(request.productId());
-                    return new ReservedProduct(product.productId(), product.name(), product.price(), request.quantity());
+    private List<ReservedProduct> createReservedProducts(
+            ReserveContext reserveContext,
+            Map<Long, CachedProduct> cachedProducts
+    ) {
+        return reserveContext.reserveProducts().stream()
+                .map(reserveProduct -> {
+                    CachedProduct product = cachedProducts.get(reserveProduct.productId());
+                    return new ReservedProduct(product.productId(), product.name(), product.price(), reserveProduct.quantity());
                 })
                 .toList();
     }
