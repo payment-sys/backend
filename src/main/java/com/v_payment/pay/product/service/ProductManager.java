@@ -8,7 +8,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class ProductManager {
+public class ProductManager { //
     private final ProductCache productCache;
 
     public List<ReservedProduct> reserve(List<ProductReservationReq> requests) {
