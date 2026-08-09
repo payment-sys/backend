@@ -1,6 +1,13 @@
 package com.v_payment.pay.product.service;
 
+import com.v_payment.pay.global.exception.BusinessException;
+import com.v_payment.pay.product.cache.LockManager;
 import com.v_payment.pay.product.cache.ProductCache;
+import com.v_payment.pay.product.cache.dto.CachedProduct;
+import com.v_payment.pay.product.controller.dto.res.ReservedProduct;
+import com.v_payment.pay.product.entity.Product;
+import com.v_payment.pay.product.exception.ProductException;
+import com.v_payment.pay.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -12,73 +19,97 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 public class ProductManager { //
-    private final ProductCache productCache;
+    private final int MAX_LOAD_QUANTITY = 400;
 
-    public List<ReservedProduct> reserve(List<ProductReservationReq> requests) {
-        ReserveContext reserveContext = ReserveContext.from(requests);
-        return productCache.reserve(reserveContext);
+    private final ProductCache productCache;
+    private final LockManager lockManager;
+    private final ProductRepository productRepository;
+
+
+    public List<ReservedProduct> reserve(List<ProductReservationReq> reqs) {
+        List<Long> productIds = reqs.stream().map(req -> req.productId).distinct().sorted().toList();
+        Map<Long, Integer> reqsMap = reqs.stream().collect(
+                Collectors.toMap(req -> req.productId, req -> req.quantity)
+        );
+
+        return lockManager.withLock(productIds, () -> {
+            Map<Long, CachedProduct> productsInCache = productCache.findAll(productIds);
+
+            Map<Long, Product> productsForLoad = findProductInDbIfNeeded(productsInCache, reqsMap);
+
+            List<CachedProduct> cachedProducts = loadAndReserveProducts(productsForLoad, productsInCache, reqsMap);
+
+            return cachedProducts.stream()
+                    .map(cachedProduct -> ReservedProduct.of(cachedProduct.productId(),
+                            cachedProduct.productName(),cachedProduct.price(), cachedProduct.quantity()))
+                    .toList();
+        });
+    }
+
+    private List<CachedProduct> loadAndReserveProducts(Map<Long, Product> productsForLoad, Map<Long, CachedProduct> productsInCache, Map<Long, Integer> reqsMap) {
+        return reqsMap.entrySet().stream().map(entry -> {
+                    Long productId = entry.getKey();
+                    int requestedQuantity = entry.getValue();
+                    CachedProduct cachedProduct = productsInCache.get(productId);
+
+                    if (isEnoughQuantityInCache(productsInCache, productId, requestedQuantity)) {
+                        CachedProduct reservedProduct = cachedProduct.changeQuantity(-requestedQuantity);
+                        productCache.put(productId, reservedProduct);
+                        return reservedProduct;
+                    }
+
+                    Product productForReserve = productsForLoad.get(productId);
+                    if (productForReserve == null) throw new BusinessException(ProductException.PRODUCT_NOT_FOUND);
+
+                    if (isNotEnoughInDBAndCache(requestedQuantity, productForReserve, cachedProduct)) {
+                        throw new BusinessException(ProductException.OUT_OF_STOCK);
+                    }
+
+                    int loadQuantityAtDb = Math.min(MAX_LOAD_QUANTITY, productForReserve.getStockQuantity());
+                    productForReserve.subtractQuantity(loadQuantityAtDb);
+                    int quantityResult = loadQuantityAtDb + cachedProduct.quantity() - requestedQuantity;
+                    CachedProduct reservedProduct = cachedProduct.changeQuantity(quantityResult);
+                    productCache.put(productId, reservedProduct);
+                    return reservedProduct;
+                })
+                .toList();
+    }
+
+    private boolean isNotEnoughInDBAndCache(Integer requestedQuantity, Product productForReserve, CachedProduct cachedProduct) {
+        return !(productForReserve.getStockQuantity() + cachedProduct.quantity() < requestedQuantity);
+    }
+
+    private boolean isEnoughQuantityInCache(Map<Long, CachedProduct> productsInCache, Long productId, Integer requestedQuantity) {
+        return productsInCache.get(productId).quantity() >= requestedQuantity;
+    }
+
+    private Map<Long, Product> findProductInDbIfNeeded(Map<Long, CachedProduct> productsInCache, Map<Long, Integer> reqsMap) {
+        List<Long> productIdsForFind = reqsMap.keySet().stream()
+                .filter(productId -> isNotCached(productsInCache, productId) || needMoreQuantity(productsInCache, reqsMap, productId))
+                .sorted()
+                .toList();
+
+        if (productIdsForFind.isEmpty()) return Map.of();
+        return productRepository.findAllByIdInForUpdate(productIdsForFind).stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+    }
+
+    private boolean isNotCached(Map<Long, CachedProduct> productsInCache, Long productId) {
+        return !productsInCache.containsKey(productId);
+    }
+
+    private boolean needMoreQuantity(Map<Long, CachedProduct> productsInCache, Map<Long, Integer> reqsMap, Long productId) {
+        return productsInCache.get(productId).quantity() < reqsMap.get(productId);
     }
 
     public void restore(List<ProductRestoreReq> requests) {
-        productCache.restore(requests);
+
     }
 
     public record ProductReservationReq(
             Long productId,
             Integer quantity
     ) {
-    }
-
-    public record ReserveContext(
-            Map<Long, ReserveProduct> products
-    ) {
-        private static ReserveContext from(List<ProductReservationReq> requests) {
-            Map<Long, ReserveProduct> products = requests.stream()
-                    .map(ReserveProduct::from)
-                    .collect(Collectors.toMap(
-                            ReserveProduct::productId,
-                            Function.identity(),
-                            ReserveProduct::addQuantity
-                    ));
-            return new ReserveContext(products);
-        }
-
-        public ReserveContext {
-            products = Map.copyOf(products);
-        }
-
-        public boolean isEmpty() {
-            return products.isEmpty();
-        }
-
-        public List<Long> productIds() {
-            return products.keySet().stream()
-                    .sorted()
-                    .toList();
-        }
-
-        public List<ReserveProduct> reserveProducts() {
-            return productIds().stream()
-                    .map(products::get)
-                    .toList();
-        }
-
-        public Integer quantity(Long productId) {
-            return products.get(productId).quantity();
-        }
-    }
-
-    public record ReserveProduct(
-            Long productId,
-            Integer quantity
-    ) {
-        private static ReserveProduct from(ProductReservationReq request) {
-            return new ReserveProduct(request.productId(), request.quantity());
-        }
-
-        private ReserveProduct addQuantity(ReserveProduct product) {
-            return new ReserveProduct(productId, quantity + product.quantity());
-        }
     }
 
     public record ProductRestoreReq(
