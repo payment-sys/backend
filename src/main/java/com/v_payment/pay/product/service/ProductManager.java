@@ -46,6 +46,30 @@ public class ProductManager { //
         });
     }
 
+    public void restore(List<ProductRestoreReq> requests) {
+        if (requests.isEmpty()) return;
+
+        Map<Long, Integer> reqsMap = requests.stream().collect(Collectors.toMap(
+                ProductRestoreReq::productId,
+                ProductRestoreReq::quantity,
+                Integer::sum
+        ));
+        List<Long> productIds = reqsMap.keySet().stream().sorted().toList();
+
+        lockManager.withLock(productIds, () -> {
+            Map<Long, CachedProduct> productsInCache = productCache.findAll(productIds);
+            Map<Long, Product> productsForLoad = findProductInDbForRestoreIfNeeded(productsInCache, productIds);
+
+            reqsMap.forEach((productId, quantity) -> {
+                CachedProduct restoredProduct = restoreProduct(productId, quantity, productsInCache, productsForLoad);
+                productCache.put(productId, restoredProduct);
+                productsInCache.put(productId, restoredProduct);
+            });
+
+            return null;
+        });
+    }
+
     private List<CachedProduct> loadAndReserveProducts(Map<Long, Product> productsForLoad, Map<Long, CachedProduct> productsInCache, Map<Long, Integer> reqsMap) {
         return reqsMap.entrySet().stream().map(entry -> {
                     Long productId = entry.getKey();
@@ -102,8 +126,30 @@ public class ProductManager { //
         return productsInCache.get(productId).quantity() < reqsMap.get(productId);
     }
 
-    public void restore(List<ProductRestoreReq> requests) {
+    private Map<Long, Product> findProductInDbForRestoreIfNeeded(Map<Long, CachedProduct> productsInCache, List<Long> productIds) {
+        List<Long> productIdsForFind = productIds.stream()
+                .filter(productId -> !productsInCache.containsKey(productId))
+                .toList();
 
+        if (productIdsForFind.isEmpty()) return Map.of();
+        return productRepository.findAllByIdInForUpdate(productIdsForFind).stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+    }
+
+    private CachedProduct restoreProduct(
+            Long productId,
+            Integer quantity,
+            Map<Long, CachedProduct> productsInCache,
+            Map<Long, Product> productsForLoad
+    ) {
+        CachedProduct cachedProduct = productsInCache.get(productId);
+        if (cachedProduct != null) {
+            return cachedProduct.changeQuantity(quantity);
+        }
+
+        Product product = productsForLoad.get(productId);
+        if (product == null) throw new BusinessException(ProductException.PRODUCT_NOT_FOUND);
+        return new CachedProduct(product.getId(), product.getName(), product.getPrice(), quantity);
     }
 
     public record ProductReservationReq(

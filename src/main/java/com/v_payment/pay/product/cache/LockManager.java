@@ -1,11 +1,14 @@
 package com.v_payment.pay.product.cache;
 
+import org.springframework.stereotype.Component;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
+@Component
 public class LockManager {
     private final Map<Long, ReentrantLock> lockCache = new ConcurrentHashMap<>();
 
