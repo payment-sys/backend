@@ -46,27 +46,18 @@ public class ProductManager { //
         });
     }
 
-    public void restore(List<ProductRestoreReq> requests) {
-        if (requests.isEmpty()) return;
-
-        Map<Long, Integer> reqsMap = requests.stream().collect(Collectors.toMap(
-                ProductRestoreReq::productId,
-                ProductRestoreReq::quantity,
-                Integer::sum
-        ));
-        List<Long> productIds = reqsMap.keySet().stream().sorted().toList();
+    public void restore(List<ProductRestoreReq> reqs) {
+        List<Long> productIds = reqs.stream().map(req -> req.productId).distinct().sorted().toList();
+        Map<Long, Integer> reqsMap = reqs.stream().collect(
+                Collectors.toMap(req -> req.productId, req -> req.quantity)
+        );
 
         lockManager.withLock(productIds, () -> {
             Map<Long, CachedProduct> productsInCache = productCache.findAll(productIds);
+
             Map<Long, Product> productsForLoad = findProductInDbForRestoreIfNeeded(productsInCache, productIds);
 
-            reqsMap.forEach((productId, quantity) -> {
-                CachedProduct restoredProduct = restoreProduct(productId, quantity, productsInCache, productsForLoad);
-                productCache.put(productId, restoredProduct);
-                productsInCache.put(productId, restoredProduct);
-            });
-
-            return null;
+            restoreProducts(productsForLoad, productsInCache, reqsMap); return null;
         });
     }
 
@@ -134,6 +125,14 @@ public class ProductManager { //
         if (productIdsForFind.isEmpty()) return Map.of();
         return productRepository.findAllByIdInForUpdate(productIdsForFind).stream()
                 .collect(Collectors.toMap(Product::getId, Function.identity()));
+    }
+
+    private void restoreProducts(Map<Long, Product> productsForLoad, Map<Long, CachedProduct> productsInCache, Map<Long, Integer> reqsMap) {
+        reqsMap.forEach((productId, quantity) -> {
+            CachedProduct restoredProduct = restoreProduct(productId, quantity, productsInCache, productsForLoad);
+            productCache.put(productId, restoredProduct);
+            productsInCache.put(productId, restoredProduct);
+        });
     }
 
     private CachedProduct restoreProduct(
