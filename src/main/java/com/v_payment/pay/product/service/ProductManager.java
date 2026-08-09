@@ -57,7 +57,9 @@ public class ProductManager { //
 
             Map<Long, Product> productsForLoad = findProductInDbForRestoreIfNeeded(productsInCache, productIds);
 
-            restoreProducts(productsForLoad, productsInCache, reqsMap); return null;
+            restoreProducts(productsForLoad, productsInCache, reqsMap);
+
+            return null;
         });
     }
 
@@ -67,7 +69,7 @@ public class ProductManager { //
                     int requestedQuantity = entry.getValue();
                     CachedProduct cachedProduct = productsInCache.get(productId);
 
-                    if (isEnoughQuantityInCache(productsInCache, productId, requestedQuantity)) {
+                    if (isEnoughQuantityInCache(cachedProduct, requestedQuantity)) {
                         CachedProduct reservedProduct = cachedProduct.changeQuantity(-requestedQuantity);
                         productCache.put(productId, reservedProduct);
                         return reservedProduct;
@@ -82,8 +84,7 @@ public class ProductManager { //
 
                     int loadQuantityAtDb = Math.min(MAX_LOAD_QUANTITY, productForReserve.getStockQuantity());
                     productForReserve.subtractQuantity(loadQuantityAtDb);
-                    int quantityResult = loadQuantityAtDb + cachedProduct.quantity() - requestedQuantity;
-                    CachedProduct reservedProduct = cachedProduct.changeQuantity(quantityResult);
+                    CachedProduct reservedProduct = reserveLoadedProduct(productForReserve, cachedProduct, loadQuantityAtDb, requestedQuantity);
                     productCache.put(productId, reservedProduct);
                     return reservedProduct;
                 })
@@ -91,11 +92,25 @@ public class ProductManager { //
     }
 
     private boolean isNotEnoughInDBAndCache(Integer requestedQuantity, Product productForReserve, CachedProduct cachedProduct) {
-        return !(productForReserve.getStockQuantity() + cachedProduct.quantity() < requestedQuantity);
+        return productForReserve.getStockQuantity() + getCachedQuantity(cachedProduct) < requestedQuantity;
     }
 
-    private boolean isEnoughQuantityInCache(Map<Long, CachedProduct> productsInCache, Long productId, Integer requestedQuantity) {
-        return productsInCache.get(productId).quantity() >= requestedQuantity;
+    private boolean isEnoughQuantityInCache(CachedProduct cachedProduct, Integer requestedQuantity) {
+        return cachedProduct != null && cachedProduct.quantity() >= requestedQuantity;
+    }
+
+    private CachedProduct reserveLoadedProduct(Product productForReserve, CachedProduct cachedProduct, int loadedQuantity, int requestedQuantity) {
+        int reservedQuantity = getCachedQuantity(cachedProduct) + loadedQuantity - requestedQuantity;
+        return new CachedProduct(
+                productForReserve.getId(),
+                productForReserve.getName(),
+                productForReserve.getPrice(),
+                reservedQuantity
+        );
+    }
+
+    private int getCachedQuantity(CachedProduct cachedProduct) {
+        return cachedProduct == null ? 0 : cachedProduct.quantity();
     }
 
     private Map<Long, Product> findProductInDbIfNeeded(Map<Long, CachedProduct> productsInCache, Map<Long, Integer> reqsMap) {
