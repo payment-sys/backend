@@ -7,7 +7,7 @@ import com.v_payment.pay.order.entity.Order;
 import com.v_payment.pay.order.repository.OrderRepository;
 import com.v_payment.pay.payment.service.PaymentManager;
 import com.v_payment.pay.product.service.ProductManager;
-import com.v_payment.pay.product.service.ReservedProduct;
+import com.v_payment.pay.product.controller.dto.res.ReservedProduct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

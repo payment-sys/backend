@@ -1,16 +1,12 @@
 package com.v_payment.pay.product.cache;
 
-import com.v_payment.pay.product.service.ProductManager;
-import com.v_payment.pay.product.service.ReservedProduct;
+import com.v_payment.pay.product.cache.dto.CachedProduct;
 
-import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 public interface ProductCache {
+    Map<Long, CachedProduct> findAll(List<Long> productIds);
 
-    List<ReservedProduct> reserve(List<ProductManager.ProductReservationReq> requests);
-
-    void restore(List<ProductManager.ProductRestoreReq> requests);
-
-    int restoreStaleProducts(Duration staleAfter);
+    void put(Long productId, CachedProduct newCachingProduct);
 }
