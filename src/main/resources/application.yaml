@@ -3,9 +3,9 @@ server:
     threads:
       max: 50
       min-spare: 10
-      accept-count: 100
-      connection-timeout: 2000ms
-      keep-alive-timeout: 5s
+    accept-count: 100
+    connection-timeout: 2000ms
+    keep-alive-timeout: 5s
     mbeanregistry:
       enabled: true
 
