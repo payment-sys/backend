@@ -83,7 +83,7 @@ public class ProductManager {
                     }
 
                     int loadQuantityAtDb = cacheLoadPolicy.getLoadQuantityCount(
-                            productForReserve.getStockQuantity(), cachedProduct.quantity(), requestedQuantity);
+                            getCachedQuantity(cachedProduct), productForReserve.getStockQuantity(), requestedQuantity);
 
                     productForReserve.subtractQuantity(loadQuantityAtDb);
                     CachedProduct reservedProduct = reserveLoadedProduct(productForReserve, cachedProduct, loadQuantityAtDb, requestedQuantity);
