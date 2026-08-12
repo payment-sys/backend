@@ -1,6 +1,7 @@
 package com.v_payment.pay.product.service;
 
 import com.v_payment.pay.global.exception.BusinessException;
+import com.v_payment.pay.product.cache.CacheLoadPolicy;
 import com.v_payment.pay.product.cache.LockManager;
 import com.v_payment.pay.product.cache.ProductCache;
 import com.v_payment.pay.product.cache.dto.CachedProduct;
@@ -18,11 +19,10 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-public class ProductManager { //
-    private final int MAX_LOAD_QUANTITY = 400;
-
+public class ProductManager {
     private final ProductCache productCache;
     private final LockManager lockManager;
+    private final CacheLoadPolicy cacheLoadPolicy;
     private final ProductRepository productRepository;
 
 
@@ -82,7 +82,9 @@ public class ProductManager { //
                         throw new BusinessException(ProductException.OUT_OF_STOCK);
                     }
 
-                    int loadQuantityAtDb = Math.min(MAX_LOAD_QUANTITY, productForReserve.getStockQuantity());
+                    int loadQuantityAtDb = cacheLoadPolicy.getLoadQuantityCount(
+                            productForReserve.getStockQuantity(), cachedProduct.quantity(), requestedQuantity);
+
                     productForReserve.subtractQuantity(loadQuantityAtDb);
                     CachedProduct reservedProduct = reserveLoadedProduct(productForReserve, cachedProduct, loadQuantityAtDb, requestedQuantity);
                     productCache.put(productId, reservedProduct);
