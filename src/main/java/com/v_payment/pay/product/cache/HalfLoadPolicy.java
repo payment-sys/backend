@@ -1,5 +1,8 @@
 package com.v_payment.pay.product.cache;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class HalfLoadPolicy implements CacheLoadPolicy {
     private static final int MIN_LOAD_QUANTITY = 100;
     private static final int MAX_LOAD_QUANTITY = 5000;
