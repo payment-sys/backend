@@ -1,7 +1,6 @@
 package com.v_payment.pay.order.service;
 
 import com.v_payment.pay.order.controller.dto.req.OrderCreateReq;
-import com.v_payment.pay.order.controller.dto.req.OrderItemCreateReq;
 import com.v_payment.pay.order.controller.dto.res.OrderCreateRes;
 import com.v_payment.pay.order.entity.Order;
 import com.v_payment.pay.order.repository.OrderRepository;
@@ -32,11 +31,16 @@ public class OrderService {
 
         List<ReservedProduct> reservedProducts = productManager.reserve(productReserveReq);
 
-        Order savedOrder = createOrderWithReservedProducts(reservedProducts);
+        try {
+            Order savedOrder = createOrderWithReservedProducts(reservedProducts);
 
-        paymentManager.createPendingPayment(savedOrder.getOrderCode(), savedOrder.getTotalAmount(), req.paymentMethod());
+            paymentManager.createPendingPayment(savedOrder.getOrderCode(), savedOrder.getTotalAmount(), req.paymentMethod());
 
-        return OrderCreateRes.from(savedOrder);
+            return OrderCreateRes.from(savedOrder);
+        } catch (RuntimeException e) {
+            productManager.restoreReservedProductsOnOrderCreationFailure(productReserveReq);
+            throw e;
+        }
     }
 
     private Order createOrderWithReservedProducts(List<ReservedProduct> reservedProducts) {
