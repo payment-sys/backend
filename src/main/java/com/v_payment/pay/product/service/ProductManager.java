@@ -4,6 +4,7 @@ import com.v_payment.pay.global.exception.BusinessException;
 import com.v_payment.pay.product.cache.CacheLoadPolicy;
 import com.v_payment.pay.product.cache.LockManager;
 import com.v_payment.pay.product.cache.ProductCache;
+import com.v_payment.pay.product.cache.ProductReservationWriteAheadLog;
 import com.v_payment.pay.product.cache.dto.CachedProduct;
 import com.v_payment.pay.product.controller.dto.res.ReservedProduct;
 import com.v_payment.pay.product.entity.Product;
@@ -24,9 +25,12 @@ public class ProductManager {
     private final LockManager lockManager;
     private final CacheLoadPolicy cacheLoadPolicy;
     private final ProductRepository productRepository;
+    private final ProductReservationWriteAheadLog writeAheadLog;
 
 
     public List<ReservedProduct> reserve(List<ProductReservationReq> reqs) {
+        if (reqs.isEmpty()) return List.of();
+
         List<Long> productIds = reqs.stream().map(req -> req.productId).distinct().sorted().toList();
         Map<Long, Integer> reqsMap = reqs.stream().collect(
                 Collectors.toMap(req -> req.productId, req -> req.quantity)
@@ -37,7 +41,12 @@ public class ProductManager {
 
             Map<Long, Product> productsForLoad = findProductInDbIfNeeded(productsInCache, reqsMap);
 
-            List<CachedProduct> cachedProducts = loadAndReserveProducts(productsForLoad, productsInCache, reqsMap);
+            List<ReservationPlan> reservationPlans = planProductReservations(productsForLoad, productsInCache, reqsMap);
+
+            appendLoadFromDbLog(reservationPlans);
+            writeAheadLog.append(ProductReservationWriteAheadLog.Type.RESERVE, reqsMap);
+
+            List<CachedProduct> cachedProducts = applyReservationPlans(reservationPlans);
 
             return cachedProducts.stream()
                     .map(cachedProduct -> ReservedProduct.of(cachedProduct.productId(),
@@ -47,6 +56,8 @@ public class ProductManager {
     }
 
     public void restore(List<ProductRestoreReq> reqs) {
+        if (reqs.isEmpty()) return;
+
         List<Long> productIds = reqs.stream().map(req -> req.productId).distinct().sorted().toList();
         Map<Long, Integer> reqsMap = reqs.stream().collect(
                 Collectors.toMap(req -> req.productId, req -> req.quantity)
@@ -57,13 +68,17 @@ public class ProductManager {
 
             Map<Long, Product> productsForLoad = findProductInDbForRestoreIfNeeded(productsInCache, productIds);
 
-            restoreProducts(productsForLoad, productsInCache, reqsMap);
+            List<RestorePlan> restorePlans = planProductRestores(productsForLoad, productsInCache, reqsMap);
+
+            writeAheadLog.append(ProductReservationWriteAheadLog.Type.RESTORE, reqsMap);
+
+            restoreProducts(restorePlans, productsInCache);
 
             return null;
         });
     }
 
-    private List<CachedProduct> loadAndReserveProducts(Map<Long, Product> productsForLoad, Map<Long, CachedProduct> productsInCache, Map<Long, Integer> reqsMap) {
+    private List<ReservationPlan> planProductReservations(Map<Long, Product> productsForLoad, Map<Long, CachedProduct> productsInCache, Map<Long, Integer> reqsMap) {
         return reqsMap.entrySet().stream().map(entry -> {
                     Long productId = entry.getKey();
                     int requestedQuantity = entry.getValue();
@@ -71,8 +86,7 @@ public class ProductManager {
 
                     if (isEnoughQuantityInCache(cachedProduct, requestedQuantity)) {
                         CachedProduct reservedProduct = cachedProduct.changeQuantity(-requestedQuantity);
-                        productCache.put(productId, reservedProduct);
-                        return reservedProduct;
+                        return new ReservationPlan(productId, 0, null, reservedProduct);
                     }
 
                     Product productForReserve = productsForLoad.get(productId);
@@ -85,10 +99,30 @@ public class ProductManager {
                     int loadQuantityAtDb = cacheLoadPolicy.getLoadQuantityCount(
                             getCachedQuantity(cachedProduct), productForReserve.getStockQuantity(), requestedQuantity);
 
-                    productForReserve.subtractQuantity(loadQuantityAtDb);
                     CachedProduct reservedProduct = reserveLoadedProduct(productForReserve, cachedProduct, loadQuantityAtDb, requestedQuantity);
-                    productCache.put(productId, reservedProduct);
-                    return reservedProduct;
+                    return new ReservationPlan(productId, loadQuantityAtDb, productForReserve, reservedProduct);
+                })
+                .toList();
+    }
+
+    private void appendLoadFromDbLog(List<ReservationPlan> reservationPlans) {
+        Map<Long, Integer> loadedQuantitiesByProductId = reservationPlans.stream()
+                .filter(plan -> plan.loadQuantity() > 0)
+                .collect(Collectors.toMap(ReservationPlan::productId, ReservationPlan::loadQuantity));
+
+        if (!loadedQuantitiesByProductId.isEmpty()) {
+            writeAheadLog.append(ProductReservationWriteAheadLog.Type.LOAD_FROM_DB, loadedQuantitiesByProductId);
+        }
+    }
+
+    private List<CachedProduct> applyReservationPlans(List<ReservationPlan> reservationPlans) {
+        return reservationPlans.stream()
+                .map(plan -> {
+                    if (plan.loadQuantity() > 0) {
+                        plan.productForReserve().subtractQuantity(plan.loadQuantity());
+                    }
+                    productCache.put(plan.productId(), plan.reservedProduct());
+                    return plan.reservedProduct();
                 })
                 .toList();
     }
@@ -144,11 +178,19 @@ public class ProductManager {
                 .collect(Collectors.toMap(Product::getId, Function.identity()));
     }
 
-    private void restoreProducts(Map<Long, Product> productsForLoad, Map<Long, CachedProduct> productsInCache, Map<Long, Integer> reqsMap) {
-        reqsMap.forEach((productId, quantity) -> {
-            CachedProduct restoredProduct = restoreProduct(productId, quantity, productsInCache, productsForLoad);
-            productCache.put(productId, restoredProduct);
-            productsInCache.put(productId, restoredProduct);
+    private List<RestorePlan> planProductRestores(Map<Long, Product> productsForLoad, Map<Long, CachedProduct> productsInCache, Map<Long, Integer> reqsMap) {
+        return reqsMap.entrySet().stream()
+                .map(entry -> new RestorePlan(
+                        entry.getKey(),
+                        restoreProduct(entry.getKey(), entry.getValue(), productsInCache, productsForLoad)
+                ))
+                .toList();
+    }
+
+    private void restoreProducts(List<RestorePlan> restorePlans, Map<Long, CachedProduct> productsInCache) {
+        restorePlans.forEach(plan -> {
+            productCache.put(plan.productId(), plan.restoredProduct());
+            productsInCache.put(plan.productId(), plan.restoredProduct());
         });
     }
 
@@ -177,6 +219,20 @@ public class ProductManager {
     public record ProductRestoreReq(
             Long productId,
             Integer quantity
+    ) {
+    }
+
+    private record ReservationPlan(
+            Long productId,
+            int loadQuantity,
+            Product productForReserve,
+            CachedProduct reservedProduct
+    ) {
+    }
+
+    private record RestorePlan(
+            Long productId,
+            CachedProduct restoredProduct
     ) {
     }
 }
