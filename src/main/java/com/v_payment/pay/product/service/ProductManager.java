@@ -46,8 +46,7 @@ public class ProductManager {
 
             List<ReservationPlan> reservationPlans = planProductReservations(productsForLoad, productsInCache, reqsMap);
 
-            appendLoadFromDbLog(reservationPlans);
-            writeAheadLog.append(ProductReservationWriteAheadLog.Type.RESERVE, reqsMap);
+            appendReservationDeltaLog(reservationPlans, reqsMap);
 
             List<CachedProduct> cachedProducts = applyReservationPlans(reservationPlans);
 
@@ -73,7 +72,7 @@ public class ProductManager {
 
             List<RestorePlan> restorePlans = planProductRestores(productsForLoad, productsInCache, reqsMap);
 
-            writeAheadLog.append(ProductReservationWriteAheadLog.Type.RESTORE, reqsMap);
+            writeAheadLog.append(reqsMap);
 
             restoreProducts(restorePlans, productsInCache);
 
@@ -118,13 +117,16 @@ public class ProductManager {
                 .toList();
     }
 
-    private void appendLoadFromDbLog(List<ReservationPlan> reservationPlans) {
-        Map<Long, Integer> loadedQuantitiesByProductId = reservationPlans.stream()
-                .filter(plan -> plan.loadQuantity() > 0)
-                .collect(Collectors.toMap(ReservationPlan::productId, ReservationPlan::loadQuantity));
+    private void appendReservationDeltaLog(List<ReservationPlan> reservationPlans, Map<Long, Integer> reqsMap) {
+        Map<Long, Integer> cacheDeltasByProductId = reservationPlans.stream()
+                .filter(plan -> plan.loadQuantity() - reqsMap.get(plan.productId()) != 0)
+                .collect(Collectors.toMap(
+                        ReservationPlan::productId,
+                        plan -> plan.loadQuantity() - reqsMap.get(plan.productId())
+                ));
 
-        if (!loadedQuantitiesByProductId.isEmpty()) {
-            writeAheadLog.append(ProductReservationWriteAheadLog.Type.LOAD_FROM_DB, loadedQuantitiesByProductId);
+        if (!cacheDeltasByProductId.isEmpty()) {
+            writeAheadLog.append(cacheDeltasByProductId);
         }
     }
 
