@@ -6,22 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
 
 @Component
 public class LockManager {
     private final Map<Long, ReentrantLock> lockCache = new ConcurrentHashMap<>();
 
-    public <T> T withLock(List<Long> lockTargetIds, Supplier<T> supplier) {
-        List<ReentrantLock> locks = lock(lockTargetIds);
-        try{
-            return supplier.get();
-        } finally {
-            unlock(locks);
-        }
-    }
-
-    private List<ReentrantLock> lock(List<Long> lockTargetIds) {
+    public List<ReentrantLock> lock(List<Long> lockTargetIds) {
         List<ReentrantLock> targetLocks = lockTargetIds.stream()
                 .distinct()
                 .sorted()
@@ -32,7 +22,7 @@ public class LockManager {
         return targetLocks;
     }
 
-    private void unlock(List<ReentrantLock> locks) {
+    public void unlock(List<ReentrantLock> locks) {
         locks.forEach(ReentrantLock::unlock);
     }
 }
