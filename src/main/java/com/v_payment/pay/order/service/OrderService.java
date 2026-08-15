@@ -26,20 +26,17 @@ public class OrderService {
 
     @Transactional
     public OrderCreateRes create(OrderCreateReq req) {
-        List<ReservedProduct> reservedProducts = reserveProducts(req.items());
+        List<ProductManager.ProductReservationReq> productReserveReq = req.items().stream()
+                .map(item -> new ProductManager.ProductReservationReq(item.productId(), item.quantity()))
+                .toList();
+
+        List<ReservedProduct> reservedProducts = productManager.reserve(productReserveReq);
 
         Order savedOrder = createOrderWithReservedProducts(reservedProducts);
 
         paymentManager.createPendingPayment(savedOrder.getOrderCode(), savedOrder.getTotalAmount(), req.paymentMethod());
 
         return OrderCreateRes.from(savedOrder);
-    }
-
-    private List<ReservedProduct> reserveProducts(List<OrderItemCreateReq> items) {
-        List<ProductManager.ProductReservationReq> productReservationReq = items.stream()
-                .map(item -> new ProductManager.ProductReservationReq(item.productId(), item.quantity()))
-                .toList();
-        return productManager.reserve(productReservationReq);
     }
 
     private Order createOrderWithReservedProducts(List<ReservedProduct> reservedProducts) {

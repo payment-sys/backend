@@ -12,6 +12,8 @@ import com.v_payment.pay.product.exception.ProductException;
 import com.v_payment.pay.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,7 @@ public class ProductManager {
     private final ProductReservationWriteAheadLog writeAheadLog;
 
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public List<ReservedProduct> reserve(List<ProductReservationReq> reqs) {
         if (reqs.isEmpty()) return List.of();
 
@@ -76,6 +79,16 @@ public class ProductManager {
 
             return null;
         });
+    }
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void restoreReservedProductsOnOrderCreationFailure(List<ProductReservationReq> reqs) {
+        if (reqs.isEmpty()) return;
+
+        List<ProductRestoreReq> restoreReqs = reqs.stream()
+                .map(req -> new ProductRestoreReq(req.productId(), req.quantity()))
+                .toList();
+
+        restore(restoreReqs);
     }
 
     private List<ReservationPlan> planProductReservations(Map<Long, Product> productsForLoad, Map<Long, CachedProduct> productsInCache, Map<Long, Integer> reqsMap) {
