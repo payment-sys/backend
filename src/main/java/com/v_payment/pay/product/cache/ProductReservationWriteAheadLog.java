@@ -45,23 +45,21 @@ public class ProductReservationWriteAheadLog {
         version.set(findLastVersion());
     }
 
-    public WriteAheadLogEntry append(Type type, Map<Long, Integer> quantitiesByProductId) {
-        List<WriteAheadLogItem> items = quantitiesByProductId.entrySet().stream()
+    public WriteAheadLogEntry append(Map<Long, Integer> deltasByProductId) {
+        List<WriteAheadLogItem> items = deltasByProductId.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> new WriteAheadLogItem(entry.getKey(), entry.getValue()))
                 .toList();
 
-        return append(type, items);
+        return append(items);
     }
 
-    public WriteAheadLogEntry append(Type type, List<WriteAheadLogItem> items) {
-        if (type == null) throw new IllegalArgumentException("WAL type must not be null.");
+    public WriteAheadLogEntry append(List<WriteAheadLogItem> items) {
         if (items == null || items.isEmpty()) throw new IllegalArgumentException("WAL items must not be empty.");
 
         synchronized (fileLock) {
             WriteAheadLogEntry entry = new WriteAheadLogEntry(
                     version.incrementAndGet(),
-                    type.name(),
                     List.copyOf(items)
             );
             appendEntry(entry);
@@ -154,9 +152,4 @@ public class ProductReservationWriteAheadLog {
         }
     }
 
-    public enum Type {
-        RESERVE,
-        RESTORE,
-        LOAD_FROM_DB
-    }
 }

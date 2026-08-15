@@ -1,7 +1,6 @@
 package com.v_payment.pay.order.service;
 
 import com.v_payment.pay.order.controller.dto.req.OrderCreateReq;
-import com.v_payment.pay.order.controller.dto.req.OrderItemCreateReq;
 import com.v_payment.pay.order.controller.dto.res.OrderCreateRes;
 import com.v_payment.pay.order.entity.Order;
 import com.v_payment.pay.order.repository.OrderRepository;
@@ -26,20 +25,22 @@ public class OrderService {
 
     @Transactional
     public OrderCreateRes create(OrderCreateReq req) {
-        List<ReservedProduct> reservedProducts = reserveProducts(req.items());
-
-        Order savedOrder = createOrderWithReservedProducts(reservedProducts);
-
-        paymentManager.createPendingPayment(savedOrder.getOrderCode(), savedOrder.getTotalAmount(), req.paymentMethod());
-
-        return OrderCreateRes.from(savedOrder);
-    }
-
-    private List<ReservedProduct> reserveProducts(List<OrderItemCreateReq> items) {
-        List<ProductManager.ProductReservationReq> productReservationReq = items.stream()
+        List<ProductManager.ProductReservationReq> productReserveReq = req.items().stream()
                 .map(item -> new ProductManager.ProductReservationReq(item.productId(), item.quantity()))
                 .toList();
-        return productManager.reserve(productReservationReq);
+
+        List<ReservedProduct> reservedProducts = productManager.reserve(productReserveReq);
+
+        try {
+            Order savedOrder = createOrderWithReservedProducts(reservedProducts);
+
+            paymentManager.createPendingPayment(savedOrder.getOrderCode(), savedOrder.getTotalAmount(), req.paymentMethod());
+
+            return OrderCreateRes.from(savedOrder);
+        } catch (RuntimeException e) {
+            productManager.restoreReservedProductsOnOrderCreationFailure(productReserveReq);
+            throw e;
+        }
     }
 
     private Order createOrderWithReservedProducts(List<ReservedProduct> reservedProducts) {

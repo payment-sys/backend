@@ -4,7 +4,6 @@ import java.util.List;
 
 public record WriteAheadLogEntry(
         Long version,
-        String type,
         List<WriteAheadLogItem> items
 ) {
 }

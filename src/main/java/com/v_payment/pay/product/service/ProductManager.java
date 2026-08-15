@@ -12,9 +12,14 @@ import com.v_payment.pay.product.exception.ProductException;
 import com.v_payment.pay.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -27,32 +32,36 @@ public class ProductManager {
     private final ProductRepository productRepository;
     private final ProductReservationWriteAheadLog writeAheadLog;
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<ReservedProduct> reserve(List<ProductReservationReq> reserveReqs) {
+        if (reserveReqs.isEmpty()) return List.of();
 
-    public List<ReservedProduct> reserve(List<ProductReservationReq> reqs) {
-        if (reqs.isEmpty()) return List.of();
-
-        List<Long> productIds = reqs.stream().map(req -> req.productId).distinct().sorted().toList();
-        Map<Long, Integer> reqsMap = reqs.stream().collect(
+        List<Long> productIds = reserveReqs.stream().map(req -> req.productId).distinct().sorted().toList();
+        Map<Long, Integer> reqsMap = reserveReqs.stream().collect(
                 Collectors.toMap(req -> req.productId, req -> req.quantity)
         );
 
-        return lockManager.withLock(productIds, () -> {
-            Map<Long, CachedProduct> productsInCache = productCache.findAll(productIds);
+        List<ReentrantLock> locks = lockManager.lock(productIds);
+        registerUnlockAfterCompletion(locks);
 
-            Map<Long, Product> productsForLoad = findProductInDbIfNeeded(productsInCache, reqsMap);
+        Map<Long, CachedProduct> productsInCache = productCache.findAll(productIds);
+        Map<Long, Product> productsInDb = findProductInDbIfNeeded(productsInCache, reqsMap);
 
-            List<ReservationPlan> reservationPlans = planProductReservations(productsForLoad, productsInCache, reqsMap);
+        List<ReservationPlan> reservationPlans = makeProductReservePlans(productsInDb, productsInCache, reqsMap);
 
-            appendLoadFromDbLog(reservationPlans);
-            writeAheadLog.append(ProductReservationWriteAheadLog.Type.RESERVE, reqsMap);
+        appendReservationDeltaLog(reservationPlans, reqsMap);
 
-            List<CachedProduct> cachedProducts = applyReservationPlans(reservationPlans);
+        List<CachedProduct> cachedProducts = applyReservationPlans(reservationPlans);
+        registerCacheUpdateAfterCommit(reservationPlans);
 
-            return cachedProducts.stream()
-                    .map(cachedProduct -> ReservedProduct.of(cachedProduct.productId(),
-                            cachedProduct.productName(),cachedProduct.price(), cachedProduct.quantity()))
-                    .toList();
-        });
+        return cachedProducts.stream()
+                .map(cachedProduct -> ReservedProduct.of(
+                        cachedProduct.productId(),
+                        cachedProduct.productName(),
+                        cachedProduct.price(),
+                        cachedProduct.quantity()
+                ))
+                .toList();
     }
 
     public void restore(List<ProductRestoreReq> reqs) {
@@ -63,68 +72,111 @@ public class ProductManager {
                 Collectors.toMap(req -> req.productId, req -> req.quantity)
         );
 
-        lockManager.withLock(productIds, () -> {
+        List<ReentrantLock> locks = lockManager.lock(productIds);
+
+        try {
             Map<Long, CachedProduct> productsInCache = productCache.findAll(productIds);
 
             Map<Long, Product> productsForLoad = findProductInDbForRestoreIfNeeded(productsInCache, productIds);
 
             List<RestorePlan> restorePlans = planProductRestores(productsForLoad, productsInCache, reqsMap);
 
-            writeAheadLog.append(ProductReservationWriteAheadLog.Type.RESTORE, reqsMap);
+            writeAheadLog.append(reqsMap);
 
             restoreProducts(restorePlans, productsInCache);
-
-            return null;
-        });
+        } finally {
+            lockManager.unlock(locks);
+        }
     }
 
-    private List<ReservationPlan> planProductReservations(Map<Long, Product> productsForLoad, Map<Long, CachedProduct> productsInCache, Map<Long, Integer> reqsMap) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void restoreReservedProductsOnOrderCreationFailure(List<ProductReservationReq> reqs) {
+        if (reqs.isEmpty()) return;
+
+        List<ProductRestoreReq> restoreReqs = reqs.stream()
+                .map(req -> new ProductRestoreReq(req.productId(), req.quantity()))
+                .toList();
+
+        restore(restoreReqs);
+    }
+
+    private List<ReservationPlan> makeProductReservePlans(Map<Long, Product> productsInDb, Map<Long, CachedProduct> productsInCache, Map<Long, Integer> reqsMap) {
         return reqsMap.entrySet().stream().map(entry -> {
                     Long productId = entry.getKey();
                     int requestedQuantity = entry.getValue();
-                    CachedProduct cachedProduct = productsInCache.get(productId);
+                    CachedProduct productInCache = productsInCache.get(productId);
 
-                    if (isEnoughQuantityInCache(cachedProduct, requestedQuantity)) {
-                        CachedProduct reservedProduct = cachedProduct.changeQuantity(-requestedQuantity);
+                    if (isEnoughQuantityInCache(productInCache, requestedQuantity)) {
+                        CachedProduct reservedProduct = productInCache.changeQuantity(-requestedQuantity);
                         return new ReservationPlan(productId, 0, null, reservedProduct);
                     }
 
-                    Product productForReserve = productsForLoad.get(productId);
-                    if (productForReserve == null) throw new BusinessException(ProductException.PRODUCT_NOT_FOUND);
-
-                    if (isNotEnoughInDBAndCache(requestedQuantity, productForReserve, cachedProduct)) {
+                    Product productInDb = productsInDb.get(productId);
+                    if (productInDb == null) throw new BusinessException(ProductException.PRODUCT_NOT_FOUND);
+                    if (isNotEnoughInDBAndCache(requestedQuantity, productInDb, productInCache)) {
                         throw new BusinessException(ProductException.OUT_OF_STOCK);
                     }
 
                     int loadQuantityAtDb = cacheLoadPolicy.getLoadQuantityCount(
-                            getCachedQuantity(cachedProduct), productForReserve.getStockQuantity(), requestedQuantity);
+                            getCachedQuantity(productInCache),
+                            productInDb.getStockQuantity(),
+                            requestedQuantity
+                    );
 
-                    CachedProduct reservedProduct = reserveLoadedProduct(productForReserve, cachedProduct, loadQuantityAtDb, requestedQuantity);
-                    return new ReservationPlan(productId, loadQuantityAtDb, productForReserve, reservedProduct);
+                    CachedProduct reservedProduct = reserveLoadedProduct(
+                            productInDb,
+                            productInCache,
+                            loadQuantityAtDb,
+                            requestedQuantity
+                    );
+                    return new ReservationPlan(productId, loadQuantityAtDb, productInDb, reservedProduct);
                 })
                 .toList();
     }
 
-    private void appendLoadFromDbLog(List<ReservationPlan> reservationPlans) {
-        Map<Long, Integer> loadedQuantitiesByProductId = reservationPlans.stream()
-                .filter(plan -> plan.loadQuantity() > 0)
-                .collect(Collectors.toMap(ReservationPlan::productId, ReservationPlan::loadQuantity));
+    private void appendReservationDeltaLog(List<ReservationPlan> reservationPlans, Map<Long, Integer> reqsMap) {
+        Map<Long, Integer> cacheDeltasByProductId = reservationPlans.stream()
+                .filter(plan -> plan.loadQuantity() - reqsMap.get(plan.productId()) != 0)
+                .collect(Collectors.toMap(
+                        ReservationPlan::productId,
+                        plan -> plan.loadQuantity() - reqsMap.get(plan.productId())
+                ));
 
-        if (!loadedQuantitiesByProductId.isEmpty()) {
-            writeAheadLog.append(ProductReservationWriteAheadLog.Type.LOAD_FROM_DB, loadedQuantitiesByProductId);
+        if (!cacheDeltasByProductId.isEmpty()) {
+            writeAheadLog.append(cacheDeltasByProductId);
         }
     }
 
     private List<CachedProduct> applyReservationPlans(List<ReservationPlan> reservationPlans) {
         return reservationPlans.stream()
                 .map(plan -> {
-                    if (plan.loadQuantity() > 0) {
-                        plan.productForReserve().subtractQuantity(plan.loadQuantity());
-                    }
-                    productCache.put(plan.productId(), plan.reservedProduct());
+                    if (plan.loadQuantity() > 0) plan.productForReserve().subtractQuantity(plan.loadQuantity());
                     return plan.reservedProduct();
                 })
                 .toList();
+    }
+
+    private void registerUnlockAfterCompletion(List<ReentrantLock> locks) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                lockManager.unlock(locks);
+            }
+        });
+    }
+
+    private void registerCacheUpdateAfterCommit(List<ReservationPlan> reservationPlans) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                putReservedProductsInCache(reservationPlans);
+            }
+        });
+    }
+
+    private void putReservedProductsInCache(List<ReservationPlan> reservationPlans) {
+        reservationPlans.forEach(plan ->
+                productCache.put(plan.productId(), plan.reservedProduct()));
     }
 
     private boolean isNotEnoughInDBAndCache(Integer requestedQuantity, Product productForReserve, CachedProduct cachedProduct) {
