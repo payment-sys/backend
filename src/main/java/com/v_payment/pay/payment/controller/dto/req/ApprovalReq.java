@@ -10,6 +10,7 @@ public record ApprovalReq(
         @JsonAlias("orderId")
         String orderCode,
         String paymentKey,
+        @JsonAlias("amount")
         Long requestedAmount,
         Provider provider
 ) {
