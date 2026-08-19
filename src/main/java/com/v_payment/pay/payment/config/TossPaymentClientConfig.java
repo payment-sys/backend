@@ -3,6 +3,9 @@ package com.v_payment.pay.payment.config;
 import lombok.RequiredArgsConstructor;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.core5.util.TimeValue;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.restclient.autoconfigure.RestClientBuilderConfigurer;
 import org.springframework.context.annotation.Bean;
@@ -49,15 +52,21 @@ public class TossPaymentClientConfig {
 
     @Bean("apacheRequestFactory")
     public ClientHttpRequestFactory apacheRequestFactory() {
+        PoolingHttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
+                .setMaxConnTotal(500)
+                .setMaxConnPerRoute(500)
+                .build();
+
         CloseableHttpClient httpClient = HttpClients.custom()
+                .setConnectionManager(cm)
+                .evictExpiredConnections()
+                .evictIdleConnections(TimeValue.ofSeconds(30))
                 .build();
 
         HttpComponentsClientHttpRequestFactory factory =
                 new HttpComponentsClientHttpRequestFactory(httpClient);
 
-        Duration timeout =
-                Duration.ofSeconds(tossPaymentProperties.timeout());
-
+        Duration timeout = Duration.ofSeconds(tossPaymentProperties.timeout());
         factory.setConnectionRequestTimeout(timeout);
         factory.setReadTimeout(timeout);
 
