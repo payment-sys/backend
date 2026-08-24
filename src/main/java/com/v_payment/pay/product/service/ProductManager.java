@@ -41,17 +41,17 @@ public class ProductManager {
                 Collectors.toMap(req -> req.productId, req -> req.quantity)
         );
 
-        List<ReentrantLock> locks = lockManager.lock(productIds);
+        List<ReentrantLock> locks = lockManager.lock(productIds);   //1. 락걸기
         registerUnlockAfterCompletion(locks);
 
-        Map<Long, CachedProduct> productsInCache = productCache.findAll(productIds);
+        Map<Long, CachedProduct> productsInCache = productCache.findAll(productIds); //2. cache, DB에서 찾기
         Map<Long, Product> productsInDb = findProductInDbIfNeeded(productsInCache, reqsMap);
 
-        List<ReservationPlan> reservationPlans = makeProductReservePlans(productsInDb, productsInCache, reqsMap);
+        List<ReservationPlan> reservationPlans = makeProductReservePlans(productsInDb, productsInCache, reqsMap); //3. 계산
 
-        appendReservationDeltaLog(reservationPlans, reqsMap);
+        appendReservationDeltaLog(reservationPlans, reqsMap); //4. WAL 기록
 
-        List<CachedProduct> cachedProducts = applyReservationPlans(reservationPlans);
+        List<CachedProduct> cachedProducts = applyReservationPlans(reservationPlans); //5. DB 업데이트
         registerCacheUpdateAfterCommit(reservationPlans);
 
         return cachedProducts.stream()
