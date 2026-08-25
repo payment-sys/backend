@@ -7,6 +7,7 @@ import com.v_payment.pay.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.List;
 
 @Component
@@ -16,7 +17,11 @@ public class OrderManager {
     private final OrderItemRepository orderItemRepository;
 
     public OrderStatusUpdateResult updateStatus(String orderCode, OrderStatus orderStatus) {
-        int updatedRows = orderRepository.updateStatus(orderCode, OrderStatus.PENDING_PAYMENT, orderStatus);
+        int updatedRows = orderRepository.updateStatus(
+                orderCode,
+                List.of(OrderStatus.PENDING_PAYMENT, OrderStatus.PRODUCT_RESERVED),
+                orderStatus
+        );
         if (updatedRows != 1) {
             return OrderStatusUpdateResult.notUpdated();
         }
@@ -28,6 +33,46 @@ public class OrderManager {
         return OrderStatusUpdateResult.updated(orderItemRepository.findAllByOrderCode(orderCode).stream()
                 .map(OrderItemSnapshot::from)
                 .toList());
+    }
+
+    public ProductQuantityReservationUpdateResult updateProductQuantityReservationStatus(
+            Collection<String> successOrderCodes,
+            Collection<String> failOrderCodes
+    ) {
+        int successUpdatedRows = updateProductReserved(successOrderCodes);
+        int failUpdatedRows = updateProductReservationFailed(failOrderCodes);
+
+        return new ProductQuantityReservationUpdateResult(successUpdatedRows, failUpdatedRows);
+    }
+
+    private int updateProductReserved(Collection<String> orderCodes) {
+        if (orderCodes.isEmpty()) {
+            return 0;
+        }
+
+        return orderRepository.updateStatusByOrderCodes(
+                orderCodes,
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.PRODUCT_RESERVED
+        );
+    }
+
+    private int updateProductReservationFailed(Collection<String> orderCodes) {
+        if (orderCodes.isEmpty()) {
+            return 0;
+        }
+
+        return orderRepository.updateStatusByOrderCodes(
+                orderCodes,
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.PAYMENT_FAILED
+        );
+    }
+
+    public record ProductQuantityReservationUpdateResult(
+            int successUpdatedRows,
+            int failUpdatedRows
+    ) {
     }
 
     public record OrderStatusUpdateResult(
