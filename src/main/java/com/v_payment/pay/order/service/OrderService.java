@@ -1,10 +1,12 @@
 package com.v_payment.pay.order.service;
 
 import com.v_payment.pay.order.controller.dto.req.OrderCreateReq;
+import com.v_payment.pay.order.controller.dto.req.OrderItemCreateReq;
 import com.v_payment.pay.order.controller.dto.res.OrderCreateRes;
 import com.v_payment.pay.order.entity.Order;
 import com.v_payment.pay.order.repository.OrderRepository;
 import com.v_payment.pay.payment.service.PaymentManager;
+import com.v_payment.pay.product.entity.ProductQuantityEventPayload;
 import com.v_payment.pay.product.service.ProductManager;
 import com.v_payment.pay.product.controller.dto.res.ReservedProduct;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -25,29 +29,10 @@ public class OrderService {
 
     @Transactional
     public OrderCreateRes create(OrderCreateReq req) {
-        List<ProductManager.ProductReservationReq> productReserveReq = req.items().stream()
-                .map(item -> new ProductManager.ProductReservationReq(item.productId(), item.quantity()))
-                .toList();
+        String orderCode = UUID.randomUUID().toString();
 
-        List<ReservedProduct> reservedProducts = productManager.reserve(productReserveReq);
+        productManager.createProductQuantityEvent(orderCode, ProductQuantityEventPayload.of(orderCode, req));
 
-        try {
-            Order savedOrder = createOrderWithReservedProducts(reservedProducts);
-
-            paymentManager.createPendingPayment(savedOrder.getOrderCode(), savedOrder.getTotalAmount(), req.paymentMethod());
-
-            return OrderCreateRes.from(savedOrder);
-        } catch (RuntimeException e) {
-            productManager.restoreReservedProductsOnOrderCreationFailure(productReserveReq);
-            throw e;
-        }
-    }
-
-    private Order createOrderWithReservedProducts(List<ReservedProduct> reservedProducts) {
-        Order order = Order.create(LocalDateTime.now(clock));
-        reservedProducts.forEach(product ->
-                order.addItem(product.productId(), product.productName(), product.unitPrice(), product.quantity())
-        );
-        return orderRepository.save(order);
+        return OrderCreateRes.from(orderCode);
     }
 }
