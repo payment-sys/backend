@@ -5,6 +5,7 @@ import lombok.Getter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 @Entity
@@ -17,7 +18,7 @@ public class ProductQuantityEvent {
     private Long id;
 
     @Column(name = "order_id")
-    private Long orderId;
+    private String orderCode;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "json")
@@ -29,4 +30,21 @@ public class ProductQuantityEvent {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    public ProductQuantityEvent(String orderCode,
+                                ProductQuantityEventPayload payload,
+                                ProductQuantityEventStatus productQuantityEventStatus,
+                                LocalDateTime createdAt,
+                                LocalDateTime updatedAt) {
+        this.orderCode = orderCode;
+        this.payload = payload;
+        this.productQuantityEventStatus = productQuantityEventStatus;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public static ProductQuantityEvent of(String orderCode, ProductQuantityEventPayload payload, Clock clock) {
+        return new ProductQuantityEvent(orderCode, payload, ProductQuantityEventStatus.READY, LocalDateTime.now(clock),
+                null);
+    }
 }
