@@ -41,10 +41,10 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    private Order(LocalDateTime orderedAt) {
-        this.orderCode = UUID.randomUUID().toString();
-        this.orderStatus = OrderStatus.PENDING_PAYMENT;
-        this.totalAmount = 0L;
+    public Order(String orderCode, OrderStatus orderStatus, Long totalAmount, LocalDateTime orderedAt) {
+        this.orderCode = orderCode;
+        this.orderStatus = orderStatus;
+        this.totalAmount = totalAmount;
         this.orderedAt = orderedAt;
     }
 
@@ -54,11 +54,7 @@ public class Order {
         totalAmount += orderItem.getOrderAmount();
     }
 
-    public void updateStatus(OrderStatus orderStatus) {
-        this.orderStatus = orderStatus;
-    }
-
-    public static Order create(LocalDateTime orderedAt) {
-        return new Order(orderedAt);
+    public static Order create(String orderCode, LocalDateTime orderedAt) {
+        return new Order(orderCode, OrderStatus.PENDING, 0L, orderedAt);
     }
 }
