@@ -1,22 +1,22 @@
 package com.v_payment.pay.product.mq;
 
 import com.v_payment.pay.order.service.OrderManager;
+import com.v_payment.pay.order.entity.OrderStatus;
 import com.v_payment.pay.payment.service.PaymentManager;
 import com.v_payment.pay.product.entity.Product;
 import com.v_payment.pay.product.entity.ProductQuantityEventPayload;
 import com.v_payment.pay.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-// 주문(code) 안에 상품들(map,Long) 안에 상품(Long, Integer)
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class MqConsumeHandler {
@@ -25,59 +25,65 @@ public class MqConsumeHandler {
     private final PaymentManager paymentManager;
     private final JdbcTemplate jdbcTemplate;
 
+    /**
+     * 1. 재고 차감 할 products row lock 걸고 조회
+     * 2. 재고 차감 plan 생성
+     * 3. 재고 차감
+     * 4. 주문 성공/실패 status 업데이트
+     * 5. 성공 주문만 결제 생성
+     */
     @Transactional
-    public void reserve(List<ProductQuantityEventPayload> payloads) {
+    public void handle(List<ProductQuantityEventPayload> payloads) {
+        Map<Long, Product> products = findProductByPayloads(payloads);
+
+        ConsumePlans plans = makePlan(products, payloads);
+
+        decreaseProducts(plans);
+
+        updateSuccessOrFail(plans);
+
+        paymentManager.createPendingPayments(plans.pendingPayments());
+    }
+
+    private void updateSuccessOrFail(ConsumePlans plans) {
+        boolean successUpdated = orderManager.updateStatuses(plans.successOrderCodes(), OrderStatus.PENDING,
+                OrderStatus.PRODUCT_RESERVED_SUCCESS);
+        boolean failUpdated = orderManager.updateStatuses(plans.failOrders(), OrderStatus.PENDING,
+                OrderStatus.PRODUCT_RESERVED_FAILED);
+
+        if(!successUpdated || !failUpdated) {
+            log.error("재고 차감이 성공했지만, 주문의 상태 업데이트를 실패했습니다. successOrderCodes={}, failOrderCodes={}",
+                    plans.successOrderCodes(), plans.failOrders());
+
+            throw new IllegalStateException("주문 상태 업데이트 실패");
+        }
+    }
+
+    private Map<Long, Product> findProductByPayloads(List<ProductQuantityEventPayload> payloads) {
         List<Long> productIds = payloads.stream()
                 .map(ProductQuantityEventPayload::getRequestedQuantities)
                 .flatMap(rqs -> rqs.keySet().stream())
                 .distinct()
                 .toList();
 
-        Map<Long, Product> products = productRepository.findAllByIdInForUpdate(productIds).stream()
-                .collect(Collectors.toMap(
-                        Product::getId,
-                        product -> product
-                ));
-
-        Plans plans = new Plans(new ArrayList<>(), new ArrayList<>(), new HashMap<>(), new ArrayList<>());
-        payloads.forEach(p -> {
-                    Map<Long, Integer> requestedQuantities = p.getRequestedQuantities();
-
-                    boolean can = true;
-                    for(Map.Entry<Long, Integer> entry : requestedQuantities.entrySet()) {
-                        Long productId = entry.getKey();
-                        int quantity = entry.getValue();
-
-                        Product product = products.get(productId);
-                        if(product == null) {
-                            can = false;
-                            break;
-                        }
-
-                        int remainingStock = product.getStockQuantity()
-                                + plans.decreaseTotal().getOrDefault(productId, 0);
-                        if(remainingStock < quantity) {
-                            can = false;
-                            break;
-                        }
-                    }
-
-                    if(can) {
-                        plans.success(p, products);
-                        return;
-                    }
-                    plans.fail(p.getOrderCode());
-                });
-
-        decreaseProducts(plans);
-        orderManager.updateProductQuantityReservationStatus(plans.successOrderCodes(), plans.failOrders());
-        paymentManager.createPendingPayments(plans.pendingPayments());
+        return productRepository.findAllByIdInForUpdate(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, product -> product));
     }
 
-    private void decreaseProducts(Plans plans) {
-        if (plans.decreaseTotal().isEmpty()) {
-            return;
+    private ConsumePlans makePlan(Map<Long, Product> products, List<ProductQuantityEventPayload> payloads) {
+        ConsumePlans plans = ConsumePlans.create();
+        for(ProductQuantityEventPayload payload : payloads) {
+            if (canReserve(payload, products, plans)) {
+                plans.success(payload, products);
+                continue;
+            }
+            plans.fail(payload.getOrderCode());
         }
+        return plans;
+    }
+
+    private void decreaseProducts(ConsumePlans plans) {
+        if (plans.decreaseTotal().isEmpty()) return;
 
         jdbcTemplate.batchUpdate(
                 """
@@ -94,34 +100,23 @@ public class MqConsumeHandler {
         );
     }
 
-    record Plans(
-            List<String> successOrderCodes,
-            List<String> failOrders,
-            Map<Long, Integer> decreaseTotal,
-            List<PaymentManager.PendingPaymentCreateRequest> pendingPayments
-    ) {
-        public void success(ProductQuantityEventPayload payload, Map<Long, Product> products) {
-            successOrderCodes.add(payload.getOrderCode());
+    private boolean canReserve(ProductQuantityEventPayload payload, Map<Long, Product> products, ConsumePlans plans) {
+        for(Map.Entry<Long, Integer> requestEntry : payload.getRequestedQuantities().entrySet()) {
+            Long productId = requestEntry.getKey();
+            Integer quantity = requestEntry.getValue();
 
-            long amount = 0L;
-            for(Map.Entry<Long, Integer> entry : payload.getRequestedQuantities().entrySet()) {
-                Long productId = entry.getKey();
-                int quantity = entry.getValue();
-                decreaseTotal.merge(productId, -quantity, Integer::sum);
-
-                Product product = products.get(productId);
-                amount += product.getPrice() * quantity;
+            Product productForDecrease = products.get(productId);
+            if(productForDecrease == null) {
+                return false;
             }
 
-            pendingPayments.add(new PaymentManager.PendingPaymentCreateRequest(
-                    payload.getOrderCode(),
-                    amount,
-                    payload.getPaymentMethod()
-            ));
+            int remainingStock = productForDecrease.getStockQuantity()
+                    + plans.decreaseTotal().getOrDefault(productId, 0);
+            if(remainingStock < quantity) {
+                return false;
+            }
         }
 
-        public void fail(String orderCode) {
-            failOrders.add(orderCode);
-        }
+        return true;
     }
 }
