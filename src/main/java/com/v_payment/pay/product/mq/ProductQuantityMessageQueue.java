@@ -17,7 +17,19 @@ public class ProductQuantityMessageQueue {
         List<ProductQuantityEventPayload> payloads = new ArrayList<>(size);
         payloads.add(first);
 
-        queue.drainTo(payloads, size - 1);
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(200);
+
+        while (payloads.size() < size) {
+            long remaining = deadline - System.nanoTime();
+            if (remaining <= 0) break;
+
+            ProductQuantityEventPayload next = queue.poll(remaining, TimeUnit.NANOSECONDS);
+            if (next == null) break;
+
+            payloads.add(next);
+            queue.drainTo(payloads, size - payloads.size());
+        }
+
         return payloads;
     }
 
