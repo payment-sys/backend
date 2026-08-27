@@ -2,6 +2,7 @@ package com.v_payment.pay.product.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
+@NoArgsConstructor
 @Table(name = "product_quantity_event")
 public class ProductQuantityEvent {
     @Id
@@ -41,6 +43,12 @@ public class ProductQuantityEvent {
         this.productQuantityEventStatus = productQuantityEventStatus;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+    }
+
+    public void updateStatus(ProductQuantityEventStatus productQuantityEventStatus) {
+        if(this.productQuantityEventStatus == ProductQuantityEventStatus.READY) {
+            this.productQuantityEventStatus = productQuantityEventStatus;
+        }
     }
 
     public static ProductQuantityEvent of(String orderCode, ProductQuantityEventPayload payload, Clock clock) {
