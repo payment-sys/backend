@@ -1,9 +1,10 @@
 package com.v_payment.pay.order.entity;
 
 public enum OrderStatus {
-    PENDING_PAYMENT,
-    PRODUCT_RESERVED,
-    PAID,
+    PENDING,
+    PRODUCT_RESERVED_SUCCESS,
+    PRODUCT_RESERVED_FAILED,
+    PAYMENT_SUCCESS,
     PAYMENT_FAILED,
     CANCELLED
 }

@@ -16,76 +16,19 @@ public class OrderManager {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
 
-    public OrderStatusUpdateResult updateStatus(String orderCode, OrderStatus orderStatus) {
-        int updatedRows = orderRepository.updateStatus(
-                orderCode,
-                List.of(OrderStatus.PENDING_PAYMENT, OrderStatus.PRODUCT_RESERVED),
-                orderStatus
-        );
-        if (updatedRows != 1) {
-            return OrderStatusUpdateResult.notUpdated();
-        }
+    public boolean updateStatus(String orderCode, OrderStatus from, OrderStatus to) {
+        return orderRepository.updateStatus(orderCode, from, to) == 1;
+    }
 
-        if (orderStatus == OrderStatus.PAID) {
-            return OrderStatusUpdateResult.updated(List.of());
-        }
+    public boolean updateStatuses(Collection<String> orderCodes, OrderStatus from, OrderStatus to) {
+        if (orderCodes.isEmpty()) return true;
+        return orderRepository.updateStatusByOrderCodes(orderCodes, from, to) == orderCodes.size();
+    }
 
-        return OrderStatusUpdateResult.updated(orderItemRepository.findAllByOrderCode(orderCode).stream()
+    public List<OrderItemSnapshot> findOrderItems(String orderCode) {
+        return orderItemRepository.findAllByOrderCode(orderCode).stream()
                 .map(OrderItemSnapshot::from)
-                .toList());
-    }
-
-    public ProductQuantityReservationUpdateResult updateProductQuantityReservationStatus(
-            Collection<String> successOrderCodes,
-            Collection<String> failOrderCodes
-    ) {
-        int successUpdatedRows = updateProductReserved(successOrderCodes);
-        int failUpdatedRows = updateProductReservationFailed(failOrderCodes);
-
-        return new ProductQuantityReservationUpdateResult(successUpdatedRows, failUpdatedRows);
-    }
-
-    private int updateProductReserved(Collection<String> orderCodes) {
-        if (orderCodes.isEmpty()) {
-            return 0;
-        }
-
-        return orderRepository.updateStatusByOrderCodes(
-                orderCodes,
-                OrderStatus.PENDING_PAYMENT,
-                OrderStatus.PRODUCT_RESERVED
-        );
-    }
-
-    private int updateProductReservationFailed(Collection<String> orderCodes) {
-        if (orderCodes.isEmpty()) {
-            return 0;
-        }
-
-        return orderRepository.updateStatusByOrderCodes(
-                orderCodes,
-                OrderStatus.PENDING_PAYMENT,
-                OrderStatus.PAYMENT_FAILED
-        );
-    }
-
-    public record ProductQuantityReservationUpdateResult(
-            int successUpdatedRows,
-            int failUpdatedRows
-    ) {
-    }
-
-    public record OrderStatusUpdateResult(
-            boolean updated,
-            List<OrderItemSnapshot> orderItems
-    ) {
-        private static OrderStatusUpdateResult updated(List<OrderItemSnapshot> orderItems) {
-            return new OrderStatusUpdateResult(true, orderItems);
-        }
-
-        private static OrderStatusUpdateResult notUpdated() {
-            return new OrderStatusUpdateResult(false, List.of());
-        }
+                .toList();
     }
 
     public record OrderItemSnapshot(
