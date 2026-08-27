@@ -7,6 +7,7 @@ import com.v_payment.pay.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.List;
 
 @Component
@@ -15,32 +16,19 @@ public class OrderManager {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
 
-    public OrderStatusUpdateResult updateStatus(String orderCode, OrderStatus orderStatus) {
-        int updatedRows = orderRepository.updateStatus(orderCode, OrderStatus.PENDING_PAYMENT, orderStatus);
-        if (updatedRows != 1) {
-            return OrderStatusUpdateResult.notUpdated();
-        }
-
-        if (orderStatus == OrderStatus.PAID) {
-            return OrderStatusUpdateResult.updated(List.of());
-        }
-
-        return OrderStatusUpdateResult.updated(orderItemRepository.findAllByOrderCode(orderCode).stream()
-                .map(OrderItemSnapshot::from)
-                .toList());
+    public boolean updateStatus(String orderCode, OrderStatus from, OrderStatus to) {
+        return orderRepository.updateStatus(orderCode, from, to) == 1;
     }
 
-    public record OrderStatusUpdateResult(
-            boolean updated,
-            List<OrderItemSnapshot> orderItems
-    ) {
-        private static OrderStatusUpdateResult updated(List<OrderItemSnapshot> orderItems) {
-            return new OrderStatusUpdateResult(true, orderItems);
-        }
+    public boolean updateStatuses(Collection<String> orderCodes, OrderStatus from, OrderStatus to) {
+        if (orderCodes.isEmpty()) return true;
+        return orderRepository.updateStatusByOrderCodes(orderCodes, from, to) == orderCodes.size();
+    }
 
-        private static OrderStatusUpdateResult notUpdated() {
-            return new OrderStatusUpdateResult(false, List.of());
-        }
+    public List<OrderItemSnapshot> findOrderItems(String orderCode) {
+        return orderItemRepository.findAllByOrderCode(orderCode).stream()
+                .map(OrderItemSnapshot::from)
+                .toList();
     }
 
     public record OrderItemSnapshot(

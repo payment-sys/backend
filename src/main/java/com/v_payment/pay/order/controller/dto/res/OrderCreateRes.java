@@ -6,19 +6,9 @@ import com.v_payment.pay.order.entity.OrderStatus;
 import java.util.List;
 
 public record OrderCreateRes(
-        String orderCode,
-        OrderStatus orderStatus,
-        Long totalAmount,
-        List<OrderItemRes> items
+        String orderCode
 ) {
-    public static OrderCreateRes from(Order order) {
-        return new OrderCreateRes(
-                order.getOrderCode(),
-                order.getOrderStatus(),
-                order.getTotalAmount(),
-                order.getOrderItems().stream()
-                        .map(OrderItemRes::from)
-                        .toList()
-        );
+    public static OrderCreateRes from(String orderCode) {
+        return new OrderCreateRes(orderCode);
     }
 }

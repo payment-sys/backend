@@ -222,21 +222,47 @@ public class PaymentService {
     }
 
     private void applyOrderPaid(String orderCode) {
-        orderManager.updateStatus(orderCode, OrderStatus.PAID);
+        boolean updated = orderManager.updateStatus(orderCode, OrderStatus.PRODUCT_RESERVED_SUCCESS, OrderStatus.PAYMENT_SUCCESS);
+
+        if (!updated) {
+            log.error("결제 성공했지만, 주문 상태 업데이트를 실패했습니다. orderCode={}", orderCode);
+        }
     }
 
     private void applyOrderPaymentFailed(String orderCode) {
-        restoreOrderProducts(orderManager.updateStatus(orderCode, OrderStatus.PAYMENT_FAILED));
+        boolean updated = orderManager.updateStatus(
+                orderCode,
+                OrderStatus.PRODUCT_RESERVED_SUCCESS,
+                OrderStatus.PAYMENT_FAILED
+        );
+
+        if (!updated) {
+            log.error("결제 실패 후 주문 상태 업데이트를 실패했습니다. orderCode={}", orderCode);
+        }
+
+        if (updated) {
+            restoreOrderProducts(orderCode);
+        }
     }
 
     private void applyOrderPaymentExpired(String orderCode) {
-        restoreOrderProducts(orderManager.updateStatus(orderCode, OrderStatus.CANCELLED));
+        boolean updated = orderManager.updateStatus(
+                orderCode,
+                OrderStatus.PRODUCT_RESERVED_SUCCESS,
+                OrderStatus.CANCELLED
+        );
+
+        if (!updated) {
+            log.error("결제 만료 후 주문 상태 업데이트를 실패했습니다. orderCode={}", orderCode);
+        }
+
+        if (updated) {
+            restoreOrderProducts(orderCode);
+        }
     }
 
-    private void restoreOrderProducts(OrderManager.OrderStatusUpdateResult updateResult) {
-        if (!updateResult.updated()) return;
-
-        productManager.restore(updateResult.orderItems().stream()
+    private void restoreOrderProducts(String orderCode) {
+        productManager.restore(orderManager.findOrderItems(orderCode).stream()
                 .map(orderItem -> new ProductManager.ProductRestoreReq(orderItem.productId(), orderItem.quantity()))
                 .toList());
     }
