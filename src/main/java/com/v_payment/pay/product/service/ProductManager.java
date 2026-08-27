@@ -52,13 +52,9 @@ public class ProductManager {
                             boolean isAdded = mq.add(payload);
                             if(!isAdded) throw new IllegalStateException("메시지 큐에 이벤트를 넣지 못했습니다.");
                         } catch (Exception e) {
-                            log.warn("메시지 발행을 실패했습니다. productQuantityEventId = {}", productQuantityEventId, e);
+                            log.warn("메시지 발행을 git 실패했습니다. productQuantityEventId = {}", productQuantityEventId, e);
                             transactionTemplate.executeWithoutResult(status -> productQuantityEventRepository.findById(productQuantityEventId).ifPresent(productQuantityEvent -> productQuantityEvent.updateStatus(ProductQuantityEventStatus.FAILED)));
                         }
-                        transactionTemplate.executeWithoutResult(status ->
-                                productQuantityEventRepository.findById(productQuantityEventId)
-                                        .ifPresent(productQuantityEvent ->
-                                                productQuantityEvent.updateStatus(ProductQuantityEventStatus.PUBLISHED)));
                     }
                 }
         );
