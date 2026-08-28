@@ -1,7 +1,6 @@
 package com.v_payment.pay.order.service;
 
 import com.v_payment.pay.order.entity.OrderItem;
-import com.v_payment.pay.order.entity.OrderStatus;
 import com.v_payment.pay.order.repository.OrderItemRepository;
 import com.v_payment.pay.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,13 +15,13 @@ public class OrderManager {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
 
-    public boolean updateStatus(String orderCode, OrderStatus from, OrderStatus to) {
-        return orderRepository.updateStatus(orderCode, from, to) == 1;
+    public boolean markFailed(String orderCode) {
+        return orderRepository.markFailed(orderCode) == 1;
     }
 
-    public boolean updateStatuses(Collection<String> orderCodes, OrderStatus from, OrderStatus to) {
+    public boolean markFailed(Collection<String> orderCodes) {
         if (orderCodes.isEmpty()) return true;
-        return orderRepository.updateStatusByOrderCodes(orderCodes, from, to) == orderCodes.size();
+        return orderRepository.markFailedByOrderCodes(orderCodes) == orderCodes.size();
     }
 
     public List<OrderItemSnapshot> findOrderItems(String orderCode) {
