@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +13,12 @@ import lombok.NoArgsConstructor;
 @Getter
 @Entity
 @NoArgsConstructor
-@Table(name = "product")
+@Table(
+        name = "product",
+        indexes = {
+                @Index(name = "idx_product_order_item_snapshot", columnList = "product_id, name, price")
+        }
+)
 public class Product {
     @Id
     @Column(name = "product_id")
@@ -29,20 +35,6 @@ public class Product {
         this.name = name;
         this.price = price;
         this.stockQuantity = stockQuantity;
-    }
-
-    public void subtractQuantity(Integer quantity) {
-        if (stockQuantity < quantity) {
-            throw new IllegalArgumentException("Insufficient stock.");
-        }
-        stockQuantity -= quantity;
-    }
-
-    public void restoreQuantity(Integer quantity) {
-        if (quantity == null || quantity <= 0) {
-            throw new IllegalArgumentException("Restore quantity must be positive.");
-        }
-        stockQuantity += quantity;
     }
 
     public static Product create(String name, Long price, Integer stockQuantity) {

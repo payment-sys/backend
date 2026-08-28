@@ -1,6 +1,7 @@
 package com.v_payment.pay.product.repository;
 
 import com.v_payment.pay.product.entity.Product;
+import com.v_payment.pay.product.entity.ProductBasicInfo;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -12,6 +13,13 @@ import java.util.Collection;
 import java.util.List;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
+
+    @Query("""
+            select new com.v_payment.pay.product.entity.ProductBasicInfo(p.id, p.name, p.price)
+            from Product p
+            where p.id in :productIds
+            """)
+    List<ProductBasicInfo> findProductBasicInfos(@Param("productIds") List<Long> productIds);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Product p where p.id in :productIds order by p.id asc")
