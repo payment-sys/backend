@@ -1,6 +1,7 @@
 package com.v_payment.pay.product.service;
 
 import com.v_payment.pay.product.entity.Product;
+import com.v_payment.pay.product.entity.ProductBasicInfo;
 import com.v_payment.pay.product.entity.ProductQuantityEvent;
 import com.v_payment.pay.product.entity.ProductQuantityEventPayload;
 import com.v_payment.pay.product.entity.ProductQuantityEventStatus;
@@ -81,8 +82,8 @@ public class ProductManager {
         });
     }
 
-    public List<Product> findAllById(List<Long> productIds) {
-        return productRepository.findAllById(productIds);
+    public List<ProductBasicInfo> findProductBasicInfos(List<Long> productIds) {
+        return productRepository.findProductBasicInfos(productIds);
     }
 
     public record ProductRestoreReq(
@@ -90,4 +91,5 @@ public class ProductManager {
             Integer quantity
     ) {
     }
+
 }

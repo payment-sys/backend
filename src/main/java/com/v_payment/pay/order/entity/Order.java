@@ -3,8 +3,6 @@ package com.v_payment.pay.order.entity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -16,7 +14,6 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Getter
 @Entity
@@ -31,8 +28,7 @@ public class Order {
     @Column(name = "order_code", nullable = false, unique = true)
     private String orderCode;
 
-    @Enumerated(EnumType.STRING)
-    private OrderStatus orderStatus;
+    private boolean isFailed;
 
     private Long totalAmount;
 
@@ -41,9 +37,9 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    public Order(String orderCode, OrderStatus orderStatus, Long totalAmount, LocalDateTime orderedAt) {
+    public Order(String orderCode, boolean isFailed, Long totalAmount, LocalDateTime orderedAt) {
         this.orderCode = orderCode;
-        this.orderStatus = orderStatus;
+        this.isFailed = isFailed;
         this.totalAmount = totalAmount;
         this.orderedAt = orderedAt;
     }
@@ -55,6 +51,6 @@ public class Order {
     }
 
     public static Order create(String orderCode, LocalDateTime orderedAt) {
-        return new Order(orderCode, OrderStatus.PENDING, 0L, orderedAt);
+        return new Order(orderCode, false, 0L, orderedAt);
     }
 }
