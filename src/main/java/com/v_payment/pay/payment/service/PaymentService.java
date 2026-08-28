@@ -1,7 +1,6 @@
 package com.v_payment.pay.payment.service;
 
 import com.v_payment.pay.global.exception.BusinessException;
-import com.v_payment.pay.order.entity.OrderStatus;
 import com.v_payment.pay.order.service.OrderManager;
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.controller.dto.req.TossPaymentWebhookReq;
@@ -171,7 +170,6 @@ public class PaymentService {
                 doneResult.receipt() == null ? null : doneResult.receipt().url()
         );
         validatePaymentUpdatedRows(updatedRows);
-        applyOrderPaid(doneResult.orderCode());
         return ApprovalRes.from(doneResult);
     }
 
@@ -213,28 +211,15 @@ public class PaymentService {
         if (updatedRows != 1) return;
 
         switch (paymentStatus) {
-            case DONE -> applyOrderPaid(orderCode);
             case ABORTED -> applyOrderPaymentFailed(orderCode);
             case EXPIRED -> applyOrderPaymentExpired(orderCode);
-            case READY, UNKNOWN, IN_PROGRESS -> {
+            case READY, UNKNOWN, IN_PROGRESS, DONE -> {
             }
         }
     }
 
-    private void applyOrderPaid(String orderCode) {
-        boolean updated = orderManager.updateStatus(orderCode, OrderStatus.PRODUCT_RESERVED_SUCCESS, OrderStatus.PAYMENT_SUCCESS);
-
-        if (!updated) {
-            log.error("결제 성공했지만, 주문 상태 업데이트를 실패했습니다. orderCode={}", orderCode);
-        }
-    }
-
     private void applyOrderPaymentFailed(String orderCode) {
-        boolean updated = orderManager.updateStatus(
-                orderCode,
-                OrderStatus.PRODUCT_RESERVED_SUCCESS,
-                OrderStatus.PAYMENT_FAILED
-        );
+        boolean updated = orderManager.markFailed(orderCode);
 
         if (!updated) {
             log.error("결제 실패 후 주문 상태 업데이트를 실패했습니다. orderCode={}", orderCode);
@@ -246,11 +231,7 @@ public class PaymentService {
     }
 
     private void applyOrderPaymentExpired(String orderCode) {
-        boolean updated = orderManager.updateStatus(
-                orderCode,
-                OrderStatus.PRODUCT_RESERVED_SUCCESS,
-                OrderStatus.CANCELLED
-        );
+        boolean updated = orderManager.markFailed(orderCode);
 
         if (!updated) {
             log.error("결제 만료 후 주문 상태 업데이트를 실패했습니다. orderCode={}", orderCode);
