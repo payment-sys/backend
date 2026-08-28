@@ -1,7 +1,6 @@
 package com.v_payment.pay.product.mq;
 
 import com.v_payment.pay.order.service.OrderManager;
-import com.v_payment.pay.order.entity.OrderStatus;
 import com.v_payment.pay.payment.service.PaymentManager;
 import com.v_payment.pay.product.entity.Product;
 import com.v_payment.pay.product.entity.ProductQuantityEventPayload;
@@ -25,13 +24,6 @@ public class MqConsumeHandler {
     private final PaymentManager paymentManager;
     private final JdbcTemplate jdbcTemplate;
 
-    /**
-     * 1. 재고 차감 할 products row lock 걸고 조회
-     * 2. 재고 차감 plan 생성
-     * 3. 재고 차감
-     * 4. 주문 성공/실패 status 업데이트
-     * 5. 성공 주문만 결제 생성
-     */
     @Transactional
     public void handle(List<ProductQuantityEventPayload> payloads) {
         Map<Long, Product> products = findProductByPayloads(payloads);
@@ -40,22 +32,19 @@ public class MqConsumeHandler {
 
         decreaseProducts(plans);
 
-        updateSuccessOrFail(plans);
+        markFailOrders(plans);
 
         paymentManager.createPendingPayments(plans.pendingPayments());
     }
 
-    private void updateSuccessOrFail(ConsumePlans plans) {
-        boolean successUpdated = orderManager.updateStatuses(plans.successOrderCodes(), OrderStatus.PENDING,
-                OrderStatus.PRODUCT_RESERVED_SUCCESS);
-        boolean failUpdated = orderManager.updateStatuses(plans.failOrders(), OrderStatus.PENDING,
-                OrderStatus.PRODUCT_RESERVED_FAILED);
+    private void markFailOrders(ConsumePlans plans) {
+        if(plans.failOrders().isEmpty()) return;
+        boolean failUpdated = orderManager.markFailed(plans.failOrders());
 
-        if(!successUpdated || !failUpdated) {
-            log.error("재고 차감이 성공했지만, 주문의 상태 업데이트를 실패했습니다. successOrderCodes={}, failOrderCodes={}",
-                    plans.successOrderCodes(), plans.failOrders());
-
-            throw new IllegalStateException("주문 상태 업데이트 실패");
+        if (!failUpdated) {
+            log.error("product reservation failed, but order fail flag update failed. failOrderCodes={}",
+                    plans.failOrders());
+            throw new IllegalStateException("order fail flag update failed");
         }
     }
 
@@ -72,7 +61,7 @@ public class MqConsumeHandler {
 
     private ConsumePlans makePlan(Map<Long, Product> products, List<ProductQuantityEventPayload> payloads) {
         ConsumePlans plans = ConsumePlans.create();
-        for(ProductQuantityEventPayload payload : payloads) {
+        for (ProductQuantityEventPayload payload : payloads) {
             if (canReserve(payload, products, plans)) {
                 plans.success(payload, products);
                 continue;
@@ -101,18 +90,18 @@ public class MqConsumeHandler {
     }
 
     private boolean canReserve(ProductQuantityEventPayload payload, Map<Long, Product> products, ConsumePlans plans) {
-        for(Map.Entry<Long, Integer> requestEntry : payload.getRequestedQuantities().entrySet()) {
+        for (Map.Entry<Long, Integer> requestEntry : payload.getRequestedQuantities().entrySet()) {
             Long productId = requestEntry.getKey();
             Integer quantity = requestEntry.getValue();
 
             Product productForDecrease = products.get(productId);
-            if(productForDecrease == null) {
+            if (productForDecrease == null) {
                 return false;
             }
 
             int remainingStock = productForDecrease.getStockQuantity()
                     + plans.decreaseTotal().getOrDefault(productId, 0);
-            if(remainingStock < quantity) {
+            if (remainingStock < quantity) {
                 return false;
             }
         }
