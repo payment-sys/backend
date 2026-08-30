@@ -46,6 +46,7 @@ public class MeterFilter implements io.micrometer.core.instrument.config.MeterFi
         return name.equals("http.server.requests")
                 || name.equals("http.server.requests.active")
                 || name.equals("pay.api")
+                || name.equals("pay.api.requests.active.peak")
                 || name.startsWith("hikaricp.connections")
                 || name.startsWith("tomcat.threads")
                 || name.startsWith("tomcat.connections")
