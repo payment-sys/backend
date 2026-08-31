@@ -104,7 +104,6 @@ public class ConsumeHandler {
         List<Long> productIds = payloads.stream()
                 .map(ProductQuantityEventPayload::getRequestedQuantities)
                 .flatMap(rqs -> rqs.keySet().stream())
-                .map(Long::valueOf)
                 .distinct()
                 .toList();
 
@@ -143,8 +142,8 @@ public class ConsumeHandler {
     }
 
     private boolean canReserve(ProductQuantityEventPayload payload, Map<Long, Product> products, ConsumePlans plans) {
-        for (Map.Entry<String, Integer> requestEntry : payload.getRequestedQuantities().entrySet()) {
-            Long productId = Long.valueOf(requestEntry.getKey());
+        for (Map.Entry<Long, Integer> requestEntry : payload.getRequestedQuantities().entrySet()) {
+            Long productId = requestEntry.getKey();
             Integer quantity = requestEntry.getValue();
 
             Product productForDecrease = products.get(productId);

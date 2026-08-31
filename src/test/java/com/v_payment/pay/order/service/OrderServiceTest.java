@@ -67,8 +67,8 @@ class OrderServiceTest {
         assertThat(event.getOrderCode()).isEqualTo(order.getOrderCode());
         assertThat(event.getPayload().getPaymentMethod()).isEqualTo(PaymentMethod.CARD);
         assertThat(event.getPayload().getRequestedQuantities())
-                .containsEntry(String.valueOf(productA.getId()), 2)
-                .containsEntry(String.valueOf(productB.getId()), 3);
+                .containsEntry(productA.getId(), 2)
+                .containsEntry(productB.getId(), 3);
     }
 
     @DisplayName("존재하지 않는 상품이 포함될 시 주문 생성에 실패한다.")
