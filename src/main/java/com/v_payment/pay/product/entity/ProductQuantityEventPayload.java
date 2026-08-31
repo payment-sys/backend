@@ -20,19 +20,8 @@ public class ProductQuantityEventPayload {
 
     private Map<Long, Integer> requestedQuantities;
 
-    private Long requestedAmount;
-
-    public static ProductQuantityEventPayload of(String orderCode, OrderCreateReq orderCreateReq) {
-        return of(orderCode, orderCreateReq, null);
-    }
-
-    public static ProductQuantityEventPayload of(String orderCode, OrderCreateReq orderCreateReq, Long requestedAmount) {
-        return new ProductQuantityEventPayload(
-                orderCode,
-                orderCreateReq.paymentMethod(),
-                orderCreateReq.items().stream()
-                        .collect(Collectors.toMap(OrderItemCreateReq::productId, OrderItemCreateReq::quantity)),
-                requestedAmount
-        );
+    public static ProductQuantityEventPayload of(String orderCode, PaymentMethod paymentMethod,
+                                                 Map<Long, Integer> requestedQuantities) {
+        return new ProductQuantityEventPayload(orderCode, paymentMethod, requestedQuantities);
     }
 }

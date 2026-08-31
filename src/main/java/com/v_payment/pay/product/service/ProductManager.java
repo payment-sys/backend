@@ -31,11 +31,6 @@ public class ProductManager {
     private final TransactionTemplate transactionTemplate;
     private final ProductQuantityEventRepository productQuantityEventRepository;
 
-    /**
-     * 1. 아웃박스 생성
-     * 2. 아웃박스 저장
-     * 3. 메시지 발행 -> 트랜잭션 commit 이후 메시지 발행
-     */
     public void createProductQuantityEvent(String orderCode, ProductQuantityEventPayload payload) {
         ProductQuantityEvent productQuantityEvent = ProductQuantityEvent.of(orderCode, payload, clock);
 

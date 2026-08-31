@@ -1,6 +1,7 @@
 package com.v_payment.pay.order.service;
 
 import com.v_payment.pay.order.entity.OrderItem;
+import com.v_payment.pay.order.entity.OrderItemInfo;
 import com.v_payment.pay.order.repository.OrderItemRepository;
 import com.v_payment.pay.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,18 +25,9 @@ public class OrderManager {
         return orderRepository.markFailedByOrderCodes(orderCodes) == orderCodes.size();
     }
 
-    public List<OrderItemSnapshot> findOrderItems(String orderCode) {
+    public List<OrderItemInfo> findOrderItems(String orderCode) {
         return orderItemRepository.findAllByOrderCode(orderCode).stream()
-                .map(OrderItemSnapshot::from)
+                .map(OrderItem::getOrderItemInfo)
                 .toList();
-    }
-
-    public record OrderItemSnapshot(
-            Long productId,
-            Integer quantity
-    ) {
-        private static OrderItemSnapshot from(OrderItem orderItem) {
-            return new OrderItemSnapshot(orderItem.getProductId(), orderItem.getQuantity());
-        }
     }
 }
