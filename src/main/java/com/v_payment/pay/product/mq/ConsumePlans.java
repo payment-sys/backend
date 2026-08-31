@@ -23,8 +23,8 @@ public record ConsumePlans(
         successOrderCodes.add(payload.getOrderCode());
 
         long amount = 0L;
-        for (Map.Entry<String, Integer> entry : payload.getRequestedQuantities().entrySet()) {
-            Long productId = Long.valueOf(entry.getKey());
+        for (Map.Entry<Long, Integer> entry : payload.getRequestedQuantities().entrySet()) {
+            Long productId = entry.getKey();
             int quantity = entry.getValue();
             decreaseTotal.merge(productId, -quantity, Integer::sum);
 

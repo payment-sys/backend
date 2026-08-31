@@ -4,9 +4,9 @@ import com.v_payment.pay.payment.entity.PaymentMethod;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import tools.jackson.databind.annotation.JsonDeserialize;
 
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Getter
 @NoArgsConstructor
@@ -16,13 +16,11 @@ public class ProductQuantityEventPayload {
 
     private PaymentMethod paymentMethod;
 
-    private Map<String, Integer> requestedQuantities;
+    @JsonDeserialize(keyUsing = LongMapKeyDeserializer.class)
+    private Map<Long, Integer> requestedQuantities;
 
     public static ProductQuantityEventPayload of(String orderCode, PaymentMethod paymentMethod,
                                                  Map<Long, Integer> requestedQuantities) {
-        Map<String, Integer> stringKeyRequestedQuantities = requestedQuantities.entrySet().stream()
-                .collect(Collectors.toMap(entry -> String.valueOf(entry.getKey()), Map.Entry::getValue));
-
-        return new ProductQuantityEventPayload(orderCode, paymentMethod, stringKeyRequestedQuantities);
+        return new ProductQuantityEventPayload(orderCode, paymentMethod, requestedQuantities);
     }
 }
