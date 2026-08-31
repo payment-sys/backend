@@ -1,7 +1,5 @@
 package com.v_payment.pay.product.entity;
 
-import com.v_payment.pay.order.controller.dto.req.OrderCreateReq;
-import com.v_payment.pay.order.controller.dto.req.OrderItemCreateReq;
 import com.v_payment.pay.payment.entity.PaymentMethod;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -18,10 +16,13 @@ public class ProductQuantityEventPayload {
 
     private PaymentMethod paymentMethod;
 
-    private Map<Long, Integer> requestedQuantities;
+    private Map<String, Integer> requestedQuantities;
 
     public static ProductQuantityEventPayload of(String orderCode, PaymentMethod paymentMethod,
                                                  Map<Long, Integer> requestedQuantities) {
-        return new ProductQuantityEventPayload(orderCode, paymentMethod, requestedQuantities);
+        Map<String, Integer> stringKeyRequestedQuantities = requestedQuantities.entrySet().stream()
+                .collect(Collectors.toMap(entry -> String.valueOf(entry.getKey()), Map.Entry::getValue));
+
+        return new ProductQuantityEventPayload(orderCode, paymentMethod, stringKeyRequestedQuantities);
     }
 }
