@@ -8,7 +8,8 @@ import org.springframework.http.HttpStatus;
 @Getter
 @RequiredArgsConstructor
 public enum OrderException implements ErrorCode {
-    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "Order not found.");
+    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "Order not found."),
+    ORDER_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "주문의 상품이 없습니다.");
 
     private final HttpStatus status;
     private final String message;

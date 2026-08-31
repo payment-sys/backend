@@ -244,7 +244,7 @@ public class PaymentService {
 
     private void restoreOrderProducts(String orderCode) {
         productManager.restore(orderManager.findOrderItems(orderCode).stream()
-                .map(orderItem -> new ProductManager.ProductRestoreReq(orderItem.productId(), orderItem.quantity()))
+                .map(orderItem -> new ProductManager.ProductRestoreReq(orderItem.getProductId(), orderItem.getQuantity()))
                 .toList());
     }
 
