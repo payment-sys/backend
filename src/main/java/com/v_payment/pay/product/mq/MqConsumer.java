@@ -12,16 +12,16 @@ import java.util.concurrent.Executors;
 
 @Slf4j
 @Component
-public class MqConsumer {
+public class MqConsumer implements QueueConsumer {
     private static final int MAX_BATCH_SIZE = 100;
 
-    private final MqConsumeHandler mqConsumeHandler;
+    private final ConsumeHandler consumeHandler;
     private final ProductQuantityMessageQueue mq;
     private final MqLog mqLog;
     private final ExecutorService mqExecutor;
 
-    public MqConsumer(MqConsumeHandler mqConsumeHandler, ProductQuantityMessageQueue mq, MqLog mqLog) {
-        this.mqConsumeHandler = mqConsumeHandler;
+    public MqConsumer(ConsumeHandler consumeHandler, ProductQuantityMessageQueue mq, MqLog mqLog) {
+        this.consumeHandler = consumeHandler;
         this.mq = mq;
         this.mqLog = mqLog;
         this.mqExecutor = Executors.newSingleThreadExecutor(Thread.ofPlatform().factory());
@@ -34,21 +34,25 @@ public class MqConsumer {
 
     public void process() {
         while (!Thread.currentThread().isInterrupted()) {
-            try {
-                List<ProductQuantityEventPayload> payloads = mq.consumePayloads(MAX_BATCH_SIZE);
-                handle(payloads);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            } catch (Exception e) {
-                log.error("consumer thread exception occurred.", e);
-            }
+            consume();
+        }
+    }
+
+    @Override
+    public void consume() {
+        try {
+            List<ProductQuantityEventPayload> payloads = mq.consumePayloads(MAX_BATCH_SIZE);
+            handle(payloads);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            log.error("consumer thread exception occurred.", e);
         }
     }
 
     private void handle(List<ProductQuantityEventPayload> payloads) {
         mqLog.append("CONSUME", payloads);
-        mqConsumeHandler.handle(payloads);
+        consumeHandler.handle(payloads);
     }
 
     @PreDestroy
