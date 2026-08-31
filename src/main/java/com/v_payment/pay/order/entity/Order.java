@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -17,7 +18,7 @@ import java.util.List;
 
 @Getter
 @Entity
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "orders")
 public class Order {
     @Id
@@ -37,11 +38,11 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    public Order(String orderCode, boolean isFailed, Long totalAmount, LocalDateTime orderedAt) {
-        this.orderCode = orderCode;
+    private Order(String orderCode, boolean isFailed, Long totalAmount, LocalDateTime orderedAt) {
+        this.orderCode = validateOrderCode(orderCode);
         this.isFailed = isFailed;
-        this.totalAmount = totalAmount;
-        this.orderedAt = orderedAt;
+        this.totalAmount = validateTotalAmount(totalAmount);
+        this.orderedAt = validateOrderedAt(orderedAt);
     }
 
     public void addItem(Long productId, String productName, Long unitPrice, Integer quantity) {
@@ -52,5 +53,21 @@ public class Order {
 
     public static Order create(String orderCode, LocalDateTime orderedAt) {
         return new Order(orderCode, false, 0L, orderedAt);
+    }
+
+    private String validateOrderCode(String orderCode) {
+        if (orderCode == null || orderCode.isBlank()) throw new IllegalArgumentException("orderCode는 필수입니다!");
+        return orderCode;
+    }
+
+    private Long validateTotalAmount(Long totalAmount) {
+        if (totalAmount == null) throw new IllegalArgumentException("totalAmount는 필수입니다!");
+        if (totalAmount < 0) throw new IllegalArgumentException("총 가격은 음수일 수 없습니다.");
+        return totalAmount;
+    }
+
+    private LocalDateTime validateOrderedAt(LocalDateTime orderedAt) {
+        if (orderedAt == null) throw new IllegalArgumentException("orderedAt는 필수입니다!");
+        return orderedAt;
     }
 }
