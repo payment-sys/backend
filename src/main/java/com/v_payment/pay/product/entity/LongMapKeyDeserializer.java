@@ -1,8 +1,8 @@
 package com.v_payment.pay.product.entity;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.DeserializationContext;
-import tools.jackson.databind.KeyDeserializer;
+import com.fasterxml.jackson.core.JacksonException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.KeyDeserializer;
 
 public class LongMapKeyDeserializer extends KeyDeserializer {
 
