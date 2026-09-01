@@ -33,6 +33,8 @@ spring:
       ddl-auto: none
     properties:
       hibernate:
+        type:
+          json_format_mapper: org.hibernate.type.format.jackson.JacksonJsonFormatMapper
         connection:
           provider_disables_autocommit: true
     open-in-view: false
