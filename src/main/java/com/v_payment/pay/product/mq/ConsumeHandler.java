@@ -44,14 +44,16 @@ public class ConsumeHandler {
                 .toList();
 
         try {
-            transactionTemplate.executeWithoutResult(status -> handle(payloads));
+            transactionTemplate.executeWithoutResult(status -> {
+                    handle(payloads);
+                    productQuantityEventRepository.updateStatusByIds(eventIds, ProductQuantityEventStatus.CONSUMED,
+                            LocalDateTime.now(clock));
+            });
         } catch (Exception e) {
             log.error("db consumer failed. eventIds={}", eventIds, e);
             markRetry(events, eventIds, now);
             return;
         }
-
-        markConsumed(eventIds);
     }
 
     @Transactional
@@ -65,14 +67,6 @@ public class ConsumeHandler {
         markFailOrders(plans);
 
         paymentManager.createPendingPayments(plans.pendingPayments());
-    }
-
-    private void markConsumed(List<Long> eventIds) {
-        transactionTemplate.executeWithoutResult(status -> productQuantityEventRepository.updateStatusByIds(
-                eventIds,
-                ProductQuantityEventStatus.CONSUMED,
-                LocalDateTime.now(clock)
-        ));
     }
 
     private void markRetry(List<ProductQuantityEvent> events, List<Long> eventIds, LocalDateTime now) {
