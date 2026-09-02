@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 @Table(
         name = "product_quantity_event",
         indexes = {
+                @Index(name = "idx_pqe_status_id",
+                        columnList = "status, product_quantity_event_id"),
                 @Index(name = "idx_product_quantity_event_status_next_attempt_id",
                         columnList = "status, next_attempt_time, product_quantity_event_id")
         }

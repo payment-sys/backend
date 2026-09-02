@@ -26,7 +26,7 @@ public interface ProductQuantityEventRepository extends JpaRepository<ProductQua
     )
     List<ProductQuantityEvent> findByProductQuantityEventStatusOrderByIdAsc(
             @Param("status") String status,
-            Pageable pageable
+            @Param("limit") int limit
     );
 
     @Query("""
