@@ -34,7 +34,7 @@ public class DbConsumer implements QueueConsumer {
                 ProductQuantityConsumerMeter.SOURCE_READY,
                 "poll",
                 () -> productQuantityEventRepository.findByProductQuantityEventStatusOrderByIdAsc(
-                        ProductQuantityEventStatus.READY,
+                        ProductQuantityEventStatus.READY.toString(),
                         PageRequest.of(0, MAX_BATCH_SIZE)
                 )
         );

@@ -14,8 +14,18 @@ import java.util.List;
 
 @Repository
 public interface ProductQuantityEventRepository extends JpaRepository<ProductQuantityEvent, Long> {
+    @Query(
+            value = """
+        SELECT *
+        FROM product_quantity_event FORCE INDEX (idx_pqe_status_id)
+        WHERE status = :status
+        ORDER BY product_quantity_event_id ASC
+        LIMIT :limit
+        """,
+            nativeQuery = true
+    )
     List<ProductQuantityEvent> findByProductQuantityEventStatusOrderByIdAsc(
-            ProductQuantityEventStatus productQuantityEventStatus,
+            @Param("status") String status,
             Pageable pageable
     );
 
