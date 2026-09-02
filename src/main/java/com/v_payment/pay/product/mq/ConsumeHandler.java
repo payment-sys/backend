@@ -32,9 +32,10 @@ public class ConsumeHandler {
     private final PaymentManager paymentManager;
     private final JdbcTemplate jdbcTemplate;
     private final TransactionTemplate transactionTemplate;
+    private final ProductQuantityConsumerMeter consumerMeter;
     private final ProductQuantityEventRepository productQuantityEventRepository;
 
-    public void handleEvents(List<ProductQuantityEvent> events, LocalDateTime now) {
+    public void handleEvents(List<ProductQuantityEvent> events, LocalDateTime now, String source) {
         List<Long> eventIds = events.stream()
                 .map(ProductQuantityEvent::getId)
                 .toList();
@@ -43,44 +44,55 @@ public class ConsumeHandler {
                 .map(ProductQuantityEvent::getPayload)
                 .toList();
 
+        long startNanos = System.nanoTime();
         try {
             transactionTemplate.executeWithoutResult(status -> {
-                    handle(payloads);
-                    productQuantityEventRepository.updateStatusByIds(eventIds, ProductQuantityEventStatus.CONSUMED,
-                            LocalDateTime.now(clock));
+                    handle(payloads, source);
+                    consumerMeter.recordPhase(source, "mark_consumed", () ->
+                            productQuantityEventRepository.updateStatusByIds(
+                                    eventIds,
+                                    ProductQuantityEventStatus.CONSUMED,
+                                    LocalDateTime.now(clock)
+                            ));
             });
         } catch (Exception e) {
+            consumerMeter.recordBatch(source, "retry", events.size(), System.nanoTime() - startNanos);
             log.error("db consumer failed. eventIds={}", eventIds, e);
-            markRetry(events, eventIds, now);
+            markRetry(events, eventIds, now, source);
             return;
         }
+        consumerMeter.recordBatch(source, "consumed", events.size(), System.nanoTime() - startNanos);
     }
 
     @Transactional
-    public void handle(List<ProductQuantityEventPayload> payloads) {
-        Map<Long, Product> products = findProductByPayloads(payloads);
+    public void handle(List<ProductQuantityEventPayload> payloads, String source) {
+        Map<Long, Product> products = consumerMeter.recordPhase(source, "find_products", () ->
+                findProductByPayloads(payloads));
 
-        ConsumePlans plans = makePlan(products, payloads);
+        ConsumePlans plans = consumerMeter.recordPhase(source, "make_plan", () ->
+                makePlan(products, payloads));
 
-        decreaseProducts(plans);
+        consumerMeter.recordPhase(source, "decrease_products", () -> decreaseProducts(plans));
 
-        markFailOrders(plans);
+        consumerMeter.recordPhase(source, "mark_fail_orders", () -> markFailOrders(plans));
 
-        paymentManager.createPendingPayments(plans.pendingPayments());
+        consumerMeter.recordPhase(source, "create_pending_payments", () ->
+                paymentManager.createPendingPayments(plans.pendingPayments()));
     }
 
-    private void markRetry(List<ProductQuantityEvent> events, List<Long> eventIds, LocalDateTime now) {
+    private void markRetry(List<ProductQuantityEvent> events, List<Long> eventIds, LocalDateTime now, String source) {
         int retryCount = events.stream()
                 .map(ProductQuantityEvent::getRetryCount)
                 .max(Integer::compareTo)
                 .orElse(0);
         LocalDateTime nextAttemptTime = retryPolicy.nextAttemptTime(now, retryCount);
 
-        transactionTemplate.executeWithoutResult(status -> productQuantityEventRepository.markRetryByIds(
-                eventIds,
-                nextAttemptTime,
-                now
-        ));
+        consumerMeter.recordPhase(source, "mark_retry", () ->
+                transactionTemplate.executeWithoutResult(status -> productQuantityEventRepository.markRetryByIds(
+                        eventIds,
+                        nextAttemptTime,
+                        now
+                )));
     }
 
     private void markFailOrders(ConsumePlans plans) {
