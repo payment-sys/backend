@@ -50,6 +50,7 @@ public class MeterFilter implements io.micrometer.core.instrument.config.MeterFi
                 || name.startsWith("hikaricp.connections")
                 || name.startsWith("tomcat.threads")
                 || name.startsWith("tomcat.connections")
+                || name.startsWith("product_quantity_consumer")
                 || name.startsWith("virtual_thread")
                 || name.startsWith("result_apply")
                 || name.equals("jvm.memory.used")
