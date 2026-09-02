@@ -35,7 +35,7 @@ public class DbConsumer implements QueueConsumer {
                 "poll",
                 () -> productQuantityEventRepository.findByProductQuantityEventStatusOrderByIdAsc(
                         ProductQuantityEventStatus.READY.toString(),
-                        PageRequest.of(0, MAX_BATCH_SIZE)
+                        MAX_BATCH_SIZE
                 )
         );
         consumerMeter.recordFetchedBatch(ProductQuantityConsumerMeter.SOURCE_READY, events, now);
