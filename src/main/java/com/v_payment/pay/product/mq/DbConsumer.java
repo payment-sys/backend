@@ -19,46 +19,29 @@ public class DbConsumer implements QueueConsumer {
 
     private final Clock clock;
     private final ConsumeHandler consumeHandler;
-    private final ProductQuantityConsumerMeter consumerMeter;
     private final ProductQuantityEventRepository productQuantityEventRepository;
 
     @Override
     @Scheduled(fixedDelay = 200)
     public void consume() {
-        consumerMeter.recordRun(this::consumeReady);
-    }
-
-    private void consumeReady() {
         LocalDateTime now = LocalDateTime.now(clock);
-        List<ProductQuantityEvent> events = consumerMeter.recordPhase(
-                ProductQuantityConsumerMeter.SOURCE_READY,
-                "poll",
-                () -> productQuantityEventRepository.findByProductQuantityEventStatusOrderByIdAsc(
+        List<ProductQuantityEvent> events = productQuantityEventRepository
+                .findByProductQuantityEventStatusOrderByIdAsc(
                         ProductQuantityEventStatus.READY.toString(),
                         MAX_BATCH_SIZE
-                )
-        );
-        consumerMeter.recordFetchedBatch(ProductQuantityConsumerMeter.SOURCE_READY, events, now);
+                );
         if (events.isEmpty()) return;
 
-        consumeHandler.handleEvents(events, now, ProductQuantityConsumerMeter.SOURCE_READY);
+        consumeHandler.handleEvents(events, now);
     }
 
     @Scheduled(fixedDelay = 1000)
     public void consumeRetry() {
-        consumerMeter.recordRun(this::consumeRetryable);
-    }
-
-    private void consumeRetryable() {
         LocalDateTime now = LocalDateTime.now(clock);
-        List<ProductQuantityEvent> events = consumerMeter.recordPhase(
-                ProductQuantityConsumerMeter.SOURCE_RETRY,
-                "poll",
-                () -> productQuantityEventRepository.findRetryable(now, PageRequest.of(0, MAX_BATCH_SIZE))
-        );
-        consumerMeter.recordFetchedBatch(ProductQuantityConsumerMeter.SOURCE_RETRY, events, now);
+        List<ProductQuantityEvent> events = productQuantityEventRepository
+                .findRetryable(now, PageRequest.of(0, MAX_BATCH_SIZE));
         if (events.isEmpty()) return;
 
-        consumeHandler.handleEvents(events, now, ProductQuantityConsumerMeter.SOURCE_RETRY);
+        consumeHandler.handleEvents(events, now);
     }
 }
