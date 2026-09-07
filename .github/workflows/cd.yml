@@ -1,28 +1,200 @@
 name: CD
 
+# main 브랜치 CI가 성공하면 해당 커밋의 Docker 이미지를 운영 서버에 배포한다.
 on:
   workflow_run:
     workflows: ["CI"]
     types:
       - completed
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   deploy:
+    # main 브랜치 CI가 성공한 경우에만 배포한다.
     if: >
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
+    # 운영 배포가 동시에 여러 개 실행되지 않도록 직렬화한다.
+    concurrency:
+      group: cd-main
+      cancel-in-progress: false
+    env:
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/payment-backend:sha-${{ github.event.workflow_run.head_sha }}
+      DEPLOY_HOSTS: ${{ secrets.APP_HOSTS || secrets.SERVER_HOST }}
+      DEPLOY_USER: ${{ secrets.SERVER_USER }}
+      COMPOSE_SERVICE: ${{ secrets.COMPOSE_SERVICE || 'app' }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      ALB_TARGET_GROUP_ARN: ${{ secrets.ALB_TARGET_GROUP_ARN }}
+      ALB_TARGET_PORT: ${{ secrets.ALB_TARGET_PORT }}
+      HOST_INSTANCE_MAP: ${{ secrets.HOST_INSTANCE_MAP }}
 
     steps:
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1.2.0
+      # ALB target 등록/해제를 위해 GitHub OIDC로 AWS 권한을 얻는다.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            cd ~/payment-backend
-            export IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/payment-backend:latest
-            docker compose pull
-            docker compose up -d
-            docker image prune -f
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # 각 서버에 SSH로 접속하기 위한 배포 키를 runner에 준비한다.
+      - name: Prepare SSH key
+        run: |
+          install -m 700 -d ~/.ssh
+          cat > ~/.ssh/deploy_key <<'EOF'
+          ${{ secrets.SERVER_SSH_KEY }}
+          EOF
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Rolling deploy app servers
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # 필수 설정이 비어 있으면 중간에 애매하게 배포하지 않고 바로 실패시킨다.
+          if [ -z "${DEPLOY_HOSTS}" ]; then
+            echo "APP_HOSTS secret is empty"
+            exit 1
+          fi
+
+          if [ -z "${AWS_REGION}" ]; then
+            echo "AWS_REGION secret is empty"
+            exit 1
+          fi
+
+          if [ -z "${ALB_TARGET_GROUP_ARN}" ]; then
+            echo "ALB_TARGET_GROUP_ARN secret is empty"
+            exit 1
+          fi
+
+          if [ -z "${HOST_INSTANCE_MAP}" ]; then
+            echo "HOST_INSTANCE_MAP secret is empty"
+            exit 1
+          fi
+
+          target_args() {
+            local instance_id="$1"
+
+            if [ -n "${ALB_TARGET_PORT}" ]; then
+              printf 'Id=%s,Port=%s' "${instance_id}" "${ALB_TARGET_PORT}"
+            else
+              printf 'Id=%s' "${instance_id}"
+            fi
+          }
+
+          # 배포 호스트와 ALB target instance id를 매핑한다.
+          instance_id_for_host() {
+            local deploy_host="$1"
+            printf '%s\n' "${HOST_INSTANCE_MAP}" \
+              | tr ',' '\n' \
+              | awk -F= -v host="${deploy_host}" '
+                  {
+                    key = $1
+                    gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
+                  }
+                  key == host {
+                    gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2)
+                    print $2
+                    exit
+                  }
+                '
+          }
+
+          hosts=$(printf '%s\n' "${DEPLOY_HOSTS}" | tr ',' '\n' | sed '/^[[:space:]]*$/d')
+
+          # 서버를 한 대씩 ALB에서 빼고, 교체하고, 다시 healthy 상태로 올린 뒤 다음 서버로 넘어간다.
+          for host in ${hosts}; do
+            instance_id=$(instance_id_for_host "${host}")
+
+            if [ -z "${instance_id}" ]; then
+              echo "No instance id mapping found for ${host}"
+              exit 1
+            fi
+
+            target=$(target_args "${instance_id}")
+
+            echo "Deploying ${IMAGE_NAME} to ${host}"
+            # 기존 요청이 새로 들어오지 않도록 대상 서버를 ALB target group에서 제외한다.
+            echo "Deregistering ${instance_id} from ALB target group"
+            aws elbv2 deregister-targets \
+              --region "${AWS_REGION}" \
+              --target-group-arn "${ALB_TARGET_GROUP_ARN}" \
+              --targets "${target}"
+
+            # ALB가 deregister 완료를 인지하고 connection draining을 끝낼 때까지 기다린다.
+            echo "Waiting for ${instance_id} to drain"
+            if ! aws elbv2 wait target-deregistered \
+              --region "${AWS_REGION}" \
+              --target-group-arn "${ALB_TARGET_GROUP_ARN}" \
+              --targets "${target}"
+            then
+              echo "Failed while waiting for ${instance_id} to drain; registering it back to ALB target group"
+              aws elbv2 register-targets \
+                --region "${AWS_REGION}" \
+                --target-group-arn "${ALB_TARGET_GROUP_ARN}" \
+                --targets "${target}"
+              exit 1
+            fi
+
+            # 대상 서버 안에서 app 서비스만 새 이미지로 교체한다.
+            if ! ssh -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -o ConnectTimeout=10 \
+              "${DEPLOY_USER}@${host}" \
+              "IMAGE_NAME='${IMAGE_NAME}' COMPOSE_SERVICE='${COMPOSE_SERVICE}' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          cd ~/payment-backend
+
+          export IMAGE_NAME
+          docker compose pull "${COMPOSE_SERVICE}"
+          # app만 교체하고 alloy 같은 의존 서비스는 재시작하지 않는다.
+          docker compose up -d --no-deps "${COMPOSE_SERVICE}"
+
+          # 컨테이너가 로컬 readiness를 통과할 때까지 기다린다.
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8082/actuator/health/readiness >/dev/null; then
+              echo "app is healthy"
+              docker image prune -f
+              exit 0
+            fi
+
+            echo "waiting app health... ${i}"
+            sleep 2
+          done
+
+          echo "app health check failed"
+          docker compose ps
+          docker compose logs --tail=200 "${COMPOSE_SERVICE}"
+          exit 1
+          REMOTE
+            then
+              # 배포 실패 시에도 서버가 ALB에서 빠진 채 남지 않도록 다시 등록한다.
+              echo "Deploy failed on ${host}; registering ${instance_id} back to ALB target group"
+              aws elbv2 register-targets \
+                --region "${AWS_REGION}" \
+                --target-group-arn "${ALB_TARGET_GROUP_ARN}" \
+                --targets "${target}"
+              exit 1
+            fi
+
+            # 로컬 readiness를 통과한 서버를 다시 ALB target group에 등록한다.
+            echo "Registering ${instance_id} to ALB target group"
+            aws elbv2 register-targets \
+              --region "${AWS_REGION}" \
+              --target-group-arn "${ALB_TARGET_GROUP_ARN}" \
+              --targets "${target}"
+
+            # ALB 기준으로 healthy가 된 뒤 다음 서버 배포를 시작한다.
+            echo "Waiting for ${instance_id} to become healthy"
+            aws elbv2 wait target-in-service \
+              --region "${AWS_REGION}" \
+              --target-group-arn "${ALB_TARGET_GROUP_ARN}" \
+              --targets "${target}"
+
+            echo "Finished ${host}"
+          done
