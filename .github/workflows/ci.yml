@@ -1,5 +1,6 @@
 name: CI
 
+# main 대상 PR과 main 브랜치 push에서 테스트와 이미지 빌드를 검증한다.
 on:
   push:
     branches:
@@ -7,7 +8,6 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -33,12 +33,15 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # 배포 가능한 코드인지 먼저 테스트와 커버리지 기준으로 검증한다.
       - name: Run tests
         run: ./gradlew --no-daemon test jacocoTestCoverageVerification
 
+      # 테스트를 통과한 애플리케이션 JAR를 생성한다.
       - name: Build bootJar
         run: ./gradlew --no-daemon bootJar
 
+      # PR별 Docker 이미지를 GHCR에 푸시하기 위해 로그인한다.
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -46,15 +49,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # PR에서는 PR 태그를, main push에서는 커밋 SHA 태그와 latest 태그를 만든다.
       - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha
+            type=raw,value=pr-${{ github.event.pull_request.number }},enable=${{ github.event_name == 'pull_request' }}
+            type=raw,value=sha-${{ github.sha }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
+      # 검증된 Docker 이미지를 레지스트리에 올려 CD가 서버에서 pull할 수 있게 한다.
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
