@@ -16,8 +16,8 @@ import java.util.List;
 public interface ProductQuantityEventRepository extends JpaRepository<ProductQuantityEvent, Long> {
     @Query(
             value = """
-        SELECT *
-        FROM product_quantity_event FORCE INDEX (idx_pqe_status_id)
+        SELECT /*+ JOIN_INDEX(e idx_pqe_status_id) ORDER_INDEX(e idx_pqe_status_id) */ e.*
+        FROM product_quantity_event e
         WHERE status = :status
         ORDER BY product_quantity_event_id ASC
         LIMIT :limit 
@@ -27,6 +27,24 @@ public interface ProductQuantityEventRepository extends JpaRepository<ProductQua
     )
     List<ProductQuantityEvent> findByProductQuantityEventStatusOrderByIdAsc(
             @Param("status") String status,
+            @Param("limit") int limit
+    );
+
+    @Query(
+            value = """
+        SELECT /*+ JOIN_INDEX(e idx_product_quantity_event_status_next_attempt_id) ORDER_INDEX(e idx_product_quantity_event_status_next_attempt_id) */ e.*
+        FROM product_quantity_event e
+        WHERE status = :status
+          AND next_attempt_time <= :now
+        ORDER BY next_attempt_time ASC, product_quantity_event_id ASC
+        LIMIT :limit
+        FOR UPDATE SKIP LOCKED
+        """,
+            nativeQuery = true
+    )
+    List<ProductQuantityEvent> findRetryableForUpdate(
+            @Param("status") String status,
+            @Param("now") LocalDateTime now,
             @Param("limit") int limit
     );
 
