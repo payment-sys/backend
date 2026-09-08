@@ -20,7 +20,8 @@ public interface ProductQuantityEventRepository extends JpaRepository<ProductQua
         FROM product_quantity_event FORCE INDEX (idx_pqe_status_id)
         WHERE status = :status
         ORDER BY product_quantity_event_id ASC
-        LIMIT :limit
+        LIMIT :limit 
+        FOR UPDATE SKIP LOCKED
         """,
             nativeQuery = true
     )
