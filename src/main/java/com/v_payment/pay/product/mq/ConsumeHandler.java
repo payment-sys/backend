@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
@@ -34,33 +33,74 @@ public class ConsumeHandler {
     private final TransactionTemplate transactionTemplate;
     private final ProductQuantityEventRepository productQuantityEventRepository;
 
+    public void handleReadyEvents(int batchSize) {
+        handlePolledEvents(() -> productQuantityEventRepository.findByProductQuantityEventStatusOrderByIdAsc(
+                ProductQuantityEventStatus.READY.toString(),
+                batchSize
+        ));
+    }
+
+    public void handleRetryEvents(int batchSize) {
+        handlePolledEvents(() -> productQuantityEventRepository.findRetryableForUpdate(
+                ProductQuantityEventStatus.RETRY.toString(),
+                LocalDateTime.now(clock),
+                batchSize
+        ));
+    }
+
+    private void handlePolledEvents(EventPoller eventPoller) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        PolledEvents polledEvents = new PolledEvents();
+
+        try {
+            transactionTemplate.executeWithoutResult(status -> {
+                polledEvents.events = eventPoller.poll();
+                if (polledEvents.events.isEmpty()) return;
+
+                polledEvents.eventIds = polledEvents.events.stream()
+                        .map(ProductQuantityEvent::getId)
+                        .toList();
+
+                handleInCurrentTransaction(polledEvents.events, polledEvents.eventIds);
+            });
+        } catch (RuntimeException e) {
+            if (polledEvents.events == null || polledEvents.events.isEmpty()) {
+                throw e;
+            }
+
+            log.error("db consumer failed. eventIds={}", polledEvents.eventIds, e);
+            markRetry(polledEvents.events, polledEvents.eventIds, now);
+        }
+    }
+
     public void handleEvents(List<ProductQuantityEvent> events, LocalDateTime now) {
         List<Long> eventIds = events.stream()
                 .map(ProductQuantityEvent::getId)
                 .toList();
 
-        List<ProductQuantityEventPayload> payloads = events.stream()
-                .map(ProductQuantityEvent::getPayload)
-                .toList();
-
         try {
-            transactionTemplate.executeWithoutResult(status -> {
-                    handle(payloads);
-                    productQuantityEventRepository.updateStatusByIds(
-                            eventIds,
-                            ProductQuantityEventStatus.CONSUMED,
-                            LocalDateTime.now(clock)
-                    );
-            });
-        } catch (Exception e) {
+            transactionTemplate.executeWithoutResult(status -> handleInCurrentTransaction(events, eventIds));
+        } catch (RuntimeException e) {
             log.error("db consumer failed. eventIds={}", eventIds, e);
             markRetry(events, eventIds, now);
             return;
         }
     }
 
-    @Transactional
-    public void handle(List<ProductQuantityEventPayload> payloads) {
+    private void handleInCurrentTransaction(List<ProductQuantityEvent> events, List<Long> eventIds) {
+        List<ProductQuantityEventPayload> payloads = events.stream()
+                .map(ProductQuantityEvent::getPayload)
+                .toList();
+
+        handle(payloads);
+        productQuantityEventRepository.updateStatusByIds(
+                eventIds,
+                ProductQuantityEventStatus.CONSUMED,
+                LocalDateTime.now(clock)
+        );
+    }
+
+    private void handle(List<ProductQuantityEventPayload> payloads) {
         Map<Long, Product> products = findProductByPayloads(payloads);
 
         ConsumePlans plans = makePlan(products, payloads);
@@ -156,5 +196,15 @@ public class ConsumeHandler {
         }
 
         return true;
+    }
+
+    @FunctionalInterface
+    private interface EventPoller {
+        List<ProductQuantityEvent> poll();
+    }
+
+    private static class PolledEvents {
+        private List<ProductQuantityEvent> events;
+        private List<Long> eventIds;
     }
 }
