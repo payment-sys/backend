@@ -64,6 +64,10 @@ public interface ProductQuantityEventRepository extends JpaRepository<ProductQua
                 e.nextAttemptTime = null,
                 e.updatedAt = :updatedAt
             where e.id in :ids
+            and e.productQuantityEventStatus in (
+                  com.v_payment.pay.product.entity.ProductQuantityEventStatus.READY,
+                  com.v_payment.pay.product.entity.ProductQuantityEventStatus.RETRY
+            )
             """)
     int updateStatusByIds(@Param("ids") List<Long> ids,
                           @Param("status") ProductQuantityEventStatus status,
@@ -77,6 +81,10 @@ public interface ProductQuantityEventRepository extends JpaRepository<ProductQua
                 e.nextAttemptTime = :nextAttemptTime,
                 e.updatedAt = :updatedAt
             where e.id in :ids
+            and e.productQuantityEventStatus in (
+                  com.v_payment.pay.product.entity.ProductQuantityEventStatus.READY,
+                  com.v_payment.pay.product.entity.ProductQuantityEventStatus.RETRY
+            )
             """)
     int markRetryByIds(@Param("ids") List<Long> ids,
                        @Param("nextAttemptTime") LocalDateTime nextAttemptTime,
