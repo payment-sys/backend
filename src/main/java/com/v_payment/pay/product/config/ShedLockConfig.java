@@ -1,4 +1,4 @@
-package com.v_payment.pay.product.mq;
+package com.v_payment.pay.product.config;
 
 import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.provider.jdbctemplate.JdbcTemplateLockProvider;

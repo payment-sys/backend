@@ -1,4 +1,4 @@
-package com.v_payment.pay.product.mq;
+package com.v_payment.pay.product.service;
 
 import org.springframework.stereotype.Component;
 
