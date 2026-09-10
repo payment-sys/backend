@@ -7,12 +7,11 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class DbConsumer implements QueueConsumer {
+public class DbConsumer {
     private static final int MAX_BATCH_SIZE = 200;
 
     private final ConsumeHandler consumeHandler;
 
-    @Override
     @Scheduled(fixedDelay = 200)
     @SchedulerLock(
             name = "productQuantityEvent.consumeReady",
