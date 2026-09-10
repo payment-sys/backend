@@ -1,4 +1,4 @@
-package com.v_payment.pay.product.mq;
+package com.v_payment.pay.product.service;
 
 import com.v_payment.pay.payment.service.PaymentManager;
 import com.v_payment.pay.product.entity.Product;

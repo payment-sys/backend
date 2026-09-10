@@ -8,6 +8,7 @@ import com.v_payment.pay.product.entity.ProductQuantityEventPayload;
 import com.v_payment.pay.product.entity.ProductQuantityEventStatus;
 import com.v_payment.pay.product.repository.ProductQuantityEventRepository;
 import com.v_payment.pay.product.repository.ProductRepository;
+import com.v_payment.pay.product.service.ProductQuantityEventPlans;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -103,7 +104,7 @@ public class ConsumeHandler {
     private void handle(List<ProductQuantityEventPayload> payloads) {
         Map<Long, Product> products = findProductByPayloads(payloads);
 
-        ConsumePlans plans = makePlan(products, payloads);
+        ProductQuantityEventPlans plans = makePlan(products, payloads);
 
         decreaseProducts(plans);
 
@@ -112,21 +113,8 @@ public class ConsumeHandler {
         paymentManager.createPendingPayments(plans.pendingPayments());
     }
 
-    private void markRetry(List<ProductQuantityEvent> events, List<Long> eventIds, LocalDateTime now) {
-        int retryCount = events.stream()
-                .map(ProductQuantityEvent::getRetryCount)
-                .max(Integer::compareTo)
-                .orElse(0);
-        LocalDateTime nextAttemptTime = retryPolicy.nextAttemptTime(now, retryCount);
 
-        transactionTemplate.executeWithoutResult(status -> productQuantityEventRepository.markRetryByIds(
-                eventIds,
-                nextAttemptTime,
-                now
-        ));
-    }
-
-    private void markFailOrders(ConsumePlans plans) {
+    private void markFailOrders(ProductQuantityEventPlans plans) {
         if(plans.failOrders().isEmpty()) return;
         boolean failUpdated = orderManager.markFailed(plans.failOrders());
 
@@ -148,8 +136,8 @@ public class ConsumeHandler {
                 .collect(Collectors.toMap(Product::getId, product -> product));
     }
 
-    private ConsumePlans makePlan(Map<Long, Product> products, List<ProductQuantityEventPayload> payloads) {
-        ConsumePlans plans = ConsumePlans.create();
+    private ProductQuantityEventPlans makePlan(Map<Long, Product> products, List<ProductQuantityEventPayload> payloads) {
+        ProductQuantityEventPlans plans = ProductQuantityEventPlans.create();
         for (ProductQuantityEventPayload payload : payloads) {
             if (canReserve(payload, products, plans)) {
                 plans.success(payload, products);
@@ -160,7 +148,7 @@ public class ConsumeHandler {
         return plans;
     }
 
-    private void decreaseProducts(ConsumePlans plans) {
+    private void decreaseProducts(ProductQuantityEventPlans plans) {
         if (plans.decreaseTotal().isEmpty()) return;
 
         jdbcTemplate.batchUpdate(
@@ -178,7 +166,7 @@ public class ConsumeHandler {
         );
     }
 
-    private boolean canReserve(ProductQuantityEventPayload payload, Map<Long, Product> products, ConsumePlans plans) {
+    private boolean canReserve(ProductQuantityEventPayload payload, Map<Long, Product> products, ProductQuantityEventPlans plans) {
         for (Map.Entry<Long, Integer> requestEntry : payload.getRequestedQuantities().entrySet()) {
             Long productId = requestEntry.getKey();
             Integer quantity = requestEntry.getValue();
@@ -196,6 +184,20 @@ public class ConsumeHandler {
         }
 
         return true;
+    }
+
+    private void markRetry(List<ProductQuantityEvent> events, List<Long> eventIds, LocalDateTime now) {
+        int retryCount = events.stream()
+                .map(ProductQuantityEvent::getRetryCount)
+                .max(Integer::compareTo)
+                .orElse(0);
+        LocalDateTime nextAttemptTime = retryPolicy.nextAttemptTime(now, retryCount);
+
+        transactionTemplate.executeWithoutResult(status -> productQuantityEventRepository.markRetryByIds(
+                eventIds,
+                nextAttemptTime,
+                now
+        ));
     }
 
     @FunctionalInterface
