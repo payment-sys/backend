@@ -1,22 +1,25 @@
-package com.v_payment.pay.product.service;
+package com.v_payment.pay.product.domain;
 
 import com.v_payment.pay.payment.service.PaymentManager;
-import com.v_payment.pay.product.entity.Product;
-import com.v_payment.pay.product.entity.ProductQuantityEventPayload;
+import com.v_payment.pay.product.domain.entity.Product;
+import com.v_payment.pay.product.domain.entity.ProductQuantityEventPayload;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public record ProductQuantityEventPlans(
-        List<String> successOrderCodes,
-        List<String> failOrders,
-        Map<Long, Integer> decreaseTotal,
-        List<PaymentManager.PendingPaymentCreateRequest> pendingPayments
-) {
+public class ProductQuantityEventPlans {
+    private final List<String> successOrderCodes = new ArrayList<>();
+    private final List<String> failOrders = new ArrayList<>();
+    private final Map<Long, Integer> decreaseTotal = new HashMap<>();
+    private final List<PaymentManager.PendingPaymentCreateRequest> pendingPayments = new ArrayList<>();
+
+    private ProductQuantityEventPlans() {
+    }
+
     public static ProductQuantityEventPlans create() {
-        return new ProductQuantityEventPlans(new ArrayList<>(), new ArrayList<>(), new HashMap<>(), new ArrayList<>());
+        return new ProductQuantityEventPlans();
     }
 
     public void success(ProductQuantityEventPayload payload, Map<Long, Product> products) {
@@ -41,5 +44,21 @@ public record ProductQuantityEventPlans(
 
     public void fail(String orderCode) {
         failOrders.add(orderCode);
+    }
+
+    public List<String> successOrderCodes() {
+        return successOrderCodes;
+    }
+
+    public List<String> failOrders() {
+        return failOrders;
+    }
+
+    public Map<Long, Integer> decreaseTotal() {
+        return decreaseTotal;
+    }
+
+    public List<PaymentManager.PendingPaymentCreateRequest> pendingPayments() {
+        return pendingPayments;
     }
 }
