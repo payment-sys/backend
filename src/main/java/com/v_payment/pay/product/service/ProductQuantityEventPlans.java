@@ -9,14 +9,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public record ConsumePlans(
+public record ProductQuantityEventPlans(
         List<String> successOrderCodes,
         List<String> failOrders,
         Map<Long, Integer> decreaseTotal,
         List<PaymentManager.PendingPaymentCreateRequest> pendingPayments
 ) {
-    public static ConsumePlans create() {
-        return new ConsumePlans(new ArrayList<>(), new ArrayList<>(), new HashMap<>(), new ArrayList<>());
+    public static ProductQuantityEventPlans create() {
+        return new ProductQuantityEventPlans(new ArrayList<>(), new ArrayList<>(), new HashMap<>(), new ArrayList<>());
     }
 
     public void success(ProductQuantityEventPayload payload, Map<Long, Product> products) {
