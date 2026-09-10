@@ -57,6 +57,9 @@ payment:
     batch-size: 100
 
 product:
+  quantity-event:
+    consumer:
+      batch-size: 200
   cache:
     restore:
       fixed-delay-ms: 30000
