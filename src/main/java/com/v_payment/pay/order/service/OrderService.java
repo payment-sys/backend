@@ -10,8 +10,6 @@ import com.v_payment.pay.order.repository.OrderRepository;
 import com.v_payment.pay.product.entity.ProductBasicInfo;
 import com.v_payment.pay.product.entity.ProductQuantityEventPayload;
 import com.v_payment.pay.product.service.ProductManager;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
