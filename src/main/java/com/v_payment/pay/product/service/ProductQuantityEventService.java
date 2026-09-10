@@ -2,12 +2,12 @@ package com.v_payment.pay.product.service;
 
 import com.v_payment.pay.order.service.OrderManager;
 import com.v_payment.pay.payment.service.PaymentManager;
-import com.v_payment.pay.product.entity.Product;
-import com.v_payment.pay.product.entity.ProductQuantityEvent;
-import com.v_payment.pay.product.entity.ProductQuantityEventPayload;
-import com.v_payment.pay.product.entity.ProductQuantityEventStatus;
+import com.v_payment.pay.product.domain.*;
+import com.v_payment.pay.product.domain.entity.Product;
+import com.v_payment.pay.product.domain.entity.ProductQuantityEvent;
+import com.v_payment.pay.product.domain.entity.ProductQuantityEventPayload;
+import com.v_payment.pay.product.domain.entity.ProductQuantityEventStatus;
 import com.v_payment.pay.product.exception.ProductQuantityEventConsumeException;
-import com.v_payment.pay.product.mq.RetryPolicy;
 import com.v_payment.pay.product.repository.ProductQuantityEventRepository;
 import com.v_payment.pay.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,6 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -30,23 +29,25 @@ public class ProductQuantityEventService {
     private final RetryPolicy retryPolicy;
     private final OrderManager orderManager;
     private final PaymentManager paymentManager;
+    private final ProductManager productManager;
     private final ProductRepository productRepository;
     private final ProductQuantityEventRepository productQuantityEventRepository;
 
     @Transactional
     public void consumeReadyEvent(int batchSize) {
-        List<ProductQuantityEvent> productQuantityEvents = productQuantityEventRepository.findByProductQuantityEventStatusOrderByIdAsc(
-                        ProductQuantityEventStatus.READY.toString(), batchSize);
-        if (productQuantityEvents.isEmpty()) return;
+        ProductQuantityEvents productQuantityEvents = ProductQuantityEvents.from(productQuantityEventRepository
+                .findReadyProductQuantityEvents(ProductQuantityEventStatus.READY.toString(), batchSize));
+        if (productQuantityEvents.isEmptyEvent()) return;
 
         consumeEvents(productQuantityEvents);
     }
 
     @Transactional
     public void consumeRetryEvent(int batchSize) {
-        List<ProductQuantityEvent> productQuantityEvents = productQuantityEventRepository.findRetryableForUpdate(
-                        ProductQuantityEventStatus.RETRY.toString(), LocalDateTime.now(clock), batchSize);
-        if (productQuantityEvents.isEmpty()) return;
+        ProductQuantityEvents productQuantityEvents = ProductQuantityEvents.from(productQuantityEventRepository
+                .findRetryableForUpdate(ProductQuantityEventStatus.RETRY.toString(), LocalDateTime.now(clock), batchSize));
+        if (productQuantityEvents.isEmptyEvent()) return;
+
         consumeEvents(productQuantityEvents);
     }
 
@@ -62,79 +63,65 @@ public class ProductQuantityEventService {
         productQuantityEventRepository.markRetryByIds(eventIds, nextAttemptTime, now);
     }
 
-    private void consumeEvents(List<ProductQuantityEvent> productQuantityEvents) {
-        List<Long> eventIds = productQuantityEvents.stream()
-                .map(ProductQuantityEvent::getId)
-                .toList();
-
+    private void consumeEvents(ProductQuantityEvents productQuantityEvents) {
         try {
-            productQuantityEventRepository.updateStatusByIds(
-                    eventIds,
-                    ProductQuantityEventStatus.CONSUMED,
-                    LocalDateTime.now(clock)
-            );
+            Map<Long, Product> products = productManager.findProductsMapForUpdate(
+                    productQuantityEvents.getProductIdsDistinct());
 
-            List<ProductQuantityEventPayload> payloads = productQuantityEvents.stream()
-                    .map(ProductQuantityEvent::getPayload)
-                    .toList();
-            List<Long> productIds = payloads.stream()
-                    .flatMap(payload -> payload.getRequestedQuantities().keySet().stream())
-                    .distinct()
-                    .toList();
-            Map<Long, Product> products = productRepository.findAllByIdInForUpdate(productIds).stream()
-                    .collect(Collectors.toMap(Product::getId, product -> product));
+            QuantityDecreasePlan quantityDecreasePlan = makePlan(products, productQuantityEvents);
 
-            ProductQuantityEventPlans plans = makePlan(products, payloads);
-            productRepository.decreaseProducts(plans.decreaseTotal());
-            markFailOrders(plans);
-            paymentManager.createPendingPayments(plans.pendingPayments());
+            if(quantityDecreasePlan.hasDecreaseTotal()) {
+                productRepository.decreaseProducts(quantityDecreasePlan.getDecreaseTotal());
+            }
+
+            markFailOrders(quantityDecreasePlan);
+
+            List<PaymentManager.PendingPaymentCreateRequest> pendingPayment = makePendingPayments(
+                    quantityDecreasePlan.getSuccess(), products);
+            paymentManager.createPendingPayments(pendingPayment);
+
+            productQuantityEventRepository.updateStatusByIds(productQuantityEvents.getIds(),
+                    ProductQuantityEventStatus.CONSUMED, LocalDateTime.now(clock));
         } catch (Exception e) {
-            throw new ProductQuantityEventConsumeException(eventIds, productQuantityEvents, e);
+            throw new ProductQuantityEventConsumeException(
+                    productQuantityEvents.getIds(), productQuantityEvents.getEvents(), e);
         }
     }
 
-    private ProductQuantityEventPlans makePlan(Map<Long, Product> products, List<ProductQuantityEventPayload> payloads) {
-        ProductQuantityEventPlans plans = ProductQuantityEventPlans.create();
-        for (ProductQuantityEventPayload payload : payloads) {
-            if (canReserve(payload, products, plans)) {
-                plans.success(payload, products);
-                continue;
-            }
-            plans.fail(payload.getOrderCode());
-        }
-        return plans;
+    private QuantityDecreasePlan makePlan(Map<Long, Product> products, ProductQuantityEvents productQuantityEvents) {
+        ProductSnapShots productSnapShots = ProductSnapShots.from(products);
+        QuantityDecreasePlanner quantityDecreasePlanner = QuantityDecreasePlanner.from(productSnapShots);
+
+        return quantityDecreasePlanner.makeDecreasePlan(productQuantityEvents);
     }
 
-    private boolean canReserve(ProductQuantityEventPayload payload, Map<Long, Product> products, ProductQuantityEventPlans plans) {
-        for (Map.Entry<Long, Integer> requestEntry : payload.getRequestedQuantities().entrySet()) {
-            Long productId = requestEntry.getKey();
-            Integer quantity = requestEntry.getValue();
-
-            Product productForDecrease = products.get(productId);
-            if (productForDecrease == null) {
-                return false;
-            }
-
-            int remainingStock = productForDecrease.getStockQuantity()
-                    + plans.decreaseTotal().getOrDefault(productId, 0);
-            if (remainingStock < quantity) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private void markFailOrders(ProductQuantityEventPlans plans) {
-        if (plans.failOrders().isEmpty()) {
-            return;
-        }
-        boolean failUpdated = orderManager.markFailed(plans.failOrders());
+    private void markFailOrders(QuantityDecreasePlan quantityDecreasePlan) {
+        if (!quantityDecreasePlan.hasFailOrder()) return;
+        boolean failUpdated = orderManager.markFailed(quantityDecreasePlan.getFailOrderCodes());
 
         if (!failUpdated) {
             log.error("product reservation failed, but order fail flag update failed. failOrderCodes={}",
-                    plans.failOrders());
+                    quantityDecreasePlan.getFailOrderCodes());
             throw new IllegalStateException("order fail flag update failed");
         }
+    }
+
+    private List<PaymentManager.PendingPaymentCreateRequest> makePendingPayments(
+            List<ProductQuantityEvent> successEvents, Map<Long, Product> products) {
+        return successEvents.stream()
+                .map(event -> {
+                    ProductQuantityEventPayload payload = event.getPayload();
+
+                    long amount = payload.getRequestedQuantities().entrySet().stream()
+                            .mapToLong(entry -> products.get(entry.getKey()).getPrice() * entry.getValue())
+                            .sum();
+
+                    return new PaymentManager.PendingPaymentCreateRequest(
+                            payload.getOrderCode(),
+                            amount,
+                            payload.getPaymentMethod()
+                    );
+                })
+                .toList();
     }
 }
