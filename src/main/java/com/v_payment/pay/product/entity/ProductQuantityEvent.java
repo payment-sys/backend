@@ -53,28 +53,47 @@ public class ProductQuantityEvent {
                                 LocalDateTime nextAttemptTime,
                                 LocalDateTime createdAt,
                                 LocalDateTime updatedAt) {
-        this.orderCode = orderCode;
-        this.payload = payload;
-        this.productQuantityEventStatus = productQuantityEventStatus;
-        this.retryCount = retryCount;
+        this.orderCode = validateOrderCode(orderCode);
+        this.payload = validatePayload(payload);
+        this.productQuantityEventStatus = validateProductQuantityEventStatus(productQuantityEventStatus);
+        this.retryCount = validateRetryCount(retryCount);
         this.nextAttemptTime = nextAttemptTime;
-        this.createdAt = createdAt;
+        this.createdAt = validateCreatedAt(createdAt);
         this.updatedAt = updatedAt;
-    }
-
-    public void markConsumed(Clock clock) {
-        this.productQuantityEventStatus = ProductQuantityEventStatus.CONSUMED;
-        this.updatedAt = LocalDateTime.now(clock);
-    }
-
-    public void markRetry(Clock clock) {
-        this.productQuantityEventStatus = ProductQuantityEventStatus.RETRY;
-        this.retryCount++;
-        this.updatedAt = LocalDateTime.now(clock);
     }
 
     public static ProductQuantityEvent of(String orderCode, ProductQuantityEventPayload payload, Clock clock) {
         return new ProductQuantityEvent(orderCode, payload, ProductQuantityEventStatus.READY, 0, null,
                 LocalDateTime.now(clock), null);
+    }
+
+    private String validateOrderCode(String orderCode) {
+        if (orderCode == null || orderCode.isBlank()) throw new IllegalArgumentException("orderCode는 필수입니다.");
+        return orderCode;
+    }
+
+    private ProductQuantityEventPayload validatePayload(ProductQuantityEventPayload payload) {
+        if (payload == null) throw new IllegalArgumentException("payload는 필수입니다.");
+        return payload;
+    }
+
+    private ProductQuantityEventStatus validateProductQuantityEventStatus(
+            ProductQuantityEventStatus productQuantityEventStatus
+    ) {
+        if (productQuantityEventStatus == null) {
+            throw new IllegalArgumentException("productQuantityEventStatus는 필수입니다.");
+        }
+        return productQuantityEventStatus;
+    }
+
+    private Integer validateRetryCount(Integer retryCount) {
+        if (retryCount == null) throw new IllegalArgumentException("retryCount는 필수입니다.");
+        if (retryCount < 0) throw new IllegalArgumentException("retryCount는 음수일 수 없습니다.");
+        return retryCount;
+    }
+
+    private LocalDateTime validateCreatedAt(LocalDateTime createdAt) {
+        if (createdAt == null) throw new IllegalArgumentException("createdAt은 필수입니다.");
+        return createdAt;
     }
 }
