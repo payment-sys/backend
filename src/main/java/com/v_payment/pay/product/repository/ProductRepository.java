@@ -1,7 +1,7 @@
 package com.v_payment.pay.product.repository;
 
-import com.v_payment.pay.product.entity.Product;
-import com.v_payment.pay.product.entity.ProductBasicInfo;
+import com.v_payment.pay.product.domain.entity.Product;
+import com.v_payment.pay.product.domain.ProductBasicInfo;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;

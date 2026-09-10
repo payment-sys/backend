@@ -1,5 +1,6 @@
 package com.v_payment.pay.product.entity;
 
+import com.v_payment.pay.product.domain.entity.Product;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

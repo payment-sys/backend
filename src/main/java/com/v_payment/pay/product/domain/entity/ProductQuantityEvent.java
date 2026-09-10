@@ -1,4 +1,4 @@
-package com.v_payment.pay.product.entity;
+package com.v_payment.pay.product.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -8,6 +8,8 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.function.BiPredicate;
 
 @Entity
 @Getter
@@ -60,6 +62,13 @@ public class ProductQuantityEvent {
         this.nextAttemptTime = nextAttemptTime;
         this.createdAt = validateCreatedAt(createdAt);
         this.updatedAt = updatedAt;
+    }
+
+    public boolean canMatchCondition(BiPredicate<Long, Integer> condition) {
+        for(Map.Entry<Long, Integer> requestedProduct : payload.getRequestedQuantities().entrySet()) {
+            if(!condition.test(requestedProduct.getKey(), requestedProduct.getValue())) return false;
+        }
+        return true;
     }
 
     public static ProductQuantityEvent of(String orderCode, ProductQuantityEventPayload payload, Clock clock) {

@@ -2,6 +2,7 @@ package com.v_payment.pay.product.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.v_payment.pay.payment.entity.PaymentMethod;
+import com.v_payment.pay.product.domain.entity.ProductQuantityEventPayload;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

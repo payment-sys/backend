@@ -1,6 +1,6 @@
 package com.v_payment.pay.product.exception;
 
-import com.v_payment.pay.product.entity.ProductQuantityEvent;
+import com.v_payment.pay.product.domain.entity.ProductQuantityEvent;
 
 import java.util.List;
 

@@ -1,6 +1,6 @@
 package com.v_payment.pay.product.controller.dto.res;
 
-import com.v_payment.pay.product.entity.Product;
+import com.v_payment.pay.product.domain.entity.Product;
 
 public record ProductCreateRes(
         Long productId,

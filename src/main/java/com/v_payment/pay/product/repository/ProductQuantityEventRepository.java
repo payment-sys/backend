@@ -1,7 +1,7 @@
 package com.v_payment.pay.product.repository;
 
-import com.v_payment.pay.product.entity.ProductQuantityEvent;
-import com.v_payment.pay.product.entity.ProductQuantityEventStatus;
+import com.v_payment.pay.product.domain.entity.ProductQuantityEvent;
+import com.v_payment.pay.product.domain.entity.ProductQuantityEventStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -25,7 +25,7 @@ public interface ProductQuantityEventRepository extends JpaRepository<ProductQua
         """,
             nativeQuery = true
     )
-    List<ProductQuantityEvent> findByProductQuantityEventStatusOrderByIdAsc(
+    List<ProductQuantityEvent> findReadyProductQuantityEvents(
             @Param("status") String status,
             @Param("limit") int limit
     );
