@@ -12,7 +12,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.Collection;
 import java.util.List;
 
-public interface ProductRepository extends JpaRepository<Product, Long> {
+public interface ProductRepository extends JpaRepository<Product, Long>, ProductJdbcRepository {
 
     @Query("""
             select new com.v_payment.pay.product.entity.ProductBasicInfo(p.id, p.name, p.price)
