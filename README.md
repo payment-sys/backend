@@ -38,9 +38,27 @@
 
 *테스트는 주문 요청 2초 후 결제를 진행한다.
 
+# 기술 스택
+
+### 배포/인프라
+<img width="60" height="60" alt="image" src="https://github.com/user-attachments/assets/7a4cd445-bef7-479a-8513-ed6e853f280c" />
+<img width="60" height="60" alt="image" src="https://github.com/user-attachments/assets/062a77b1-7210-435b-b927-351f9091b4fc" />
+<img width="60" height="60" alt="image" src="https://github.com/user-attachments/assets/a4736459-2deb-4602-a65e-4e1476bea32b" />
+
+### APP
+<img width="60" height="60" alt="image" src="https://github.com/user-attachments/assets/2fc65333-b74f-4761-a775-ce7219f8bcf1" />
+<img width="60" height="60" alt="image" src="https://github.com/user-attachments/assets/71e9a2ba-c5c7-422e-9f13-e1ae9ad0eff0" />
+<img width="60" height="60" alt="image" src="https://github.com/user-attachments/assets/b416daac-f69e-4b97-be1b-3d2452f3e5a6" />
+
+### 관측
+<img width="60" height="60" alt="image" src="https://github.com/user-attachments/assets/86b3397c-f038-49ef-9c72-faf80786a6c4" />
+<img width="60" height="60" alt="image" src="https://github.com/user-attachments/assets/a69a308d-5c64-45aa-815b-4b2644319fcd" />
+
+
 # ERD
 
-<img width="1006" height="462" alt="image" src="https://github.com/user-attachments/assets/23dd8452-5e1e-46d8-920a-653ac920ac2a" />
+<img width="1421" height="639" alt="image" src="https://github.com/user-attachments/assets/7dcad148-3865-428f-81f9-59613182cbdc" />
+
 
 # Architecture
 
