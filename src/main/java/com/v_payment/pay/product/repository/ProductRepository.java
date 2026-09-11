@@ -15,7 +15,7 @@ import java.util.List;
 public interface ProductRepository extends JpaRepository<Product, Long>, ProductJdbcRepository {
 
     @Query("""
-            select new com.v_payment.pay.product.entity.ProductBasicInfo(p.id, p.name, p.price)
+            select new com.v_payment.pay.product.domain.ProductBasicInfo(p.id, p.name, p.price)
             from Product p
             where p.id in :productIds
             """)
