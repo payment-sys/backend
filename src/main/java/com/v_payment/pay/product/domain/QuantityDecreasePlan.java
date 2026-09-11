@@ -24,14 +24,6 @@ public class QuantityDecreasePlan {
         decreaseTotal.merge(productId, -quantity, Integer::sum);
     }
 
-    public List<ProductQuantityEvent> success() {
-        return success;
-    }
-
-    public List<ProductQuantityEvent> failure() {
-        return failure;
-    }
-
     public boolean hasFailOrder() {
         return !failure.isEmpty();
     }

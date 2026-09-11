@@ -2,15 +2,9 @@ package com.v_payment.pay.product.domain;
 
 public class ProductSnapShot {
     private int remainQuantity;
-    private Long productId;
-    private String name;
-    private Long price;
 
-    ProductSnapShot(int remainQuantity, Long productId, String name, Long price) {
+    ProductSnapShot(int remainQuantity) {
         this.remainQuantity = remainQuantity;
-        this.productId = productId;
-        this.name = name;
-        this.price = price;
     }
 
     public boolean canDecrease(int quantity) {

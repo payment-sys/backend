@@ -32,11 +32,8 @@ public class ProductSnapShots {
 
     public static ProductSnapShots from(Map<Long, Product> products) {
         return new ProductSnapShots(products.values().stream()
-                .collect(Collectors.toMap(Product::getId, product -> new ProductSnapShot(
-                                product.getStockQuantity(),
-                                product.getId(),
-                                product.getName(),
-                                product.getPrice())))
-        );
+                .collect(Collectors.toMap(
+                        Product::getId,
+                        product -> new ProductSnapShot(product.getStockQuantity()))));
     }
 }
