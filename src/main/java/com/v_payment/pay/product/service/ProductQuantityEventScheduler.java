@@ -1,5 +1,6 @@
-package com.v_payment.pay.product.mq;
+package com.v_payment.pay.product.service;
 
+import com.v_payment.pay.product.config.ProductQuantityEventConsumerProperties;
 import lombok.RequiredArgsConstructor;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -7,12 +8,10 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class DbConsumer implements QueueConsumer {
-    private static final int MAX_BATCH_SIZE = 200;
+public class ProductQuantityEventScheduler {
+    private final ProductQuantityEventFacade productQuantityEventFacade;
+    private final ProductQuantityEventConsumerProperties properties;
 
-    private final ConsumeHandler consumeHandler;
-
-    @Override
     @Scheduled(fixedDelay = 200)
     @SchedulerLock(
             name = "productQuantityEvent.consumeReady",
@@ -20,7 +19,7 @@ public class DbConsumer implements QueueConsumer {
             lockAtLeastFor = "200ms"
     )
     public void consume() {
-        consumeHandler.handleReadyEvents(MAX_BATCH_SIZE);
+        productQuantityEventFacade.consumeReadyEvent(properties.batchSize());
     }
 
     @Scheduled(fixedDelay = 1000)
@@ -30,6 +29,6 @@ public class DbConsumer implements QueueConsumer {
             lockAtLeastFor = "1s"
     )
     public void consumeRetry() {
-        consumeHandler.handleRetryEvents(MAX_BATCH_SIZE);
+        productQuantityEventFacade.consumeRetryEvent(properties.batchSize());
     }
 }

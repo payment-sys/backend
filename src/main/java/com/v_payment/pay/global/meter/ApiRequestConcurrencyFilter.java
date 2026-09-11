@@ -31,7 +31,7 @@ public class ApiRequestConcurrencyFilter extends OncePerRequestFilter {
     public ApiRequestConcurrencyFilter(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
         this.activeRequestPeakSummary = DistributionSummary.builder("pay.api.requests.active.peak")
-                .description("High-water mark of concurrently processing API requests observed on this server")
+                .description("High-water mark from concurrently processing API requests observed on this server")
                 .register(meterRegistry);
     }
 

@@ -1,4 +1,4 @@
-package com.v_payment.pay.product.entity;
+package com.v_payment.pay.product.domain;
 
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.databind.DeserializationContext;

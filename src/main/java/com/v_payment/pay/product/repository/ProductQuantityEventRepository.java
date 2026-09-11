@@ -1,7 +1,7 @@
 package com.v_payment.pay.product.repository;
 
-import com.v_payment.pay.product.entity.ProductQuantityEvent;
-import com.v_payment.pay.product.entity.ProductQuantityEventStatus;
+import com.v_payment.pay.product.domain.entity.ProductQuantityEvent;
+import com.v_payment.pay.product.domain.entity.ProductQuantityEventStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -25,7 +25,7 @@ public interface ProductQuantityEventRepository extends JpaRepository<ProductQua
         """,
             nativeQuery = true
     )
-    List<ProductQuantityEvent> findByProductQuantityEventStatusOrderByIdAsc(
+    List<ProductQuantityEvent> findReadyProductQuantityEvents(
             @Param("status") String status,
             @Param("limit") int limit
     );
@@ -51,7 +51,7 @@ public interface ProductQuantityEventRepository extends JpaRepository<ProductQua
     @Query("""
             select e
             from ProductQuantityEvent e
-            where e.productQuantityEventStatus = com.v_payment.pay.product.entity.ProductQuantityEventStatus.RETRY
+            where e.productQuantityEventStatus = com.v_payment.pay.product.domain.entity.ProductQuantityEventStatus.RETRY
               and e.nextAttemptTime <= :now
             order by e.nextAttemptTime asc, e.id asc
             """)
@@ -65,8 +65,8 @@ public interface ProductQuantityEventRepository extends JpaRepository<ProductQua
                 e.updatedAt = :updatedAt
             where e.id in :ids
             and e.productQuantityEventStatus in (
-                  com.v_payment.pay.product.entity.ProductQuantityEventStatus.READY,
-                  com.v_payment.pay.product.entity.ProductQuantityEventStatus.RETRY
+                  com.v_payment.pay.product.domain.entity.ProductQuantityEventStatus.READY,
+                  com.v_payment.pay.product.domain.entity.ProductQuantityEventStatus.RETRY
             )
             """)
     int updateStatusByIds(@Param("ids") List<Long> ids,
@@ -76,14 +76,14 @@ public interface ProductQuantityEventRepository extends JpaRepository<ProductQua
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update ProductQuantityEvent e
-            set e.productQuantityEventStatus = com.v_payment.pay.product.entity.ProductQuantityEventStatus.RETRY,
+            set e.productQuantityEventStatus = com.v_payment.pay.product.domain.entity.ProductQuantityEventStatus.RETRY,
                 e.retryCount = coalesce(e.retryCount, 0) + 1,
                 e.nextAttemptTime = :nextAttemptTime,
                 e.updatedAt = :updatedAt
             where e.id in :ids
             and e.productQuantityEventStatus in (
-                  com.v_payment.pay.product.entity.ProductQuantityEventStatus.READY,
-                  com.v_payment.pay.product.entity.ProductQuantityEventStatus.RETRY
+                  com.v_payment.pay.product.domain.entity.ProductQuantityEventStatus.READY,
+                  com.v_payment.pay.product.domain.entity.ProductQuantityEventStatus.RETRY
             )
             """)
     int markRetryByIds(@Param("ids") List<Long> ids,

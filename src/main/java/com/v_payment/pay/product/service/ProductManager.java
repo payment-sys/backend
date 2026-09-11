@@ -1,8 +1,9 @@
 package com.v_payment.pay.product.service;
 
-import com.v_payment.pay.product.entity.ProductBasicInfo;
-import com.v_payment.pay.product.entity.ProductQuantityEvent;
-import com.v_payment.pay.product.entity.ProductQuantityEventPayload;
+import com.v_payment.pay.product.domain.ProductBasicInfo;
+import com.v_payment.pay.product.domain.entity.Product;
+import com.v_payment.pay.product.domain.entity.ProductQuantityEvent;
+import com.v_payment.pay.product.domain.entity.ProductQuantityEventPayload;
 import com.v_payment.pay.product.repository.ProductQuantityEventRepository;
 import com.v_payment.pay.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -52,6 +54,11 @@ public class ProductManager {
 
     public List<ProductBasicInfo> findProductBasicInfos(List<Long> productIds) {
         return productRepository.findProductBasicInfos(productIds);
+    }
+
+    public Map<Long, Product> findProductsMapForUpdate(Collection<Long> productIds) {
+        return productRepository.findAllByIdInForUpdate(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, product -> product));
     }
 
     public record ProductRestoreReq(
