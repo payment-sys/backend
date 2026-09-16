@@ -1,6 +1,6 @@
 package com.v_payment.pay.order.repository;
 
-import com.v_payment.pay.order.entity.OrderItem;
+import com.v_payment.pay.order.domain.entity.OrderItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
