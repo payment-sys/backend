@@ -1,6 +1,7 @@
 package com.v_payment.pay.product.service;
 
-import com.v_payment.pay.order.entity.Order;
+import com.v_payment.pay.order.domain.entity.Order;
+import com.v_payment.pay.order.domain.entity.OrderStatus;
 import com.v_payment.pay.order.repository.OrderRepository;
 import com.v_payment.pay.payment.entity.Payment;
 import com.v_payment.pay.payment.entity.PaymentMethod;
@@ -19,7 +20,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,7 +84,8 @@ class ProductQuantityEventServiceTest {
         // then
         assertThat(stockQuantityOf(product)).isEqualTo(1);
         assertThat(statusOf(event)).isEqualTo(ProductQuantityEventStatus.CONSUMED);
-        assertThat(orderRepository.findById(order.getOrderId()).orElseThrow().isFailed()).isTrue();
+        assertThat(orderRepository.findById(order.getOrderId()).orElseThrow().getStatus())
+                .isEqualTo(OrderStatus.LACK_QUANTITY);
         assertThat(paymentRepository.findAll()).isEmpty();
     }
 
@@ -104,7 +105,8 @@ class ProductQuantityEventServiceTest {
         assertThat(stockQuantityOf(product)).isEqualTo(1);
         assertThat(statusOf(first)).isEqualTo(ProductQuantityEventStatus.CONSUMED);
         assertThat(statusOf(second)).isEqualTo(ProductQuantityEventStatus.CONSUMED);
-        assertThat(orderRepository.findById(failureOrder.getOrderId()).orElseThrow().isFailed()).isTrue();
+        assertThat(orderRepository.findById(failureOrder.getOrderId()).orElseThrow().getStatus())
+                .isEqualTo(OrderStatus.LACK_QUANTITY);
 
         assertThat(paymentRepository.findAll())
                 .extracting(Payment::getOrderCode)
