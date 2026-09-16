@@ -1,15 +1,23 @@
 package com.v_payment.pay.order.entity;
 
+import com.v_payment.pay.order.controller.dto.req.OrderItemCreateReq;
+import com.v_payment.pay.order.domain.OrderItemSources;
+import com.v_payment.pay.order.domain.ReqQuantities;
+import com.v_payment.pay.order.domain.entity.Order;
+import com.v_payment.pay.order.domain.entity.OrderItem;
+import com.v_payment.pay.order.domain.entity.OrderStatus;
+import com.v_payment.pay.product.domain.ProductBasicInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class OrderTest {
 
-    @DisplayName("주문을 처음 생성 시 기본 상태를 갖는다.")
+    @DisplayName("주문을 생성하면 기본 상태를 가진다")
     @Test
     void create() {
         // given
@@ -21,13 +29,13 @@ class OrderTest {
 
         // then
         assertThat(order.getOrderCode()).isEqualTo(orderCode);
-        assertThat(order.isFailed()).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CREATED);
         assertThat(order.getTotalAmount()).isEqualTo(0L);
         assertThat(order.getOrderedAt()).isEqualTo(orderedAt);
         assertThat(order.getOrderItems()).isEmpty();
     }
 
-    @DisplayName("주문 상품 추가 시 주문 상품 목록에 추가되고, 총 금액(합산)이 증가한다.")
+    @DisplayName("주문 상품을 추가하면 주문 상품 목록과 총 금액이 갱신된다")
     @Test
     void addItem() {
         // given
@@ -39,7 +47,10 @@ class OrderTest {
         Integer quantity = 2;
 
         // when
-        order.addItem(productId, productName, unitPrice, quantity);
+        order.addItems(orderItemSources(
+                List.of(new ProductBasicInfo(productId, productName, unitPrice)),
+                List.of(new OrderItemCreateReq(productId, quantity))
+        ));
 
         // then
         assertThat(order.getOrderItems()).hasSize(1);
@@ -54,18 +65,33 @@ class OrderTest {
         assertThat(orderItem.getOrderAmount()).isEqualTo(20_000L);
     }
 
-    @DisplayName("주문 상품을 여러 개 추가하면 총 금액이 누적된다")
+    @DisplayName("여러 주문 상품을 추가하면 총 금액을 누적한다")
     @Test
     void addItems() {
         // given
         Order order = Order.create("ORDER-001", LocalDateTime.of(2026, 8, 31, 10, 0));
 
         // when
-        order.addItem(1L, "상품 A", 10_000L, 2);
-        order.addItem(2L, "상품 B", 5_000L, 3);
+        order.addItems(orderItemSources(
+                List.of(
+                        new ProductBasicInfo(1L, "상품 A", 10_000L),
+                        new ProductBasicInfo(2L, "상품 B", 5_000L)
+                ),
+                List.of(
+                        new OrderItemCreateReq(1L, 2),
+                        new OrderItemCreateReq(2L, 3)
+                )
+        ));
 
         // then
         assertThat(order.getOrderItems()).hasSize(2);
         assertThat(order.getTotalAmount()).isEqualTo(35_000L);
+    }
+
+    private OrderItemSources orderItemSources(
+            List<ProductBasicInfo> productBasicInfos,
+            List<OrderItemCreateReq> reqs
+    ) {
+        return OrderItemSources.of(productBasicInfos, ReqQuantities.from(reqs));
     }
 }

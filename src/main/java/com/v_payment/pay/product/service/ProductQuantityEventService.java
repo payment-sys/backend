@@ -75,10 +75,7 @@ public class ProductQuantityEventService {
             }
 
             markFailOrders(quantityDecreasePlan);
-
-            List<PaymentManager.PendingPaymentCreateRequest> pendingPayment = makePendingPayments(
-                    quantityDecreasePlan.getSuccess(), products);
-            paymentManager.createPendingPayments(pendingPayment);
+            createPendingPayments(quantityDecreasePlan, products);
 
             productQuantityEventRepository.updateStatusByIds(productQuantityEvents.getIds(),
                     ProductQuantityEventStatus.CONSUMED, LocalDateTime.now(clock));
@@ -106,12 +103,10 @@ public class ProductQuantityEventService {
         }
     }
 
-    private List<PaymentManager.PendingPaymentCreateRequest> makePendingPayments(
-            List<ProductQuantityEvent> successEvents, Map<Long, Product> products) {
-        return successEvents.stream()
+    private void createPendingPayments(QuantityDecreasePlan quantityDecreasePlan, Map<Long, Product> products) {
+        paymentManager.createPendingPayments(quantityDecreasePlan.getSuccess().stream()
                 .map(event -> {
                     ProductQuantityEventPayload payload = event.getPayload();
-
                     long amount = payload.getRequestedQuantities().entrySet().stream()
                             .mapToLong(entry -> products.get(entry.getKey()).getPrice() * entry.getValue())
                             .sum();
@@ -122,6 +117,6 @@ public class ProductQuantityEventService {
                             payload.getPaymentMethod()
                     );
                 })
-                .toList();
+                .toList());
     }
 }

@@ -1,4 +1,4 @@
-package com.v_payment.pay.order.entity;
+package com.v_payment.pay.order.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;

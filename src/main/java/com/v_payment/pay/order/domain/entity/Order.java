@@ -1,13 +1,7 @@
-package com.v_payment.pay.order.entity;
+package com.v_payment.pay.order.domain.entity;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import com.v_payment.pay.order.domain.OrderItemSources;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,7 +23,8 @@ public class Order {
     @Column(name = "order_code", nullable = false, unique = true)
     private String orderCode;
 
-    private boolean isFailed;
+    @Enumerated(EnumType.STRING)
+    private OrderStatus status;
 
     private Long totalAmount;
 
@@ -38,21 +33,24 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    private Order(String orderCode, boolean isFailed, Long totalAmount, LocalDateTime orderedAt) {
+    private Order(String orderCode, OrderStatus status, Long totalAmount, LocalDateTime orderedAt) {
         this.orderCode = validateOrderCode(orderCode);
-        this.isFailed = isFailed;
+        this.status = validateStatus(status);
         this.totalAmount = validateTotalAmount(totalAmount);
         this.orderedAt = validateOrderedAt(orderedAt);
     }
 
-    public void addItem(Long productId, String productName, Long unitPrice, Integer quantity) {
-        OrderItem orderItem = OrderItem.create(this, productId, productName, unitPrice, quantity);
-        orderItems.add(orderItem);
-        totalAmount += orderItem.getOrderAmount();
+    public void addItems(OrderItemSources orderItemSources) {
+        orderItemSources.forEach(ois -> {
+            OrderItem orderItem = OrderItem.create(this, ois.getProductId(), ois.getName(), ois.getPrice(),
+                    ois.getQuantity());
+            orderItems.add(orderItem);
+            totalAmount += orderItem.getOrderAmount();
+        });
     }
 
     public static Order create(String orderCode, LocalDateTime orderedAt) {
-        return new Order(orderCode, false, 0L, orderedAt);
+        return new Order(orderCode, OrderStatus.CREATED, 0L, orderedAt);
     }
 
     private String validateOrderCode(String orderCode) {
@@ -64,6 +62,11 @@ public class Order {
         if (totalAmount == null) throw new IllegalArgumentException("totalAmount는 필수입니다!");
         if (totalAmount < 0) throw new IllegalArgumentException("총 가격은 음수일 수 없습니다.");
         return totalAmount;
+    }
+
+    private OrderStatus validateStatus(OrderStatus status) {
+        if (status == null) throw new IllegalArgumentException("주문 상태는 필수입니다!");
+        return status;
     }
 
     private LocalDateTime validateOrderedAt(LocalDateTime orderedAt) {

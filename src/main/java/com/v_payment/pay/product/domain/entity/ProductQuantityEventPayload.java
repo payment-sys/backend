@@ -22,8 +22,7 @@ public class ProductQuantityEventPayload {
     @JsonDeserialize(keyUsing = LongMapKeyDeserializer.class)
     private Map<Long, Integer> requestedQuantities;
 
-    public static ProductQuantityEventPayload of(String orderCode, PaymentMethod paymentMethod,
-                                                 Map<Long, Integer> requestedQuantities) {
+    public static ProductQuantityEventPayload of(String orderCode, PaymentMethod paymentMethod, Map<Long, Integer> requestedQuantities) {
         return new ProductQuantityEventPayload(orderCode, paymentMethod, requestedQuantities);
     }
 }

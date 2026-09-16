@@ -1,5 +1,6 @@
 package com.v_payment.pay.order.entity;
 
+import com.v_payment.pay.order.domain.entity.OrderItemInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

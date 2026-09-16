@@ -4,7 +4,8 @@ import com.v_payment.pay.global.exception.BusinessException;
 import com.v_payment.pay.order.controller.dto.req.OrderCreateReq;
 import com.v_payment.pay.order.controller.dto.req.OrderItemCreateReq;
 import com.v_payment.pay.order.controller.dto.res.OrderCreateRes;
-import com.v_payment.pay.order.entity.Order;
+import com.v_payment.pay.order.domain.entity.Order;
+import com.v_payment.pay.order.domain.entity.OrderStatus;
 import com.v_payment.pay.order.repository.OrderRepository;
 import com.v_payment.pay.payment.entity.PaymentMethod;
 import com.v_payment.pay.product.domain.entity.Product;
@@ -61,7 +62,7 @@ class OrderServiceTest {
         assertThat(res.orderCode()).isEqualTo(order.getOrderCode());
         assertThat(order.getOrderItems()).hasSize(2);
         assertThat(order.getTotalAmount()).isEqualTo(35_000L);
-        assertThat(order.isFailed()).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CREATED);
 
         ProductQuantityEvent event = productQuantityEventRepository.findAll().get(0);
         assertThat(event.getOrderCode()).isEqualTo(order.getOrderCode());
