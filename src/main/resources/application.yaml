@@ -66,6 +66,12 @@ product:
     wal:
       path: ${PRODUCT_RESERVATION_WAL_PATH:./data/product-reservation.wal}
 
+order:
+  expiration:
+    fixed-delay-ms: 30000
+    expire-after-seconds: 600
+    batch-size: 100
+
 management:
   server:
     port: 8082
