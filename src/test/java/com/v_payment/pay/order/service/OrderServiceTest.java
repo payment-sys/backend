@@ -7,7 +7,7 @@ import com.v_payment.pay.order.controller.dto.res.OrderCreateRes;
 import com.v_payment.pay.order.domain.entity.Order;
 import com.v_payment.pay.order.domain.entity.OrderStatus;
 import com.v_payment.pay.order.repository.OrderRepository;
-import com.v_payment.pay.payment.entity.PaymentMethod;
+import com.v_payment.pay.payment.domain.entity.PaymentMethod;
 import com.v_payment.pay.product.domain.entity.Product;
 import com.v_payment.pay.product.domain.entity.ProductQuantityEvent;
 import com.v_payment.pay.product.repository.ProductQuantityEventRepository;

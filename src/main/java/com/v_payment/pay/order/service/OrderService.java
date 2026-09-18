@@ -8,7 +8,7 @@ import com.v_payment.pay.order.domain.ReqQuantities;
 import com.v_payment.pay.order.domain.entity.Order;
 import com.v_payment.pay.order.exception.OrderException;
 import com.v_payment.pay.order.repository.OrderRepository;
-import com.v_payment.pay.payment.entity.PaymentMethod;
+import com.v_payment.pay.payment.domain.entity.PaymentMethod;
 import com.v_payment.pay.product.domain.ProductBasicInfo;
 import com.v_payment.pay.product.domain.entity.ProductQuantityEventPayload;
 import com.v_payment.pay.product.service.ProductManager;
