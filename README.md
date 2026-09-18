@@ -108,17 +108,11 @@
 
 <a href=https://github.com/payment-sys/backend/wiki/%EC%A3%BC%EB%AC%B8%E2%80%90%EC%9E%AC%EA%B3%A0-%EC%B0%A8%EA%B0%90-%EA%B4%80%EC%B8%A1-%EB%AA%85%EC%84%B8%EC%84%9C> 주문-재고 차감 관측 명세서 </a>
 
-<a href=https://github.com/payment-sys/backend/wiki/%EA%B2%B0%EC%A0%9C-%EA%B4%80%EC%B8%A1-%EB%AA%85%EC%84%B8%EC%84%9C> 결제 관측 명세서 </a>
-
 ### 결제
 
 <a href=https://github.com/payment-sys/backend/wiki/%EA%B2%B0%EC%A0%9C-%EB%B9%84%EC%A6%88%EB%8B%88%EC%8A%A4-%EB%A1%9C%EC%A7%81-%EB%AA%85%EC%84%B8%EC%84%9C> 결제 비즈니스 로직 명세서 </a>
 
-- 재고 차감에 성공한 주문만 `READY` 결제 데이터로 생성한다.
-- 결제 승인 요청 시 외부 PG사인 토스페이먼츠에 승인 요청을 보낸다.
-- PG 응답에 따라 결제 상태를 `DONE`, `ABORTED`, `EXPIRED`, `UNKNOWN`으로 반영한다.
-
-<img width="617" height="342" alt="image" src="https://github.com/user-attachments/assets/769a7804-77fc-4da7-b20f-cc665b625af9" />
+<a href=https://github.com/payment-sys/backend/wiki/%EA%B2%B0%EC%A0%9C-%EA%B4%80%EC%B8%A1-%EB%AA%85%EC%84%B8%EC%84%9C> 결제 관측 명세서 </a>
 
 ### 복구와 일관성
 
