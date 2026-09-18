@@ -1,14 +1,14 @@
 package com.v_payment.pay.payment.controller.dto.req;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
-import com.v_payment.pay.payment.entity.PaymentMethod;
-import com.v_payment.pay.payment.entity.Provider;
+import com.v_payment.pay.payment.domain.entity.PaymentMethod;
+import com.v_payment.pay.payment.domain.entity.Provider;
 
 
 public record ApprovalReq(
         PaymentMethod method,
         @JsonAlias("orderId")
-        String orderCode,
+        String idempotencyKey,
         String paymentKey,
         @JsonAlias("amount")
         Long requestedAmount,
