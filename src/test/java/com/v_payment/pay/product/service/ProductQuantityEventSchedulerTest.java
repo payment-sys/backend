@@ -1,6 +1,7 @@
 package com.v_payment.pay.product.service;
 
 import com.v_payment.pay.product.config.ProductQuantityEventConsumerProperties;
+import com.v_payment.pay.product.scheduler.ProductQuantityEventScheduler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

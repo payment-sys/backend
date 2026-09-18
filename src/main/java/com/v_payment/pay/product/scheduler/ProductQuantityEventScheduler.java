@@ -1,6 +1,7 @@
-package com.v_payment.pay.product.service;
+package com.v_payment.pay.product.scheduler;
 
 import com.v_payment.pay.product.config.ProductQuantityEventConsumerProperties;
+import com.v_payment.pay.product.service.ProductQuantityEventFacade;
 import lombok.RequiredArgsConstructor;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
