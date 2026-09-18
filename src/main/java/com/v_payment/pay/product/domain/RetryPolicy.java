@@ -1,4 +1,4 @@
-package com.v_payment.pay.product.service;
+package com.v_payment.pay.product.domain;
 
 import org.springframework.stereotype.Component;
 
