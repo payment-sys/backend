@@ -1,9 +1,9 @@
 package com.v_payment.pay.payment.repository;
 
-import com.v_payment.pay.payment.entity.Payment;
-import com.v_payment.pay.payment.entity.PaymentMethod;
-import com.v_payment.pay.payment.entity.PaymentStatus;
-import com.v_payment.pay.payment.entity.Provider;
+import com.v_payment.pay.payment.domain.entity.Payment;
+import com.v_payment.pay.payment.domain.entity.PaymentMethod;
+import com.v_payment.pay.payment.domain.entity.PaymentStatus;
+import com.v_payment.pay.payment.domain.entity.Provider;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -14,9 +14,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface PaymentRepository extends JpaRepository<Payment, Long> {
+public interface PaymentRepository extends JpaRepository<Payment, Long>, PaymentBatchRepository {
 
-    Optional<Payment> findByOrderCodeAndPaymentStatus(String orderCode, PaymentStatus paymentStatus);
+    Optional<Payment> findByIdempotencyKey(String idempotencyKey);
+
+    List<Payment> findAllByOrderCode(String orderCode);
 
     @Query("""
     SELECT p
@@ -35,13 +37,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     UPDATE Payment p
     SET p.paymentStatus = :inProgressStatus,
         p.paymentKey = :paymentKey
-    WHERE p.orderCode = :orderCode
+    WHERE p.idempotencyKey = :idempotencyKey
     AND p.paymentStatus = :readyStatus
     AND p.requestedAmount = :requestedAmount
     AND p.provider = :provider
     AND p.paymentMethod = :paymentMethod
     """)
-    int markInProgress(@Param("orderCode") String orderCode,
+    int markInProgress(@Param("idempotencyKey") String idempotencyKey,
                        @Param("paymentKey") String paymentKey,
                        @Param("requestedAmount") Long requestedAmount,
                        @Param("provider") Provider provider,
@@ -56,10 +58,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         p.approvedAmount = :approvedAmount,
         p.approvedAt = :approvedAt,
         p.receiptUrl = :receiptUrl
-    WHERE p.orderCode = :orderCode
+    WHERE p.idempotencyKey = :idempotencyKey
     AND p.paymentStatus IN (:inProgressStatus, :unknownStatus, :doneStatus)
     """)
-    int markDone(@Param("orderCode") String orderCode,
+    int markDone(@Param("idempotencyKey") String idempotencyKey,
                  @Param("inProgressStatus") PaymentStatus inProgressStatus,
                  @Param("unknownStatus") PaymentStatus unknownStatus,
                  @Param("doneStatus") PaymentStatus doneStatus,
@@ -71,10 +73,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query("""
     UPDATE Payment p
     SET p.paymentStatus = :abortedStatus
-    WHERE p.orderCode = :orderCode
+    WHERE p.idempotencyKey = :idempotencyKey
     AND p.paymentStatus IN (:inProgressStatus, :unknownStatus, :abortedStatus)
     """)
-    int markAborted(@Param("orderCode") String orderCode,
+    int markAborted(@Param("idempotencyKey") String idempotencyKey,
                     @Param("inProgressStatus") PaymentStatus inProgressStatus,
                     @Param("unknownStatus") PaymentStatus unknownStatus,
                     @Param("abortedStatus") PaymentStatus abortedStatus);
@@ -83,10 +85,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query("""
     UPDATE Payment p
     SET p.paymentStatus = :unknownStatus
-    WHERE p.orderCode = :orderCode
+    WHERE p.idempotencyKey = :idempotencyKey
     AND p.paymentStatus IN (:inProgressStatus, :unknownStatus)
     """)
-    int markUnknown(@Param("orderCode") String orderCode,
+    int markUnknown(@Param("idempotencyKey") String idempotencyKey,
                     @Param("inProgressStatus") PaymentStatus inProgressStatus,
                     @Param("unknownStatus") PaymentStatus unknownStatus);
 
@@ -94,10 +96,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query("""
     UPDATE Payment p
     SET p.paymentStatus = :expiredStatus
-    WHERE p.orderCode = :orderCode
+    WHERE p.idempotencyKey = :idempotencyKey
     AND p.paymentStatus IN (:inProgressStatus, :unknownStatus, :expiredStatus)
     """)
-    int markExpired(@Param("orderCode") String orderCode,
+    int markExpired(@Param("idempotencyKey") String idempotencyKey,
                     @Param("inProgressStatus") PaymentStatus inProgressStatus,
                     @Param("unknownStatus") PaymentStatus unknownStatus,
                     @Param("expiredStatus") PaymentStatus expiredStatus);
@@ -106,12 +108,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query("""
     UPDATE Payment p
     SET p.recoveryAttemptCount = COALESCE(p.recoveryAttemptCount, 0) + 1
-    WHERE p.orderCode = :orderCode
-    AND p.paymentStatus IN (:inProgressStatus, :unknownStatus)
+    WHERE p.idempotencyKey = :idempotencyKey
+    AND p.paymentStatus IN :recoverableStatuses
     """)
-    int increaseRecoveryAttemptCount(@Param("orderCode") String orderCode,
-                                     @Param("inProgressStatus") PaymentStatus inProgressStatus,
-                                     @Param("unknownStatus") PaymentStatus unknownStatus);
+    int increaseRecoveryAttemptCount(@Param("idempotencyKey") String idempotencyKey,
+                                     @Param("recoverableStatuses") List<PaymentStatus> recoverableStatuses);
 
     @Modifying
     @Query("""
@@ -121,10 +122,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         p.approvedAmount = :approvedAmount,
         p.approvedAt = :approvedAt,
         p.receiptUrl = :receiptUrl
-    WHERE p.orderCode = :orderCode
+    WHERE p.idempotencyKey = :idempotencyKey
     AND p.paymentStatus <> :doneStatus
     """)
-    int markDone(@Param("orderCode") String orderCode,
+    int markDone(@Param("idempotencyKey") String idempotencyKey,
                  @Param("paymentKey") String paymentKey,
                  @Param("doneStatus") PaymentStatus doneStatus,
                  @Param("approvedAmount") Long approvedAmount,
@@ -136,10 +137,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     UPDATE Payment p
     SET p.paymentStatus = :abortedStatus,
         p.paymentKey = :paymentKey
-    WHERE p.orderCode = :orderCode
+    WHERE p.idempotencyKey = :idempotencyKey
     AND p.paymentStatus <> :doneStatus
     """)
-    int markAborted(@Param("orderCode") String orderCode,
+    int markAborted(@Param("idempotencyKey") String idempotencyKey,
                     @Param("paymentKey") String paymentKey,
                     @Param("abortedStatus") PaymentStatus abortedStatus,
                     @Param("doneStatus") PaymentStatus doneStatus);
@@ -149,10 +150,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     UPDATE Payment p
     SET p.paymentStatus = :expiredStatus,
         p.paymentKey = :paymentKey
-    WHERE p.orderCode = :orderCode
+    WHERE p.idempotencyKey = :idempotencyKey
     AND p.paymentStatus <> :doneStatus
     """)
-    int markExpired(@Param("orderCode") String orderCode,
+    int markExpired(@Param("idempotencyKey") String idempotencyKey,
                     @Param("paymentKey") String paymentKey,
                     @Param("expiredStatus") PaymentStatus expiredStatus,
                     @Param("doneStatus") PaymentStatus doneStatus);
