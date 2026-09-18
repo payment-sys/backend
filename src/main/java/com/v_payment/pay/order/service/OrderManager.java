@@ -1,11 +1,8 @@
 package com.v_payment.pay.order.service;
 
-import com.v_payment.pay.global.exception.BusinessException;
-import com.v_payment.pay.order.domain.entity.Order;
 import com.v_payment.pay.order.domain.entity.OrderItem;
 import com.v_payment.pay.order.domain.entity.OrderItemInfo;
 import com.v_payment.pay.order.domain.entity.OrderStatus;
-import com.v_payment.pay.order.exception.OrderException;
 import com.v_payment.pay.order.repository.OrderItemRepository;
 import com.v_payment.pay.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,18 +17,62 @@ public class OrderManager {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
 
-    public boolean markFailed(String orderCode) {
-        return orderRepository.markFailed(orderCode, OrderStatus.CREATED, OrderStatus.LACK_QUANTITY) == 1;
+    public boolean markCreated(String orderCode) {
+        return markStatus(orderCode, OrderStatus.CREATED);
     }
 
-    public boolean markFailed(Collection<String> orderCodes) {
-        if (orderCodes.isEmpty()) return true;
-        return orderRepository.markFailedByOrderCodes(orderCodes, OrderStatus.CREATED, OrderStatus.LACK_QUANTITY) == orderCodes.size();
+    public boolean markCreated(Collection<String> orderCodes) {
+        return markStatus(orderCodes, OrderStatus.CREATED);
+    }
+
+    public boolean markLackQuantity(String orderCode) {
+        return markStatus(orderCode, OrderStatus.LACK_QUANTITY);
+    }
+
+    public boolean markLackQuantity(Collection<String> orderCodes) {
+        return markStatus(orderCodes, OrderStatus.LACK_QUANTITY);
+    }
+
+    public boolean markPaid(String orderCode) {
+        return markStatus(orderCode, OrderStatus.PAID);
+    }
+
+    public boolean markPaid(Collection<String> orderCodes) {
+        return markStatus(orderCodes, OrderStatus.PAID);
+    }
+
+    public boolean markExpired(String orderCode) {
+        return markStatus(orderCode, OrderStatus.EXPIRED);
+    }
+
+    public boolean markExpired(Collection<String> orderCodes) {
+        return markStatus(orderCodes, OrderStatus.EXPIRED);
+    }
+
+    public boolean markLackQuantities(String orderCode) {
+        return markLackQuantity(orderCode);
+    }
+
+    public boolean markLackQuantities(Collection<String> orderCodes) {
+        return markLackQuantity(orderCodes);
+    }
+
+    public boolean isCreatedStatus(String orderCode) {
+        return orderRepository.existsByOrderCodeAndStatus(orderCode, OrderStatus.CREATED);
     }
 
     public List<OrderItemInfo> findOrderItems(String orderCode) {
         return orderItemRepository.findAllByOrderCode(orderCode).stream()
                 .map(OrderItem::getOrderItemInfo)
                 .toList();
+    }
+
+    private boolean markStatus(String orderCode, OrderStatus targetStatus) {
+        return orderRepository.markStatus(orderCode, OrderStatus.CREATED, targetStatus) == 1;
+    }
+
+    private boolean markStatus(Collection<String> orderCodes, OrderStatus targetStatus) {
+        if (orderCodes.isEmpty()) return true;
+        return orderRepository.markStatusByOrderCodes(orderCodes, OrderStatus.CREATED, targetStatus) == orderCodes.size();
     }
 }
