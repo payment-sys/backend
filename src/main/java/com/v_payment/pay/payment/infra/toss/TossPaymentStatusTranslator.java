@@ -12,55 +12,55 @@ public class TossPaymentStatusTranslator implements PaymentStatusTranslator {
     private static final String NOT_FOUND_PAYMENT_SESSION = "NOT_FOUND_PAYMENT_SESSION";
 
     @Override
-    public Result translate(PaymentConfirmRes paymentConfirmRes, String fallbackOrderCode) {
+    public Result translate(PaymentConfirmRes paymentConfirmRes, String orderCode, String idempotencyKey) {
         if (paymentConfirmRes instanceof TossPaymentConfirmErrorRes errorRes) {
-            return mapError(errorRes, fallbackOrderCode);
+            return mapError(errorRes, orderCode, idempotencyKey);
         }
         if (paymentConfirmRes instanceof TossPaymentConfirmSuccessRes successRes) {
-            return mapSuccess(successRes, fallbackOrderCode);
+            return mapSuccess(successRes, orderCode, idempotencyKey);
         }
 
-        return mapUnknown(fallbackOrderCode, "Unsupported payment confirm response");
+        return mapUnknown(orderCode, idempotencyKey, "Unsupported payment confirm response");
     }
 
-    public Result translateTimeout(String fallbackOrderCode, String message) {
-        return new UnknownResult(fallbackOrderCode, PaymentError.NETWORK_TIMEOUT, message);
+    public Result translateTimeout(String orderCode, String idempotencyKey, String message) {
+        return new UnknownResult(orderCode, idempotencyKey, PaymentError.NETWORK_TIMEOUT, message);
     }
 
-    public Result translateUnknown(String fallbackOrderCode, String message) {
-        return mapUnknown(fallbackOrderCode, message);
+    public Result translateUnknown(String orderCode, String idempotencyKey, String message) {
+        return mapUnknown(orderCode, idempotencyKey, message);
     }
 
-    private Result mapSuccess(TossPaymentConfirmSuccessRes successRes, String fallbackOrderCode) {
-        String orderCode = resolveOrderCode(successRes.orderCode(), fallbackOrderCode);
+    private Result mapSuccess(TossPaymentConfirmSuccessRes successRes, String orderCode, String idempotencyKey) {
         if (successRes.status() == null) {
-            return mapUnknown(orderCode, "Toss payment status is null");
+            return mapUnknown(orderCode, idempotencyKey, "Toss payment status is null");
         }
 
         return switch (successRes.status()) {
-            case DONE -> mapDone(successRes, orderCode);
-            case ABORTED -> mapAborted(orderCode, "Toss payment status is ABORTED");
-            case EXPIRED -> mapExpired(orderCode, "Toss payment status is EXPIRED");
-            default -> mapUnknown(orderCode, "Unsupported toss payment status: " + successRes.status());
+            case DONE -> mapDone(successRes, orderCode, idempotencyKey);
+            case ABORTED -> mapAborted(orderCode, idempotencyKey, "Toss payment status is ABORTED");
+            case EXPIRED -> mapExpired(orderCode, idempotencyKey, "Toss payment status is EXPIRED");
+            default -> mapUnknown(orderCode, idempotencyKey, "Unsupported toss payment status: " + successRes.status());
         };
     }
 
-    private Result mapError(TossPaymentConfirmErrorRes errorRes, String fallbackOrderCode) {
+    private Result mapError(TossPaymentConfirmErrorRes errorRes, String orderCode, String idempotencyKey) {
         if (errorRes.httpStatusCode() != null && errorRes.httpStatusCode() == 429) {
-            return new UnknownResult(fallbackOrderCode, PaymentError.UPSTREAM_429, errorRes.message());
+            return new UnknownResult(orderCode, idempotencyKey, PaymentError.UPSTREAM_429, errorRes.message());
         }
         if (errorRes.httpStatusCode() != null && errorRes.httpStatusCode() >= 500) {
-            return new UnknownResult(fallbackOrderCode, PaymentError.UPSTREAM_5XX, errorRes.message());
+            return new UnknownResult(orderCode, idempotencyKey, PaymentError.UPSTREAM_5XX, errorRes.message());
         }
         if (NOT_FOUND_PAYMENT_SESSION.equals(errorRes.code())) {
-            return mapExpired(fallbackOrderCode, errorRes.message());
+            return mapExpired(orderCode, idempotencyKey, errorRes.message());
         }
-        return mapAborted(fallbackOrderCode, errorRes.message());
+        return mapAborted(orderCode, idempotencyKey, errorRes.message());
     }
 
-    private DoneResult mapDone(TossPaymentConfirmSuccessRes successRes, String orderCode) {
+    private DoneResult mapDone(TossPaymentConfirmSuccessRes successRes, String orderCode, String idempotencyKey) {
         return new DoneResult(
                 orderCode,
+                idempotencyKey,
                 successRes.paymentKey(),
                 successRes.totalAmount(),
                 successRes.approvedAt() == null ? null : successRes.approvedAt().toLocalDateTime(),
@@ -68,19 +68,15 @@ public class TossPaymentStatusTranslator implements PaymentStatusTranslator {
         );
     }
 
-    private AbortedResult mapAborted(String orderCode, String message) {
-        return new AbortedResult(orderCode, PaymentError.UPSTREAM_4XX, message);
+    private AbortedResult mapAborted(String orderCode, String idempotencyKey, String message) {
+        return new AbortedResult(orderCode, idempotencyKey, PaymentError.UPSTREAM_4XX, message);
     }
 
-    private ExpiredResult mapExpired(String orderCode, String message) {
-        return new ExpiredResult(orderCode, PaymentError.UPSTREAM_4XX, message);
+    private ExpiredResult mapExpired(String orderCode, String idempotencyKey, String message) {
+        return new ExpiredResult(orderCode, idempotencyKey, PaymentError.UPSTREAM_4XX, message);
     }
 
-    private UnknownResult mapUnknown(String orderCode, String message) {
-        return new UnknownResult(orderCode, PaymentError.UNKNOWN, message);
-    }
-
-    private String resolveOrderCode(String responseOrderCode, String fallbackOrderCode) {
-        return responseOrderCode == null ? fallbackOrderCode : responseOrderCode;
+    private UnknownResult mapUnknown(String orderCode, String idempotencyKey, String message) {
+        return new UnknownResult(orderCode, idempotencyKey, PaymentError.UNKNOWN, message);
     }
 }

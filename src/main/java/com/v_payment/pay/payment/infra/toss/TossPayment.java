@@ -1,7 +1,7 @@
 package com.v_payment.pay.payment.infra.toss;
 
 import com.v_payment.pay.payment.config.TossPaymentProperties;
-import com.v_payment.pay.payment.entity.PaymentPayload;
+import com.v_payment.pay.payment.domain.entity.PaymentPayload;
 import com.v_payment.pay.payment.infra.*;
 import com.v_payment.pay.payment.infra.result.Result;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -36,11 +36,23 @@ public class TossPayment {
     public Result approve(PaymentPayload paymentPayload) {
         try {
             PaymentConfirmRes paymentConfirmRes = exchangeApprove(paymentPayload);
-            return tossPaymentStatusTranslator.translate(paymentConfirmRes, paymentPayload.getOrderCode());
+            return tossPaymentStatusTranslator.translate(
+                    paymentConfirmRes,
+                    paymentPayload.getOrderCode(),
+                    paymentPayload.getIdempotencyKey()
+            );
         } catch (ResourceAccessException e) {
-            return tossPaymentStatusTranslator.translateTimeout(paymentPayload.getOrderCode(), e.getMessage());
+            return tossPaymentStatusTranslator.translateTimeout(
+                    paymentPayload.getOrderCode(),
+                    paymentPayload.getIdempotencyKey(),
+                    e.getMessage()
+            );
         } catch (RuntimeException e) {
-            return tossPaymentStatusTranslator.translateUnknown(paymentPayload.getOrderCode(), e.getMessage());
+            return tossPaymentStatusTranslator.translateUnknown(
+                    paymentPayload.getOrderCode(),
+                    paymentPayload.getIdempotencyKey(),
+                    e.getMessage()
+            );
         }
     }
 
@@ -56,7 +68,7 @@ public class TossPayment {
                     .uri(tossPaymentProperties.uri())
                     .header(AUTHORIZATION_HEADER_KEY, encodeBase64(tossPaymentProperties.secret()))
                     .header(CONTENT_TYPE_HEADER_KEY, tossPaymentProperties.contentType())
-                    .header(IDEMPOTENCY_KEY_HEADER_KEY, paymentPayload.getOrderCode())
+                    .header(IDEMPOTENCY_KEY_HEADER_KEY, paymentPayload.getIdempotencyKey())
                     .body(paymentPayload)
                     .exchange((req, res) -> {
                         HttpStatusCode statusCode = res.getStatusCode();

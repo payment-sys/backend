@@ -74,7 +74,7 @@ public class ProductQuantityEventService {
                 productRepository.decreaseProducts(quantityDecreasePlan.getDecreaseTotal());
             }
 
-            markFailOrders(quantityDecreasePlan);
+            markLackQuantities(quantityDecreasePlan);
             createPendingPayments(quantityDecreasePlan, products);
 
             productQuantityEventRepository.updateStatusByIds(productQuantityEvents.getIds(),
@@ -92,14 +92,14 @@ public class ProductQuantityEventService {
         return quantityDecreasePlanner.makeDecreasePlan(productQuantityEvents);
     }
 
-    private void markFailOrders(QuantityDecreasePlan quantityDecreasePlan) {
+    private void markLackQuantities(QuantityDecreasePlan quantityDecreasePlan) {
         if (!quantityDecreasePlan.hasFailOrder()) return;
-        boolean failUpdated = orderManager.markFailed(quantityDecreasePlan.getFailOrderCodes());
+        boolean failUpdated = orderManager.markLackQuantities(quantityDecreasePlan.getFailOrderCodes());
 
         if (!failUpdated) {
-            log.error("product reservation failed, but order fail flag update failed. failOrderCodes={}",
+            log.error("상품 예약 실패 후 주문 재고부족 상태 업데이트를 실패했습니다. failOrderCodes={}",
                     quantityDecreasePlan.getFailOrderCodes());
-            throw new IllegalStateException("order fail flag update failed");
+            throw new IllegalStateException("주문 재고부족 상태 업데이트를 실패했습니다.");
         }
     }
 

@@ -1,6 +1,6 @@
 package com.v_payment.pay.product.service;
 
-import com.v_payment.pay.payment.entity.PaymentMethod;
+import com.v_payment.pay.payment.domain.entity.PaymentMethod;
 import com.v_payment.pay.product.domain.ProductBasicInfo;
 import com.v_payment.pay.product.domain.entity.Product;
 import com.v_payment.pay.product.domain.entity.ProductQuantityEvent;

@@ -1,4 +1,4 @@
-package com.v_payment.pay.payment.entity;
+package com.v_payment.pay.payment.domain.entity;
 
 public enum PaymentStatus {
     READY,

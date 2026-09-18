@@ -1,9 +1,13 @@
 package com.v_payment.pay.payment.controller;
 
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
+import com.v_payment.pay.payment.controller.dto.req.PaymentRegenerateReq;
 import com.v_payment.pay.payment.controller.dto.req.TossPaymentWebhookReq;
 import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
-import com.v_payment.pay.payment.service.PaymentServiceFacade;
+import com.v_payment.pay.payment.controller.dto.res.PaymentRegenerateRes;
+import com.v_payment.pay.payment.service.PaymentApprovalServiceFacade;
+import com.v_payment.pay.payment.service.PaymentRegenerationService;
+import com.v_payment.pay.payment.service.PaymentWebhookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,19 +22,28 @@ import java.util.concurrent.CompletableFuture;
 @RequestMapping("/payments")
 @RequiredArgsConstructor
 public class PaymentController {
-    private final PaymentServiceFacade paymentServiceFacade;
+    private final PaymentApprovalServiceFacade paymentApprovalServiceFacade;
+    private final PaymentWebhookService paymentWebhookService;
+    private final PaymentRegenerationService paymentRegenerationService;
 
     @PostMapping("/approvals")
     public CompletableFuture<ApprovalRes> approve(
             @RequestBody ApprovalReq approvalReq
     ) {
-        return paymentServiceFacade.approvePipeline(approvalReq);
+        return paymentApprovalServiceFacade.approvePipeline(approvalReq);
     }
 
     @PostMapping("/webhooks/toss")
     public void syncTossPaymentStatus(
             @RequestBody TossPaymentWebhookReq webhookReq
     ) {
-        paymentServiceFacade.syncTossPaymentStatus(webhookReq);
+        paymentWebhookService.syncTossPaymentStatus(webhookReq);
+    }
+
+    @PostMapping("/regenerations")
+    public PaymentRegenerateRes regenerate(
+            @RequestBody PaymentRegenerateReq req
+    ) {
+        return paymentRegenerationService.regeneratePayment(req);
     }
 }
