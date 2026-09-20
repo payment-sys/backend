@@ -17,15 +17,17 @@
 # 목차
 
 ### 1. 주문-결제 시스템 요구사항
-### 2. 기술 스택 정의
-### 3. ERD
-### 4. 아키텍처 구상도
-### 5. 핵심 구현 내용과 플로우 차트
-### 6. 구현 과정과 문제 해결 과정
-### 7. 최종 성능 결과
+### 2. 최소 성능 기준(SLO)
+### 3. 기술 스택 정의
+### 4. ERD
+### 5. 아키텍처 구상도
+### 6. 핵심 구현 내용과 플로우 차트
+### 7. 구현 과정과 문제 해결 과정
+### 8. 최종 성능 결과
+### 9. 차후 개션 방향
 ---
 
-# 주문-결제 시스템 요구사항
+# 1. 주문-결제 시스템 요구사항
 
 ### 주문
 
@@ -43,7 +45,7 @@
 - `중복 승인 요청이나 중복 webhook에도 결제 상태가 일관되게 유지`되어야 한다.
 - `미완료 결제는 복구할 수 있어`야 한다.
 
-# 최소 성능 기준(SLO)
+# 2. 최소 성능 기준(SLO)
 
 ### 주문
 
@@ -60,7 +62,7 @@
 
 *테스트는 주문 요청 2초 후 결제를 진행한다.
 
-# 기술 스택
+# 3. 기술 스택
 
 ### 배포/인프라
 <img width="60" height="60" alt="image" src="https://github.com/user-attachments/assets/7a4cd445-bef7-479a-8513-ed6e853f280c" />
@@ -77,12 +79,12 @@
 <img width="60" height="60" alt="image" src="https://github.com/user-attachments/assets/a69a308d-5c64-45aa-815b-4b2644319fcd" />
 
 
-# ERD
+# 4. ERD
 
 <img width="1421" height="639" alt="image" src="https://github.com/user-attachments/assets/7dcad148-3865-428f-81f9-59613182cbdc" />
 
 
-# Architecture
+# 5. Architecture
 
 <img width="586" height="499" alt="{984A6B48-AF54-48E4-8A6D-54BAE2EFA963}" src="https://github.com/user-attachments/assets/f685d7ae-ca5a-463f-9dcf-c1ac745dae57" />
 
@@ -100,7 +102,7 @@
 6. Spring Boot: 주문, 재고 차감 이벤트, 결제 대기 생성 등 핵심 비즈니스 로직을 처리하는 애플리케이션 서버입니다.
 7. Git / GitHub Actions: GitHub Actions를 통해 빌드, 테스트, 이미지 생성, 배포 과정을 자동화하고, 여러 인스턴스에 순차적으로 배포하는 Rolling 방식을 사용했습니다.
 
-# 핵심 구현 내용과 플로우 차트
+# 6. 핵심 구현 내용과 플로우 차트
 
 ### 주문과 재고 차감
 
@@ -120,7 +122,7 @@
 - 미완료 결제는 webhook과 recovery scheduler로 PG 상태를 재조회해 보정한다.
 - 중복 승인 요청이나 중복 webhook에도 결제 상태가 일관되게 유지되도록 처리했다.
 
-# 구현 과정과 문제 해결 과정
+# 7. 구현 과정과 문제 해결 과정
 
 |순서|제목|설명|wiki 주소|
 |---|----|---|---------|
@@ -135,9 +137,7 @@
 |9-주문\결제|주문, 결제 400RPS 테스트에서 CPU 병목과 수평 확장|`주문->2초(재고 차감 batch 수행시간)->결제`의 테스트에서 MAX Latency가 3초 이상 발생하는 것을 확인.<br>CPU PSI(15초)도 40% 가량임을 확인.<br>이러한 이유들로, HikariCP가 늦게 반납되어, 병목 발생.<br> 인스턴스를 코어가 4개인 xLarge로 바꿔 테스트한 결과, 에러 없이 MAX 1.3s로 개선됨을 확인.(즉, CPU 병목 맞았음)<br>다만, xLarge의 비용이 기존보다 8배 이상.<br><br> 수직 확장은 8배 수평확장은 4배 정도의 비용임을 확인. 수평 확장 적용<br> `small 단일->t3.xLarge->t3.small 3개 순 비교`<br>`p99 2s->1.2s->1.08s`<br>`비용 1배->약8배->약3배+ALB 비용`|<a href=https://github.com/payment-sys/backend/wiki/%EC%88%98%ED%8F%89-%ED%99%95%EC%9E%A5%EC%9D%84-%ED%86%B5%ED%95%9C-MAX-Latency-%EC%95%88%EC%A0%95%ED%99%94> 정리 글 </a>|
 |10-주문\결제|수평 확장 시 Payment 중복 생성과 ShedLock|batch scheduler 기존 1개에서 수평확장으로 3개가 되어, 결제 중복 생성 문제 발생.<br> 락을 통해 해결하고자 하였으나, 순서 보장 불가 및 병목 발생.<br> 주문 API는 수평 확장으로 처리량을 확보.<br> 동일 상품 재고 차감과 결제 대기 생성 구간은 정합성이 더 중요하다고 판단해 ShedLock으로 단일 consumer만 실행하도록 제한.<br><br> error 0%와 기존 SLO 목표치 달성<br>`에러율 40%->0%`|<a href=https://github.com/payment-sys/backend/wiki/%EC%88%98%ED%8F%89%ED%99%95%EC%9E%A5%EC%9C%BC%EB%A1%9C-%EC%9D%B8%ED%95%9C,-PENDING-Payment-%EC%A4%91%EB%B3%B5-%EC%83%9D%EC%84%B1-%EB%AC%B8%EC%A0%9C-%ED%95%B4%EA%B2%B0-With-ShedLock> 정리 글 </a>|
 
-### 최종 성과(SLO) 달성 지표
-
-# 최종 성능 결과
+# 8. 최종 성능 결과
 
 | 구분 | 목표 | 결과 | 달성 여부 |
 |---|---:|---:|---:|
@@ -147,3 +147,9 @@
 | 결제 승인 처리량 | 200 RPS | 200 RPS | 달성 |
 | 결제 승인 p99 | 1500ms 이하 | 1089.3ms | 달성 |
 | 결제 승인 성공률 | 99.99% 이상 | 100% | 달성 |
+
+# 9. 개선 방향
+
+<a href=https://github.com/payment-sys/backend/wiki/%EC%A3%BC%EB%AC%B8%EC%9D%98-%EB%AA%A9%ED%91%9C-%ED%8A%B8%EB%9E%98%ED%94%BD(RPS)%EA%B0%80-%EC%A6%9D%EA%B0%80%ED%95%A0-%EB%95%8C,-BackLog-%EC%A6%9D%EA%B0%80-%EB%AC%B8%EC%A0%9C-%EA%B0%9C%EC%84%A0-%EB%B0%A9%ED%96%A5> 1. 주문의 목표 트래픽(RPS)가 증가할 때, BackLog 증가 문제 개선 방향 </a>
+
+<a href=https://github.com/payment-sys/backend/wiki/DB-%EC%93%B0%EA%B8%B0-%EB%B6%80%ED%95%98-%EC%A6%9D%EA%B0%80%EC%99%80-binlog-%EB%94%94%EB%A0%89%ED%86%A0%EB%A6%AC-%EB%B6%84%EB%A6%AC> 2. DB 쓰기 부하 증가와 binlog 디렉토리 분리 </a>
