@@ -2,6 +2,7 @@ package com.v_payment.pay.product.scheduler;
 
 import com.v_payment.pay.product.config.ProductQuantityEventConsumerProperties;
 import com.v_payment.pay.product.service.ProductQuantityEventFacade;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,6 +14,7 @@ public class ProductQuantityEventScheduler {
     private final ProductQuantityEventFacade productQuantityEventFacade;
     private final ProductQuantityEventConsumerProperties properties;
 
+    @WithSpan("product.ProductQuantityEventScheduler.consume")
     @Scheduled(fixedDelay = 200)
     @SchedulerLock(
             name = "productQuantityEvent.consumeReady",
@@ -21,15 +23,5 @@ public class ProductQuantityEventScheduler {
     )
     public void consume() {
         productQuantityEventFacade.consumeReadyEvent(properties.batchSize());
-    }
-
-    @Scheduled(fixedDelay = 1000)
-    @SchedulerLock(
-            name = "productQuantityEvent.consumeRetry",
-            lockAtMostFor = "10s",
-            lockAtLeastFor = "1s"
-    )
-    public void consumeRetry() {
-        productQuantityEventFacade.consumeRetryEvent(properties.batchSize());
     }
 }
