@@ -87,7 +87,7 @@ class ProductManagerTest {
         // when & then
         assertThatThrownBy(() -> productManager.restore(requests))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Product stock restore failed. productId = 999");
+                .hasMessage("상품 재고 복구에 실패했습니다. productId = 999");
     }
 
     @DisplayName("상품 기본 정보를 조회한다")
