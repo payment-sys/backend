@@ -5,6 +5,7 @@ import com.v_payment.pay.order.domain.entity.OrderItemInfo;
 import com.v_payment.pay.order.domain.entity.OrderStatus;
 import com.v_payment.pay.order.repository.OrderItemRepository;
 import com.v_payment.pay.order.repository.OrderRepository;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -53,6 +54,7 @@ public class OrderManager {
         return markLackQuantity(orderCode);
     }
 
+    @WithSpan("order.OrderManager.markLackQuantities")
     public boolean markLackQuantities(Collection<String> orderCodes) {
         return markLackQuantity(orderCodes);
     }

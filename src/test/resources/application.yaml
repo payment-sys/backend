@@ -19,8 +19,6 @@ toss:
 
 payment:
   outbox:
-    limiter:
-      max-result-apply-tasks: 75
     recovery:
       fixed-delay-ms: 30000
       stale-after-seconds: 60

@@ -33,24 +33,24 @@ public class OrderItemInfo {
     }
 
     private Long validateProductId(Long productId) {
-        if (productId == null) throw new IllegalArgumentException("productId null일 수 없습니다!");
+        if (productId == null) throw new IllegalArgumentException("productId는 필수입니다.");
         return productId;
     }
 
     private String validateProductName(String productName) {
-        if (productName == null || productName.isBlank()) throw new IllegalArgumentException("productName은 필수입니다!");
+        if (productName == null || productName.isBlank()) throw new IllegalArgumentException("productName은 필수입니다.");
         return productName;
     }
 
     private Long validateUnitPrice(Long unitPrice) {
-        if (unitPrice == null) throw new IllegalArgumentException("unitPrice null일 수 없습니다!");
-        if (unitPrice < 0) throw new IllegalArgumentException("unitPrice는 음수일 수 없습니다!");
+        if (unitPrice == null) throw new IllegalArgumentException("unitPrice는 필수입니다.");
+        if (unitPrice < 0) throw new IllegalArgumentException("unitPrice는 음수일 수 없습니다.");
         return unitPrice;
     }
 
     private Integer validateQuantity(Integer quantity) {
-        if (quantity == null) throw new IllegalArgumentException("quantity는 null일 수 없습니다!");
-        if (quantity <= 0) throw new IllegalArgumentException("quantity는 0이거나 음수일 수 없습니다!");
+        if (quantity == null) throw new IllegalArgumentException("quantity는 필수입니다.");
+        if (quantity <= 0) throw new IllegalArgumentException("quantity는 0보다 커야 합니다.");
         return quantity;
     }
 }

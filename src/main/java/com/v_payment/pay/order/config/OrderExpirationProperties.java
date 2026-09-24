@@ -23,13 +23,13 @@ public record OrderExpirationProperties(
             batchSize = DEFAULT_BATCH_SIZE;
         }
         if (fixedDelayMs < 1) {
-            throw new IllegalArgumentException("order.expiration.fixed-delay-ms must be greater than 0");
+            throw new IllegalArgumentException("order.expiration.fixed-delay-ms는 0보다 커야 합니다.");
         }
         if (expireAfterSeconds < 1) {
-            throw new IllegalArgumentException("order.expiration.expire-after-seconds must be greater than 0");
+            throw new IllegalArgumentException("order.expiration.expire-after-seconds는 0보다 커야 합니다.");
         }
         if (batchSize < 1) {
-            throw new IllegalArgumentException("order.expiration.batch-size must be greater than 0");
+            throw new IllegalArgumentException("order.expiration.batch-size는 0보다 커야 합니다.");
         }
     }
 }

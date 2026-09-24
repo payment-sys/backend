@@ -6,6 +6,7 @@ import com.v_payment.pay.product.domain.entity.ProductQuantityEvent;
 import com.v_payment.pay.product.domain.entity.ProductQuantityEventPayload;
 import com.v_payment.pay.product.repository.ProductQuantityEventRepository;
 import com.v_payment.pay.product.repository.ProductRepository;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,7 @@ public class ProductManager {
     private final ProductRepository productRepository;
     private final ProductQuantityEventRepository productQuantityEventRepository;
 
+    @WithSpan("product.ProductManager.createProductQuantityEvent")
     public void createProductQuantityEvent(String orderCode, ProductQuantityEventPayload payload) {
         ProductQuantityEvent productQuantityEvent = ProductQuantityEvent.of(orderCode, payload, clock);
 
@@ -47,11 +49,12 @@ public class ProductManager {
         restoreQuantities.forEach((productId, quantity) -> {
             int updatedRows = productRepository.changeStock(productId, quantity);
             if (updatedRows != 1) {
-                throw new IllegalStateException("Product stock restore failed. productId = " + productId);
+                throw new IllegalStateException("상품 재고 복구에 실패했습니다. productId = " + productId);
             }
         });
     }
 
+    @WithSpan("product.ProductManager.findProductBasicInfos")
     public List<ProductBasicInfo> findProductBasicInfos(List<Long> productIds) {
         return productRepository.findProductBasicInfos(productIds);
     }
