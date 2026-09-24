@@ -40,7 +40,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
 	implementation 'com.github.ben-manes.caffeine:caffeine'
 	implementation 'org.springframework:spring-aop'
-	implementation 'org.springframework.retry:spring-retry:2.0.12'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'io.micrometer:micrometer-registry-prometheus'
 	implementation 'io.micrometer:micrometer-java21'
