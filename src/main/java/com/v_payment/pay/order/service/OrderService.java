@@ -12,6 +12,7 @@ import com.v_payment.pay.payment.domain.entity.PaymentMethod;
 import com.v_payment.pay.product.domain.ProductBasicInfo;
 import com.v_payment.pay.product.domain.entity.ProductQuantityEventPayload;
 import com.v_payment.pay.product.service.ProductManager;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductManager productManager;
 
+    @WithSpan("order.OrderService.create")
     @Transactional
     public OrderCreateRes create(OrderCreateReq req) {
         String orderCode = UUID.randomUUID().toString();
