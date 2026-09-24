@@ -3,6 +3,7 @@ package com.v_payment.pay.order.controller;
 import com.v_payment.pay.order.controller.dto.req.OrderCreateReq;
 import com.v_payment.pay.order.controller.dto.res.OrderCreateRes;
 import com.v_payment.pay.order.service.OrderService;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
