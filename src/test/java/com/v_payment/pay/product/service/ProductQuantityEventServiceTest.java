@@ -44,7 +44,7 @@ class ProductQuantityEventServiceTest {
     @Autowired
     PaymentRepository paymentRepository;
 
-    @DisplayName("READY 이벤트를 소비하면 재고를 차감하고 결제 대기 데이터를 생성한다")
+    @DisplayName("Consuming a READY event decreases stock and creates a READY payment")
     @Test
     void consumeReadyEventWithSuccessEvent() {
         // given
@@ -70,7 +70,7 @@ class ProductQuantityEventServiceTest {
         assertThat(payment.getPaymentStatus()).isEqualTo(PaymentStatus.READY);
     }
 
-    @DisplayName("재고가 부족한 READY 이벤트는 주문 실패로 처리하고 결제를 생성하지 않는다")
+    @DisplayName("A READY event with insufficient stock marks order as LACK_QUANTITY")
     @Test
     void consumeReadyEventWithFailureEvent() {
         // given
@@ -89,7 +89,7 @@ class ProductQuantityEventServiceTest {
         assertThat(paymentRepository.findAll()).isEmpty();
     }
 
-    @DisplayName("같은 상품을 요청한 READY 이벤트들은 앞선 차감 수량을 반영해서 성공 여부를 판단한다")
+    @DisplayName("Events for the same product are planned in event order")
     @Test
     void consumeReadyEventWithAccumulatedDecrease() {
         // given
@@ -113,7 +113,7 @@ class ProductQuantityEventServiceTest {
                 .containsExactly("ORDER-001");
     }
 
-    @DisplayName("batchSize 만큼 READY 이벤트를 소비한다")
+    @DisplayName("Only batchSize READY events are consumed")
     @Test
     void consumeReadyEventWithBatchSize() {
         // given
@@ -133,28 +133,6 @@ class ProductQuantityEventServiceTest {
                 .containsExactly("ORDER-001");
     }
 
-    @DisplayName("재시도 시간이 지난 RETRY 이벤트만 소비한다")
-    @Test
-    void consumeRetryEvent() {
-        // given
-        Product product = saveProduct("product-A", 10_000L, 10);
-        ProductQuantityEvent retryable = saveRetryEvent("ORDER-001", Map.of(product.getId(), 2),
-                CREATED_AT.minusMinutes(1));
-        ProductQuantityEvent notYetRetryable = saveRetryEvent("ORDER-002", Map.of(product.getId(), 2),
-                LocalDateTime.now().plusMinutes(10));
-
-        // when
-        productQuantityEventService.consumeRetryEvent(10);
-
-        // then
-        assertThat(stockQuantityOf(product)).isEqualTo(8);
-        assertThat(statusOf(retryable)).isEqualTo(ProductQuantityEventStatus.CONSUMED);
-        assertThat(statusOf(notYetRetryable)).isEqualTo(ProductQuantityEventStatus.RETRY);
-        assertThat(paymentRepository.findAll())
-                .extracting(Payment::getOrderCode)
-                .containsExactly("ORDER-001");
-    }
-
     private Product saveProduct(String name, Long price, Integer stockQuantity) {
         return productRepository.save(Product.create(name, price, stockQuantity));
     }
@@ -164,42 +142,13 @@ class ProductQuantityEventServiceTest {
     }
 
     private ProductQuantityEvent saveReadyEvent(String orderCode, Map<Long, Integer> requestedQuantities) {
-        return productQuantityEventRepository.save(event(
-                orderCode,
-                ProductQuantityEventStatus.READY,
-                null,
-                requestedQuantities
-        ));
-    }
-
-    private ProductQuantityEvent saveRetryEvent(
-            String orderCode,
-            Map<Long, Integer> requestedQuantities,
-            LocalDateTime nextAttemptTime
-    ) {
-        return productQuantityEventRepository.save(event(
-                orderCode,
-                ProductQuantityEventStatus.RETRY,
-                nextAttemptTime,
-                requestedQuantities
-        ));
-    }
-
-    private ProductQuantityEvent event(
-            String orderCode,
-            ProductQuantityEventStatus status,
-            LocalDateTime nextAttemptTime,
-            Map<Long, Integer> requestedQuantities
-    ) {
-        return new ProductQuantityEvent(
+        return productQuantityEventRepository.save(new ProductQuantityEvent(
                 orderCode,
                 ProductQuantityEventPayload.of(orderCode, PaymentMethod.CARD, requestedQuantities),
-                status,
-                0,
-                nextAttemptTime,
+                ProductQuantityEventStatus.READY,
                 CREATED_AT,
                 null
-        );
+        ));
     }
 
     private Integer stockQuantityOf(Product product) {
