@@ -41,8 +41,6 @@ class ProductQuantityEventTest {
         assertThat(event.getOrderCode()).isEqualTo(orderCode);
         assertThat(event.getPayload()).isSameAs(payload);
         assertThat(event.getProductQuantityEventStatus()).isEqualTo(ProductQuantityEventStatus.READY);
-        assertThat(event.getRetryCount()).isZero();
-        assertThat(event.getNextAttemptTime()).isNull();
         assertThat(event.getCreatedAt()).isEqualTo(CREATED_AT);
         assertThat(event.getUpdatedAt()).isNull();
     }
@@ -78,45 +76,11 @@ class ProductQuantityEventTest {
                 "ORDER-001",
                 payload(),
                 null,
-                0,
-                null,
                 CREATED_AT,
                 null
         ))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("productQuantityEventStatus는 필수입니다.");
-    }
-
-    @DisplayName("retryCount는 필수다")
-    @Test
-    void createWithNullRetryCount() {
-        assertThatThrownBy(() -> new ProductQuantityEvent(
-                "ORDER-001",
-                payload(),
-                ProductQuantityEventStatus.READY,
-                null,
-                null,
-                CREATED_AT,
-                null
-        ))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("retryCount는 필수입니다.");
-    }
-
-    @DisplayName("retryCount는 음수일 수 없다")
-    @Test
-    void createWithNegativeRetryCount() {
-        assertThatThrownBy(() -> new ProductQuantityEvent(
-                "ORDER-001",
-                payload(),
-                ProductQuantityEventStatus.READY,
-                -1,
-                null,
-                CREATED_AT,
-                null
-        ))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("retryCount는 음수일 수 없습니다.");
     }
 
     @DisplayName("createdAt은 필수다")
@@ -126,8 +90,6 @@ class ProductQuantityEventTest {
                 "ORDER-001",
                 payload(),
                 ProductQuantityEventStatus.READY,
-                0,
-                null,
                 null,
                 null
         ))
@@ -140,8 +102,6 @@ class ProductQuantityEventTest {
                 orderCode,
                 payload,
                 ProductQuantityEventStatus.READY,
-                0,
-                null,
                 CREATED_AT,
                 null
         );
