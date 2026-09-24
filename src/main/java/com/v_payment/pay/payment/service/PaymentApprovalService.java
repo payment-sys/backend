@@ -31,15 +31,24 @@ public class PaymentApprovalService {
 
     @Transactional
     public PaymentPayload validateApprovalReq(ApprovalReq approvalReq) {
-        Payment payment = paymentRepository.findByIdempotencyKey(approvalReq.idempotencyKey())
+        Payment payment = paymentRepository
+                .findFirstByOrderCodeAndPaymentStatusOrderByIdDesc(approvalReq.orderCode(), PaymentStatus.READY)
                 .orElseThrow(() -> new BusinessException(PAYMENT_NOT_FOUND));
 
-        if (!payment.isReady()) throw new BusinessException(PAYMENT_INVALID);
         if (!payment.isSameRequestedAmount(approvalReq.requestedAmount())) throw new BusinessException(PAYMENT_INVALID);
         if (!payment.isSameProvider(approvalReq.provider())) throw new BusinessException(PAYMENT_INVALID);
         if (!payment.isSamePaymentMethod(approvalReq.method())) throw new BusinessException(PAYMENT_INVALID);
 
-        payment.markInProgress(approvalReq.paymentKey());
+        int updatedRows = paymentRepository.markInProgress(
+                payment.getIdempotencyKey(),
+                approvalReq.paymentKey(),
+                approvalReq.requestedAmount(),
+                approvalReq.provider(),
+                approvalReq.method(),
+                PaymentStatus.READY,
+                PaymentStatus.IN_PROGRESS
+        );
+        if (updatedRows != 1) throw new BusinessException(PAYMENT_NOT_FOUND);
 
         return PaymentPayload.create(payment.getOrderCode(), payment.getIdempotencyKey(), approvalReq.paymentKey(),
                 approvalReq.requestedAmount());
