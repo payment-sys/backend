@@ -18,6 +18,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, Payment
 
     Optional<Payment> findByIdempotencyKey(String idempotencyKey);
 
+    Optional<Payment> findFirstByOrderCodeAndPaymentStatusOrderByIdDesc(String orderCode, PaymentStatus paymentStatus);
+
     List<Payment> findAllByOrderCode(String orderCode);
 
     @Query("""
