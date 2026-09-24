@@ -65,8 +65,6 @@ class ProductQuantityEventsTest {
                 orderCode,
                 ProductQuantityEventPayload.of(orderCode, PaymentMethod.CARD, requestedQuantities),
                 ProductQuantityEventStatus.READY,
-                0,
-                null,
                 CREATED_AT,
                 null
         );
