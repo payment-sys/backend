@@ -120,7 +120,6 @@
 
 ### 복구와 일관성
 
-- 이벤트 소비 실패 시 `RETRY` 상태로 변경하고, `nextAttemptTime` 이후 재시도한다.
 - 미완료 결제는 webhook과 recovery scheduler로 PG 상태를 재조회해 보정한다.
 - 중복 승인 요청이나 중복 webhook에도 결제 상태가 일관되게 유지되도록 처리했다.
 
