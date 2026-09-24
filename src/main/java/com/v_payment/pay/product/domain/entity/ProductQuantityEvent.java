@@ -18,9 +18,7 @@ import java.util.function.BiPredicate;
         name = "product_quantity_event",
         indexes = {
                 @Index(name = "idx_pqe_status_id",
-                        columnList = "status, product_quantity_event_id"),
-                @Index(name = "idx_product_quantity_event_status_next_attempt_id",
-                        columnList = "status, next_attempt_time, product_quantity_event_id")
+                        columnList = "status, product_quantity_event_id")
         }
 )
 public class ProductQuantityEvent {
@@ -40,10 +38,6 @@ public class ProductQuantityEvent {
     @Column(name = "status", nullable = false)
     private ProductQuantityEventStatus productQuantityEventStatus;
 
-    private Integer retryCount;
-
-    private LocalDateTime nextAttemptTime;
-
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
@@ -51,28 +45,24 @@ public class ProductQuantityEvent {
     public ProductQuantityEvent(String orderCode,
                                 ProductQuantityEventPayload payload,
                                 ProductQuantityEventStatus productQuantityEventStatus,
-                                Integer retryCount,
-                                LocalDateTime nextAttemptTime,
                                 LocalDateTime createdAt,
                                 LocalDateTime updatedAt) {
         this.orderCode = validateOrderCode(orderCode);
         this.payload = validatePayload(payload);
         this.productQuantityEventStatus = validateProductQuantityEventStatus(productQuantityEventStatus);
-        this.retryCount = validateRetryCount(retryCount);
-        this.nextAttemptTime = nextAttemptTime;
         this.createdAt = validateCreatedAt(createdAt);
         this.updatedAt = updatedAt;
     }
 
     public boolean canMatchCondition(BiPredicate<Long, Integer> condition) {
-        for(Map.Entry<Long, Integer> requestedProduct : payload.getRequestedQuantities().entrySet()) {
-            if(!condition.test(requestedProduct.getKey(), requestedProduct.getValue())) return false;
+        for (Map.Entry<Long, Integer> requestedProduct : payload.getRequestedQuantities().entrySet()) {
+            if (!condition.test(requestedProduct.getKey(), requestedProduct.getValue())) return false;
         }
         return true;
     }
 
     public static ProductQuantityEvent of(String orderCode, ProductQuantityEventPayload payload, Clock clock) {
-        return new ProductQuantityEvent(orderCode, payload, ProductQuantityEventStatus.READY, 0, null,
+        return new ProductQuantityEvent(orderCode, payload, ProductQuantityEventStatus.READY,
                 LocalDateTime.now(clock), null);
     }
 
@@ -93,12 +83,6 @@ public class ProductQuantityEvent {
             throw new IllegalArgumentException("productQuantityEventStatus는 필수입니다.");
         }
         return productQuantityEventStatus;
-    }
-
-    private Integer validateRetryCount(Integer retryCount) {
-        if (retryCount == null) throw new IllegalArgumentException("retryCount는 필수입니다.");
-        if (retryCount < 0) throw new IllegalArgumentException("retryCount는 음수일 수 없습니다.");
-        return retryCount;
     }
 
     private LocalDateTime validateCreatedAt(LocalDateTime createdAt) {
