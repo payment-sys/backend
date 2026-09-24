@@ -3,6 +3,7 @@ package com.v_payment.pay.payment.service;
 import com.v_payment.pay.payment.domain.entity.Payment;
 import com.v_payment.pay.payment.domain.entity.PaymentMethod;
 import com.v_payment.pay.payment.repository.PaymentRepository;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ public class PaymentManager {
     private final Clock clock;
     private final PaymentRepository paymentRepository;
 
+    @WithSpan("payment.PaymentManager.createPendingPayments")
     public void createPendingPayments(Collection<PendingPaymentCreateRequest> requests) {
         if (requests.isEmpty()) return;
 
