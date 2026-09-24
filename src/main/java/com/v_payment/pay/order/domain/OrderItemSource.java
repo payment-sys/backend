@@ -37,7 +37,7 @@ public class OrderItemSource {
     }
 
     private int validateQuantity(int quantity) {
-        if (quantity < 0) throw new IllegalArgumentException("주문 수량은 음수일 수 없습니다..");
+        if (quantity < 0) throw new IllegalArgumentException("주문 수량은 음수일 수 없습니다.");
         return quantity;
     }
 }

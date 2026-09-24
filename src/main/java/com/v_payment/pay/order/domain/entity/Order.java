@@ -54,23 +54,23 @@ public class Order {
     }
 
     private String validateOrderCode(String orderCode) {
-        if (orderCode == null || orderCode.isBlank()) throw new IllegalArgumentException("orderCode는 필수입니다!");
+        if (orderCode == null || orderCode.isBlank()) throw new IllegalArgumentException("orderCode는 필수입니다.");
         return orderCode;
     }
 
     private Long validateTotalAmount(Long totalAmount) {
-        if (totalAmount == null) throw new IllegalArgumentException("totalAmount는 필수입니다!");
+        if (totalAmount == null) throw new IllegalArgumentException("totalAmount는 필수입니다.");
         if (totalAmount < 0) throw new IllegalArgumentException("총 가격은 음수일 수 없습니다.");
         return totalAmount;
     }
 
     private OrderStatus validateStatus(OrderStatus status) {
-        if (status == null) throw new IllegalArgumentException("주문 상태는 필수입니다!");
+        if (status == null) throw new IllegalArgumentException("주문 상태는 필수입니다.");
         return status;
     }
 
     private LocalDateTime validateOrderedAt(LocalDateTime orderedAt) {
-        if (orderedAt == null) throw new IllegalArgumentException("orderedAt는 필수입니다!");
+        if (orderedAt == null) throw new IllegalArgumentException("orderedAt은 필수입니다.");
         return orderedAt;
     }
 }
