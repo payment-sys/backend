@@ -13,7 +13,7 @@ public class ProductSnapShot {
 
     void decrease(int quantity) {
         if (!canDecrease(quantity)) {
-            throw new IllegalArgumentException("재고가 부족합니다!");
+            throw new IllegalArgumentException("재고가 부족합니다.");
         }
         this.remainQuantity -= quantity;
     }
