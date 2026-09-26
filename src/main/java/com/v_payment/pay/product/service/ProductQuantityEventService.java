@@ -12,6 +12,9 @@ import com.v_payment.pay.product.domain.entity.ProductQuantityEventPayload;
 import com.v_payment.pay.product.domain.entity.ProductQuantityEventStatus;
 import com.v_payment.pay.product.repository.ProductQuantityEventRepository;
 import com.v_payment.pay.product.repository.ProductRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,19 +28,44 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ProductQuantityEventService {
     private final Clock clock;
+    private final MeterRegistry meterRegistry;
     private final OrderManager orderManager;
     private final PaymentManager paymentManager;
     private final ProductManager productManager;
     private final ProductRepository productRepository;
     private final ProductQuantityEventRepository productQuantityEventRepository;
+    private Counter fetchedCounter;
+    private Counter emptyPollCounter;
+    private Counter consumedCounter;
+    private Counter lackCounter;
+
+    @PostConstruct
+    void registerMetrics() {
+        fetchedCounter = Counter.builder("pay.scheduler.product_quantity_event.fetched")
+                .description("Fetched READY product quantity events")
+                .register(meterRegistry);
+        emptyPollCounter = Counter.builder("pay.scheduler.product_quantity_event.empty")
+                .description("Product quantity event scheduler polls with no READY events")
+                .register(meterRegistry);
+        consumedCounter = Counter.builder("pay.scheduler.product_quantity_event.consumed")
+                .description("Consumed product quantity events")
+                .register(meterRegistry);
+        lackCounter = Counter.builder("pay.scheduler.product_quantity_event.lack")
+                .description("Product quantity events rejected because of insufficient stock")
+                .register(meterRegistry);
+    }
 
     @Transactional
     public void consumeReadyEvent(int batchSize) {
         List<ProductQuantityEvent> readyProductQuantityEvents = productQuantityEventRepository
                 .findReadyProductQuantityEvents(ProductQuantityEventStatus.READY.toString(), batchSize);
+        fetchedCounter.increment(readyProductQuantityEvents.size());
 
         ProductQuantityEvents productQuantityEvents = ProductQuantityEvents.from(readyProductQuantityEvents);
-        if (productQuantityEvents.isEmptyEvent()) return;
+        if (productQuantityEvents.isEmptyEvent()) {
+            emptyPollCounter.increment();
+            return;
+        }
 
         Map<Long, Product> products = productManager.findProductsMapForUpdate(
                 productQuantityEvents.getProductIdsDistinct());
@@ -54,6 +82,7 @@ public class ProductQuantityEventService {
 
         productQuantityEventRepository.updateStatusByIds(productQuantityEvents.getIds(),
                 ProductQuantityEventStatus.CONSUMED, LocalDateTime.now(clock));
+        consumedCounter.increment(productQuantityEvents.getIds().size());
     }
 
     private QuantityDecreasePlan makePlan(Map<Long, Product> products, ProductQuantityEvents productQuantityEvents) {
@@ -65,6 +94,7 @@ public class ProductQuantityEventService {
 
     private void markLackQuantities(QuantityDecreasePlan quantityDecreasePlan) {
         if (!quantityDecreasePlan.hasFailOrder()) return;
+        lackCounter.increment(quantityDecreasePlan.getFailOrderCodes().size());
         boolean failUpdated = orderManager.markLackQuantities(quantityDecreasePlan.getFailOrderCodes());
 
         if (!failUpdated) {
