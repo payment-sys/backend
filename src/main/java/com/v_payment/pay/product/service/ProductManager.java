@@ -6,7 +6,10 @@ import com.v_payment.pay.product.domain.entity.ProductQuantityEvent;
 import com.v_payment.pay.product.domain.entity.ProductQuantityEventPayload;
 import com.v_payment.pay.product.repository.ProductQuantityEventRepository;
 import com.v_payment.pay.product.repository.ProductRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,14 +26,24 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductManager {
     private final Clock clock;
+    private final MeterRegistry meterRegistry;
     private final ProductRepository productRepository;
     private final ProductQuantityEventRepository productQuantityEventRepository;
+    private Counter productQuantityEventCreatedCounter;
+
+    @PostConstruct
+    void registerMetrics() {
+        productQuantityEventCreatedCounter = Counter.builder("pay.scheduler.product_quantity_event.created")
+                .description("Created product quantity events")
+                .register(meterRegistry);
+    }
 
     @WithSpan("product.ProductManager.createProductQuantityEvent")
     public void createProductQuantityEvent(String orderCode, ProductQuantityEventPayload payload) {
         ProductQuantityEvent productQuantityEvent = ProductQuantityEvent.of(orderCode, payload, clock);
 
         productQuantityEventRepository.save(productQuantityEvent);
+        productQuantityEventCreatedCounter.increment();
     }
 
     @Transactional
