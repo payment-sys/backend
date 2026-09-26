@@ -150,5 +150,3 @@
 # 9. 개선 방향
 
 <a href=https://github.com/payment-sys/backend/wiki/%EC%A3%BC%EB%AC%B8%EC%9D%98-%EB%AA%A9%ED%91%9C-%ED%8A%B8%EB%9E%98%ED%94%BD(RPS)%EA%B0%80-%EC%A6%9D%EA%B0%80%ED%95%A0-%EB%95%8C,-BackLog-%EC%A6%9D%EA%B0%80-%EB%AC%B8%EC%A0%9C-%EA%B0%9C%EC%84%A0-%EB%B0%A9%ED%96%A5> 1. 주문의 목표 트래픽(RPS)가 증가할 때, BackLog 증가 문제 개선 방향 </a>
-
-<a href=https://github.com/payment-sys/backend/wiki/DB-%EC%93%B0%EA%B8%B0-%EB%B6%80%ED%95%98-%EC%A6%9D%EA%B0%80%EC%99%80-binlog-%EB%94%94%EB%A0%89%ED%86%A0%EB%A6%AC-%EB%B6%84%EB%A6%AC> 2. DB 쓰기 부하 증가와 binlog 디렉토리 분리 </a>
