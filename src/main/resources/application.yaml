@@ -11,6 +11,16 @@ server:
 
 spring:
   threads:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      retries: 3
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${MYSQL_URL:jdbc:mysql://localhost:3306/payment}
@@ -57,9 +67,6 @@ payment:
     batch-size: 100
 
 product:
-  quantity-event:
-    consumer:
-      batch-size: 200
   cache:
     restore:
       fixed-delay-ms: 30000
@@ -71,6 +78,12 @@ order:
     fixed-delay-ms: 30000
     expire-after-seconds: 600
     batch-size: 100
+  quantity-changes:
+    producer:
+      topic: ${ORDER_QUANTITY_CHANGES_TOPIC:quantity-changes}
+    outbox-publish:
+      fixed-delay-ms: 30000
+      batch-size: 100
 
 management:
   server:
