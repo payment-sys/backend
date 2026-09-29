@@ -1,5 +1,6 @@
-package com.v_payment.pay.order.domain.entity;
+package com.v_payment.pay.order.domain.orderitem;
 
+import com.v_payment.pay.order.domain.order.Order;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

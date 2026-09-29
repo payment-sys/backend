@@ -1,5 +1,6 @@
-package com.v_payment.pay.order.domain;
+package com.v_payment.pay.order.domain.orderitem;
 
+import com.v_payment.pay.order.domain.ReqQuantities;
 import com.v_payment.pay.product.domain.ProductBasicInfo;
 
 import java.util.List;

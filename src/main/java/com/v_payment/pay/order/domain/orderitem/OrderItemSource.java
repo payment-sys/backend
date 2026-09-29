@@ -1,4 +1,4 @@
-package com.v_payment.pay.order.domain;
+package com.v_payment.pay.order.domain.orderitem;
 
 import lombok.Getter;
 

@@ -1,4 +1,4 @@
-package com.v_payment.pay.order.domain.entity;
+package com.v_payment.pay.order.domain.orderitem;
 
 import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
