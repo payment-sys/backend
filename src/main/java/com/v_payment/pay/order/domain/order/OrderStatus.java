@@ -1,5 +1,5 @@
 package com.v_payment.pay.order.domain.entity;
 
 public enum OrderStatus {
-    CREATED, LACK_QUANTITY, PAID, EXPIRED
+    CREATED, LACK_QUANTITY, PAID, EXPIRED, ORDER_SUCCESS
 }

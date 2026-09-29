@@ -1,15 +1,6 @@
 package com.v_payment.pay.order.domain.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -31,9 +22,13 @@ public class OrderItem {
     @Embedded
     private OrderItemInfo itemInfo;
 
-    private OrderItem(Order order, Long productId, String productName, Long unitPrice, Integer quantity) {
+    @Enumerated(EnumType.STRING)
+    private OrderItemStatus status;
+
+    private OrderItem(Order order, Long productId, String productName, Long unitPrice, Integer quantity, OrderItemStatus status) {
         this.order = order;
         this.itemInfo = OrderItemInfo.create(productId, productName, unitPrice, quantity);
+        this.status = status;
     }
 
     public Long getProductId() {
@@ -62,6 +57,6 @@ public class OrderItem {
     }
 
     public static OrderItem create(Order order, Long productId, String productName, Long unitPrice, Integer quantity) {
-        return new OrderItem(order, productId, productName, unitPrice, quantity);
+        return new OrderItem(order, productId, productName, unitPrice, quantity,  OrderItemStatus.PROCESSING);
     }
 }
