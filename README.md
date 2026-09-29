@@ -147,6 +147,8 @@
 | 결제 승인 p99 | 1500ms 이하 | 1089.3ms | 달성 |
 | 결제 승인 성공률 | 99.99% 이상 | 100% | 달성 |
 
-# 9. 개선 방향
+# 9. 개선 방향(09.25 ~ 진행 중)
 
 <a href=https://github.com/payment-sys/backend/wiki/%EC%A3%BC%EB%AC%B8%EC%9D%98-%EB%AA%A9%ED%91%9C-%ED%8A%B8%EB%9E%98%ED%94%BD(RPS)%EA%B0%80-%EC%A6%9D%EA%B0%80%ED%95%A0-%EB%95%8C,-BackLog-%EC%A6%9D%EA%B0%80-%EB%AC%B8%EC%A0%9C-%EA%B0%9C%EC%84%A0-%EB%B0%A9%ED%96%A5> 1. 주문의 목표 트래픽(RPS)가 증가할 때, BackLog 증가 문제 개선 방향 </a>
+
+<img width="726" height="818" alt="image" src="https://github.com/user-attachments/assets/8171b56d-6b3c-49e1-914c-ddb37c149761" />
