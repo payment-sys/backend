@@ -1,7 +1,7 @@
 package com.v_payment.pay.order.repository;
 
-import com.v_payment.pay.order.domain.entity.Order;
-import com.v_payment.pay.order.domain.entity.OrderStatus;
+import com.v_payment.pay.order.domain.order.Order;
+import com.v_payment.pay.order.domain.order.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

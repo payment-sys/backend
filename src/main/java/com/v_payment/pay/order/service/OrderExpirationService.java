@@ -1,7 +1,7 @@
 package com.v_payment.pay.order.service;
 
 import com.v_payment.pay.order.config.OrderExpirationProperties;
-import com.v_payment.pay.order.domain.entity.OrderStatus;
+import com.v_payment.pay.order.domain.order.OrderStatus;
 import com.v_payment.pay.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
