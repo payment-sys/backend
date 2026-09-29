@@ -3,16 +3,17 @@ package com.v_payment.pay.order.service;
 import com.v_payment.pay.global.exception.BusinessException;
 import com.v_payment.pay.order.controller.dto.req.OrderCreateReq;
 import com.v_payment.pay.order.controller.dto.res.OrderCreateRes;
-import com.v_payment.pay.order.domain.OrderItemSources;
+import com.v_payment.pay.order.domain.orderitem.OrderItemSources;
 import com.v_payment.pay.order.domain.ReqQuantities;
-import com.v_payment.pay.order.domain.entity.Order;
+import com.v_payment.pay.order.domain.order.Order;
+import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;
 import com.v_payment.pay.order.exception.OrderException;
 import com.v_payment.pay.order.repository.OrderRepository;
-import com.v_payment.pay.payment.domain.entity.PaymentMethod;
+import com.v_payment.pay.order.repository.QuantityChangeOutboxRepository;
 import com.v_payment.pay.product.domain.ProductBasicInfo;
-import com.v_payment.pay.product.domain.entity.ProductQuantityEventPayload;
 import com.v_payment.pay.product.service.ProductManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,17 +27,23 @@ import java.util.UUID;
 public class OrderService {
     private final Clock clock;
     private final OrderRepository orderRepository;
+    private final QuantityChangeOutboxRepository quantityChangeOutboxRepository;
     private final ProductManager productManager;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public OrderCreateRes create(OrderCreateReq req) {
         String orderCode = UUID.randomUUID().toString();
 
-        ReqQuantities reqQuantities = ReqQuantities.from(req.items());
+        ReqQuantities reqQuantities = ReqQuantities.of(orderCode, req.items());
 
         createOrder(orderCode, reqQuantities);
 
-        sendProductQuantityEventPayload(orderCode, req.paymentMethod(), reqQuantities);
+        QuantityChangeOutbox quantityChangeOutbox = QuantityChangeOutbox.of(reqQuantities, clock);
+
+        quantityChangeOutboxRepository.save(quantityChangeOutbox);
+
+        eventPublisher.publishEvent(quantityChangeOutbox);
 
         return OrderCreateRes.from(orderCode);
     }
@@ -56,10 +63,5 @@ public class OrderService {
             throw new BusinessException(OrderException.ORDER_ITEM_NOT_FOUND);
 
         return orderItemSources;
-    }
-
-    private void sendProductQuantityEventPayload(String orderCode, PaymentMethod paymentMethod, ReqQuantities reqQuantities) {
-        ProductQuantityEventPayload payload = ProductQuantityEventPayload.of(orderCode, paymentMethod, reqQuantities.getQuantityMap());
-        productManager.createProductQuantityEvent(orderCode, payload);
     }
 }
