@@ -72,6 +72,16 @@ product:
       fixed-delay-ms: 30000
     wal:
       path: ${PRODUCT_RESERVATION_WAL_PATH:./data/product-reservation.wal}
+  kafka:
+    producers:
+      quantity-change:
+        topic: ${KAFKA_TOPIC_QUANTITY_CHANGE:quantity-changes}
+      quantity-change-result:
+        topic: ${KAFKA_TOPIC_QUANTITY_CHANGE_RESULT:quantity-change-results}
+    consumers:
+      quantity-change:
+        topic: ${KAFKA_TOPIC_QUANTITY_CHANGE:quantity-changes}
+        group-id: ${KAFKA_GROUP_ID_QUANTITY_CHANGE:payment-product}
 
 order:
   expiration:
