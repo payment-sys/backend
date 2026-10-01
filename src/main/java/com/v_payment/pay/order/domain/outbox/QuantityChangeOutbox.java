@@ -2,6 +2,7 @@ package com.v_payment.pay.order.domain.outbox;
 
 import com.v_payment.pay.order.domain.ReqQuantities;
 import com.v_payment.pay.order.domain.ReqQuantity;
+import com.v_payment.pay.order.infra.dto.QuantityChangeMessage;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -95,6 +96,18 @@ public class QuantityChangeOutbox {
             results.add(publishResult);
         }
         return results;
+    }
+
+    public List<QuantityChangeMessage> getQuantityChangeMessages() {
+        return reqQuantities.getQuantityMap()
+                .entrySet()
+                .stream()
+                .map(entry -> new QuantityChangeMessage(
+                        orderCode,
+                        entry.getKey(),
+                        entry.getValue()
+                ))
+                .toList();
     }
 
     public void markDone(LocalDateTime updatedAt) {
