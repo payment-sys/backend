@@ -1,8 +1,8 @@
 package com.v_payment.pay.order.service;
 
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;
-import com.v_payment.pay.order.infra.QuantityChangeProducer;
-import com.v_payment.pay.order.infra.dto.QuantityChangeMessage;
+import com.v_payment.pay.order.infra.kafka.QuantityChangeProducer;
+import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

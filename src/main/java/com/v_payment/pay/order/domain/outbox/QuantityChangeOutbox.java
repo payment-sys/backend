@@ -2,7 +2,7 @@ package com.v_payment.pay.order.domain.outbox;
 
 import com.v_payment.pay.order.domain.ReqQuantities;
 import com.v_payment.pay.order.domain.ReqQuantity;
-import com.v_payment.pay.order.infra.dto.QuantityChangeMessage;
+import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeMessage;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
