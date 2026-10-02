@@ -66,7 +66,6 @@ polling
 비동기 HTTP로 바꾸면 복잡도는 올라간다.
 
 - timeout 처리
-- 실패 재시도
 - callback 예외 처리
 - 결과 반영 backpressure
 - 종료 시 in-flight future 정리

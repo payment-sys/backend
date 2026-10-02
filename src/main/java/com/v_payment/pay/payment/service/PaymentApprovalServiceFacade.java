@@ -26,23 +26,10 @@ public class PaymentApprovalServiceFacade {
     }
 
     private ApprovalRes approvePipelineInternal(ApprovalReq approvalReq) {
-        PaymentPayload paymentPayload = validatePaymentPayload(approvalReq);
-        Result result = approve(paymentPayload);
-        return finalize(result);
-    }
+        PaymentPayload paymentPayload = paymentApprovalService.validateApprovalReq(approvalReq);
 
-    @WithSpan("payment.service.validate_payment_payload")
-    private PaymentPayload validatePaymentPayload(ApprovalReq approvalReq) {
-        return paymentApprovalService.validateApprovalReq(approvalReq);
-    }
+        Result result = tossPayment.approve(paymentPayload);
 
-    @WithSpan("payment.service.approve")
-    private Result approve(PaymentPayload paymentPayload) {
-        return tossPayment.approve(paymentPayload);
-    }
-
-    @WithSpan("payment.service.finalize_payment_payload")
-    private ApprovalRes finalize(Result result) {
         return paymentApprovalService.finalizePaymentPayload(result);
     }
 }

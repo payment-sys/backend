@@ -86,12 +86,6 @@ public class MeterFilter implements io.micrometer.core.instrument.config.MeterFi
         if (name.equals("virtual_thread_limiter_waiting")) {
             return buckets(config, 1, 10, 30, 50, 100, 200, 300);
         }
-        if (name.equals("result_apply_limiter_running")) {
-            return buckets(config, 1, 3, 6, 8);
-        }
-        if (name.equals("result_apply_limiter_waiting")) {
-            return buckets(config, 1, 5, 10, 25, 50, 100, 200);
-        }
         return config;
     }
 
@@ -103,11 +97,11 @@ public class MeterFilter implements io.micrometer.core.instrument.config.MeterFi
                 || name.equals("pay.api.requests.duration")
                 || name.equals("pay.external.requests.duration")
                 || name.equals("pay.payment.approval.stage.duration")
+                || name.startsWith("pay.scheduler")
                 || name.startsWith("hikaricp.connections")
                 || name.startsWith("tomcat.threads")
                 || name.startsWith("tomcat.connections")
                 || name.startsWith("virtual_thread")
-                || name.startsWith("result_apply")
                 || name.equals("jvm.memory.used")
                 || name.equals("jvm.memory.committed")
                 || name.equals("jvm.gc.pause")

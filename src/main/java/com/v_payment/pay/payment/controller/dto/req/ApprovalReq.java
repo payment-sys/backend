@@ -7,8 +7,8 @@ import com.v_payment.pay.payment.domain.entity.Provider;
 
 public record ApprovalReq(
         PaymentMethod method,
-        @JsonAlias("orderId")
-        String idempotencyKey,
+        @JsonAlias({"orderId", "idempotencyKey"})
+        String orderCode,
         String paymentKey,
         @JsonAlias("amount")
         Long requestedAmount,

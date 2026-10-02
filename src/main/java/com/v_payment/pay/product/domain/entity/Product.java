@@ -47,13 +47,13 @@ public class Product {
     }
 
     private Long validatePrice(Long price) {
-        if (price == null) throw new IllegalArgumentException("price는 null일 수 없습니다.");
+        if (price == null) throw new IllegalArgumentException("price는 필수입니다.");
         if (price < 0) throw new IllegalArgumentException("price는 음수일 수 없습니다.");
         return price;
     }
 
     private Integer validateStockQuantity(Integer stockQuantity) {
-        if (stockQuantity == null) throw new IllegalArgumentException("stockQuantity는 필수 입니다.");
+        if (stockQuantity == null) throw new IllegalArgumentException("stockQuantity는 필수입니다.");
         if (stockQuantity < 0) throw new IllegalArgumentException("stockQuantity는 음수일 수 없습니다.");
         return stockQuantity;
     }
