@@ -2,6 +2,7 @@ package com.v_payment.pay.order.domain.order;
 
 import com.v_payment.pay.order.domain.orderitem.OrderItemSources;
 import com.v_payment.pay.order.domain.orderitem.OrderItem;
+import com.v_payment.pay.payment.domain.entity.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -29,15 +30,20 @@ public class Order {
 
     private Long totalAmount;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentMethod paymentMethod;
+
     private LocalDateTime orderedAt;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    private Order(String orderCode, OrderStatus status, Long totalAmount, LocalDateTime orderedAt) {
+    private Order(String orderCode, OrderStatus status, Long totalAmount, PaymentMethod paymentMethod, LocalDateTime orderedAt) {
         this.orderCode = validateOrderCode(orderCode);
         this.status = validateStatus(status);
         this.totalAmount = validateTotalAmount(totalAmount);
+        this.paymentMethod = validatePaymentMethod(paymentMethod);
         this.orderedAt = validateOrderedAt(orderedAt);
     }
 
@@ -50,8 +56,12 @@ public class Order {
         });
     }
 
+    public static Order create(String orderCode, PaymentMethod paymentMethod, LocalDateTime orderedAt) {
+        return new Order(orderCode, OrderStatus.CREATED, 0L, paymentMethod, orderedAt);
+    }
+
     public static Order create(String orderCode, LocalDateTime orderedAt) {
-        return new Order(orderCode, OrderStatus.CREATED, 0L, orderedAt);
+        return create(orderCode, PaymentMethod.CARD, orderedAt);
     }
 
     private String validateOrderCode(String orderCode) {
@@ -68,6 +78,11 @@ public class Order {
     private OrderStatus validateStatus(OrderStatus status) {
         if (status == null) throw new IllegalArgumentException("주문 상태는 필수입니다!");
         return status;
+    }
+
+    private PaymentMethod validatePaymentMethod(PaymentMethod paymentMethod) {
+        if (paymentMethod == null) throw new IllegalArgumentException("paymentMethod is required.");
+        return paymentMethod;
     }
 
     private LocalDateTime validateOrderedAt(LocalDateTime orderedAt) {
