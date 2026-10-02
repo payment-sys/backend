@@ -33,6 +33,15 @@ payment:
       batch-size: 100
 
 product:
+  quantity-change-results:
+    outbox-publish:
+      fixed-delay-ms: 30000
+      batch-size: 100
+  kafka:
+    consumers:
+      quantity-change-result:
+        topic: quantity-change-results-test
+        group-id: payment-order-test
   cache:
     restore:
       fixed-delay-ms: 30000

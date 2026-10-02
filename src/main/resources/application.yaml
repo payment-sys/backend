@@ -67,6 +67,10 @@ payment:
     batch-size: 100
 
 product:
+  quantity-change-results:
+    outbox-publish:
+      fixed-delay-ms: 30000
+      batch-size: 100
   cache:
     restore:
       fixed-delay-ms: 30000
@@ -82,6 +86,9 @@ product:
       quantity-change:
         topic: ${KAFKA_TOPIC_QUANTITY_CHANGE:quantity-changes}
         group-id: ${KAFKA_GROUP_ID_QUANTITY_CHANGE:payment-product}
+      quantity-change-result:
+        topic: ${KAFKA_TOPIC_QUANTITY_CHANGE_RESULT:quantity-change-results}
+        group-id: ${KAFKA_GROUP_ID_QUANTITY_CHANGE_RESULT:payment-order}
 
 order:
   expiration:
