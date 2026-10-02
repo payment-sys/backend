@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface QuantityChangeResultOutboxJdbcRepository {
-    void createOutboxBatch(List<QuantityChangeResultOutbox> outboxes);
+    List<QuantityChangeResultOutbox> createOutboxBatch(List<QuantityChangeResultOutbox> outboxes);
 
     void markDoneBatch(
             List<QuantityChangeResultOutbox> outboxes,

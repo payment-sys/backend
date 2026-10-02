@@ -3,6 +3,7 @@ package com.v_payment.pay.product.service;
 import com.v_payment.pay.product.controller.dto.req.ProductCreateReq;
 import com.v_payment.pay.product.controller.dto.res.ProductCreateRes;
 import com.v_payment.pay.product.domain.QuantityChangePlan;
+import com.v_payment.pay.product.domain.entity.ChangeStatus;
 import com.v_payment.pay.product.domain.entity.Product;
 import com.v_payment.pay.product.domain.entity.QuantityChangeResultOutbox;
 import com.v_payment.pay.product.infra.kafka.dto.QuantityChangeMessage;
@@ -12,12 +13,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.reactive.TransactionalEventPublisher;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,10 +41,10 @@ public class ProductService {
         QuantityChangePlan plan = QuantityChangePlan.create(quantityChangeMessages);
         List<Product> products = productRepository.findAllByIdInForUpdate(plan.getProductIds());
         plan.updateSuccessAndFail(products);
-        productRepository.changeQuantityBatch(plan.getSuccessChangeQuantities());
         List<QuantityChangeResultOutbox> outboxes = createOutboxesByPlan(plan);
-        quantityChangeResultOutboxRepository.createOutboxBatch(outboxes);
-        applicationEventPublisher.publishEvent(outboxes);
+        List<QuantityChangeResultOutbox> insertedOutboxes = quantityChangeResultOutboxRepository.createOutboxBatch(outboxes);
+        productRepository.changeQuantityBatch(getSuccessChangeQuantities(insertedOutboxes));
+        if (!insertedOutboxes.isEmpty()) applicationEventPublisher.publishEvent(insertedOutboxes);
     }
 
     private List<QuantityChangeResultOutbox> createOutboxesByPlan(QuantityChangePlan plan) {
@@ -54,5 +56,15 @@ public class ProductService {
             outboxes.add(QuantityChangeResultOutbox.fail(message, "OUT_OF_STOCK", LocalDateTime.now(clock)));
         }
         return outboxes;
+    }
+
+    private Map<Long, Integer> getSuccessChangeQuantities(List<QuantityChangeResultOutbox> outboxes) {
+        return outboxes.stream()
+                .filter(outbox -> outbox.getChangeStatus() == ChangeStatus.SUCCESS)
+                .collect(Collectors.toMap(
+                        QuantityChangeResultOutbox::getProductId,
+                        QuantityChangeResultOutbox::getChangeCount,
+                        Integer::sum
+                ));
     }
 }
