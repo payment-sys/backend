@@ -1,8 +1,6 @@
 package com.v_payment.pay.order.service;
 
-import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutboxStatus;
-import com.v_payment.pay.order.infra.QuantityChangeProducer;
 import com.v_payment.pay.order.repository.QuantityChangeOutboxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
