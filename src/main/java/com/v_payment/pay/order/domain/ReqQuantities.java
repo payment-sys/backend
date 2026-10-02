@@ -1,5 +1,9 @@
 package com.v_payment.pay.order.domain;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.v_payment.pay.order.controller.dto.req.OrderItemCreateReq;
 
 import java.util.Collections;
@@ -8,12 +12,17 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ReqQuantities {
     private final String orderCode;
     private final List<ReqQuantity> reqQuantities;
     private final Map<Long, ReqQuantity> valuesByProductId;
 
-    private ReqQuantities(String orderCode, List<ReqQuantity> reqQuantities) {
+    @JsonCreator
+    private ReqQuantities(
+            @JsonProperty("orderCode") String orderCode,
+            @JsonProperty("reqQuantities") List<ReqQuantity> reqQuantities
+    ) {
         this.orderCode = orderCode;
         this.reqQuantities = validateValues(reqQuantities);
         this.valuesByProductId = toValuesByProductId(this.reqQuantities);
@@ -27,6 +36,7 @@ public class ReqQuantities {
         return reqQuantities;
     }
 
+    @JsonIgnore
     public List<Long> getProductIds() {
         return reqQuantities.stream()
                 .map(ReqQuantity::getProductId)
@@ -43,6 +53,7 @@ public class ReqQuantities {
         return reqQuantity.getQuantity();
     }
 
+    @JsonIgnore
     public Map<Long, Integer> getQuantityMap() {
         return Collections.unmodifiableMap(reqQuantities.stream()
                 .collect(Collectors.toMap(ReqQuantity::getProductId, ReqQuantity::getQuantity)));
