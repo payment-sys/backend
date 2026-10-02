@@ -1,8 +1,8 @@
 package com.v_payment.pay.order.entity;
 
-import com.v_payment.pay.order.domain.entity.Order;
-import com.v_payment.pay.order.domain.entity.OrderItem;
-import com.v_payment.pay.order.domain.entity.OrderItemInfo;
+import com.v_payment.pay.order.domain.order.Order;
+import com.v_payment.pay.order.domain.orderitem.OrderItem;
+import com.v_payment.pay.order.domain.orderitem.OrderItemInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

@@ -1,12 +1,12 @@
 package com.v_payment.pay.order.domain;
 
 import com.v_payment.pay.order.controller.dto.req.OrderItemCreateReq;
-import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-@Getter
+@NoArgsConstructor
 public class ReqQuantity {
-    private final Long productId;
-    private final Integer quantity;
+    private Long productId;
+    private Integer quantity;
 
     private ReqQuantity(Long productId, Integer quantity) {
         this.productId = validateProductId(productId);
@@ -20,6 +20,22 @@ public class ReqQuantity {
     public static ReqQuantity from(OrderItemCreateReq req) {
         if (req == null) throw new IllegalArgumentException("주문 수량 요청은 필수입니다.");
         return new ReqQuantity(req.productId(), req.quantity());
+    }
+
+    public Long getProductId() {
+        return productId;
+    }
+
+    public Integer getQuantity() {
+        return quantity;
+    }
+
+    public void setProductId(Long productId) {
+        this.productId = productId;
+    }
+
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
     }
 
     private Long validateProductId(Long productId) {

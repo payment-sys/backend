@@ -4,13 +4,14 @@ import com.v_payment.pay.global.exception.BusinessException;
 import com.v_payment.pay.order.controller.dto.req.OrderCreateReq;
 import com.v_payment.pay.order.controller.dto.req.OrderItemCreateReq;
 import com.v_payment.pay.order.controller.dto.res.OrderCreateRes;
-import com.v_payment.pay.order.domain.entity.Order;
-import com.v_payment.pay.order.domain.entity.OrderStatus;
+import com.v_payment.pay.order.domain.order.Order;
+import com.v_payment.pay.order.domain.order.OrderStatus;
+import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;
+import com.v_payment.pay.order.domain.outbox.QuantityChangeOutboxStatus;
 import com.v_payment.pay.order.repository.OrderRepository;
+import com.v_payment.pay.order.repository.QuantityChangeOutboxRepository;
 import com.v_payment.pay.payment.domain.entity.PaymentMethod;
 import com.v_payment.pay.product.domain.entity.Product;
-import com.v_payment.pay.product.domain.entity.ProductQuantityEvent;
-import com.v_payment.pay.product.repository.ProductQuantityEventRepository;
 import com.v_payment.pay.product.repository.ProductRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,7 @@ class OrderServiceTest {
     OrderRepository orderRepository;
 
     @Autowired
-    ProductQuantityEventRepository productQuantityEventRepository;
+    QuantityChangeOutboxRepository quantityChangeOutboxRepository;
 
     @DisplayName("주문을 생성하면 주문상품과 재고 차감 이벤트가 저장된다")
     @Test
@@ -64,10 +65,10 @@ class OrderServiceTest {
         assertThat(order.getTotalAmount()).isEqualTo(35_000L);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CREATED);
 
-        ProductQuantityEvent event = productQuantityEventRepository.findAll().get(0);
-        assertThat(event.getOrderCode()).isEqualTo(order.getOrderCode());
-        assertThat(event.getPayload().getPaymentMethod()).isEqualTo(PaymentMethod.CARD);
-        assertThat(event.getPayload().getRequestedQuantities())
+        QuantityChangeOutbox outbox = quantityChangeOutboxRepository.findAll().get(0);
+        assertThat(outbox.getOrderCode()).isEqualTo(order.getOrderCode());
+        assertThat(outbox.getStatus()).isEqualTo(QuantityChangeOutboxStatus.READY);
+        assertThat(outbox.getReqQuantities().getQuantityMap())
                 .containsEntry(productA.getId(), 2)
                 .containsEntry(productB.getId(), 3);
     }
@@ -85,6 +86,6 @@ class OrderServiceTest {
         assertThatThrownBy(() -> orderService.create(req)).isInstanceOf(BusinessException.class);
 
         assertThat(orderRepository.findAll()).isEmpty();
-        assertThat(productQuantityEventRepository.findAll()).isEmpty();
+        assertThat(quantityChangeOutboxRepository.findAll()).isEmpty();
     }
 }

@@ -13,7 +13,7 @@ import java.util.Collection;
 @RequiredArgsConstructor
 public class PaymentRepositoryImpl implements PaymentBatchRepository {
     private static final String READY_PAYMENT_INSERT_SQL = """
-            insert into payment (
+            insert ignore into payment (
                 provider,
                 payment_method,
                 order_code,

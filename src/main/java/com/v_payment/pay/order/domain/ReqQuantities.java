@@ -1,5 +1,9 @@
 package com.v_payment.pay.order.domain;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.v_payment.pay.order.controller.dto.req.OrderItemCreateReq;
 
 import java.util.Collections;
@@ -8,15 +12,31 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ReqQuantities {
+    private final String orderCode;
     private final List<ReqQuantity> reqQuantities;
     private final Map<Long, ReqQuantity> valuesByProductId;
 
-    private ReqQuantities(List<ReqQuantity> reqQuantities) {
+    @JsonCreator
+    private ReqQuantities(
+            @JsonProperty("orderCode") String orderCode,
+            @JsonProperty("reqQuantities") List<ReqQuantity> reqQuantities
+    ) {
+        this.orderCode = orderCode;
         this.reqQuantities = validateValues(reqQuantities);
         this.valuesByProductId = toValuesByProductId(this.reqQuantities);
     }
 
+    public String getOrderCode() {
+        return orderCode;
+    }
+
+    public List<ReqQuantity> getReqQuantities() {
+        return reqQuantities;
+    }
+
+    @JsonIgnore
     public List<Long> getProductIds() {
         return reqQuantities.stream()
                 .map(ReqQuantity::getProductId)
@@ -33,14 +53,27 @@ public class ReqQuantities {
         return reqQuantity.getQuantity();
     }
 
+    @JsonIgnore
     public Map<Long, Integer> getQuantityMap() {
         return Collections.unmodifiableMap(reqQuantities.stream()
                 .collect(Collectors.toMap(ReqQuantity::getProductId, ReqQuantity::getQuantity)));
     }
 
+    public static ReqQuantities of(List<OrderItemCreateReq> reqs) {
+        return from(reqs);
+    }
+
+    public static ReqQuantities of(String orderCode, List<OrderItemCreateReq> reqs) {
+        if (orderCode == null || orderCode.isBlank()) throw new IllegalArgumentException("orderCode is required.");
+        if (reqs == null) throw new IllegalArgumentException("order items are required.");
+        return new ReqQuantities(orderCode, reqs.stream()
+                .map(ReqQuantity::from)
+                .toList());
+    }
+
     public static ReqQuantities from(List<OrderItemCreateReq> reqs) {
         if (reqs == null) throw new IllegalArgumentException("주문 상품 목록은 필수입니다.");
-        return new ReqQuantities(reqs.stream()
+        return new ReqQuantities(null, reqs.stream()
                 .map(ReqQuantity::from)
                 .toList());
     }

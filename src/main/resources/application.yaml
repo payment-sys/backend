@@ -11,6 +11,16 @@ server:
 
 spring:
   threads:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      retries: 3
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${MYSQL_URL:jdbc:mysql://localhost:3306/payment}
@@ -54,20 +64,40 @@ payment:
     batch-size: 100
 
 product:
-  quantity-event:
-    consumer:
-      batch-size: 200
+  quantity-change-results:
+    outbox-publish:
+      fixed-delay-ms: 30000
+      batch-size: 100
   cache:
     restore:
       fixed-delay-ms: 30000
     wal:
       path: ${PRODUCT_RESERVATION_WAL_PATH:./data/product-reservation.wal}
+  kafka:
+    producers:
+      quantity-change:
+        topic: ${KAFKA_TOPIC_QUANTITY_CHANGE:quantity-changes}
+      quantity-change-result:
+        topic: ${KAFKA_TOPIC_QUANTITY_CHANGE_RESULT:quantity-change-results}
+    consumers:
+      quantity-change:
+        topic: ${KAFKA_TOPIC_QUANTITY_CHANGE:quantity-changes}
+        group-id: ${KAFKA_GROUP_ID_QUANTITY_CHANGE:payment-product}
+      quantity-change-result:
+        topic: ${KAFKA_TOPIC_QUANTITY_CHANGE_RESULT:quantity-change-results}
+        group-id: ${KAFKA_GROUP_ID_QUANTITY_CHANGE_RESULT:payment-order}
 
 order:
   expiration:
     fixed-delay-ms: 30000
     expire-after-seconds: 600
     batch-size: 100
+  quantity-changes:
+    producer:
+      topic: ${ORDER_QUANTITY_CHANGES_TOPIC:quantity-changes}
+    outbox-publish:
+      fixed-delay-ms: 30000
+      batch-size: 100
 
 management:
   server:

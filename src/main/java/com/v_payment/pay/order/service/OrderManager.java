@@ -1,8 +1,8 @@
 package com.v_payment.pay.order.service;
 
-import com.v_payment.pay.order.domain.entity.OrderItem;
-import com.v_payment.pay.order.domain.entity.OrderItemInfo;
-import com.v_payment.pay.order.domain.entity.OrderStatus;
+import com.v_payment.pay.order.domain.orderitem.OrderItem;
+import com.v_payment.pay.order.domain.orderitem.OrderItemInfo;
+import com.v_payment.pay.order.domain.order.OrderStatus;
 import com.v_payment.pay.order.repository.OrderItemRepository;
 import com.v_payment.pay.order.repository.OrderRepository;
 import io.opentelemetry.instrumentation.annotations.WithSpan;

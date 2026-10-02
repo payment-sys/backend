@@ -1,7 +1,7 @@
 package com.v_payment.pay.order.service;
 
-import com.v_payment.pay.order.domain.entity.Order;
-import com.v_payment.pay.order.domain.entity.OrderStatus;
+import com.v_payment.pay.order.domain.order.Order;
+import com.v_payment.pay.order.domain.order.OrderStatus;
 import com.v_payment.pay.order.repository.OrderRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;

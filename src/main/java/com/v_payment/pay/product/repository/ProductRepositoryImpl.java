@@ -12,8 +12,10 @@ public class ProductRepositoryImpl implements ProductJdbcRepository {
     private final JdbcTemplate jdbcTemplate;
 
     @Override
-    public void decreaseProducts(Map<Long, Integer> decreaseTotal) {
-        if(decreaseTotal.isEmpty()) return;
+    public void changeQuantityBatch(Map<Long, Integer> successChangeQuantities) {
+        if (successChangeQuantities == null || successChangeQuantities.isEmpty()) {
+            return;
+        }
 
         jdbcTemplate.batchUpdate(
                 """
@@ -21,8 +23,8 @@ public class ProductRepositoryImpl implements ProductJdbcRepository {
                 set stock_quantity = stock_quantity + ?
                 where product_id = ?
                 """,
-                decreaseTotal.entrySet(),
-                decreaseTotal.size(),
+                successChangeQuantities.entrySet(),
+                successChangeQuantities.size(),
                 (ps, entry) -> {
                     ps.setInt(1, entry.getValue());
                     ps.setLong(2, entry.getKey());
