@@ -1,7 +1,7 @@
 package com.v_payment.pay.product.domain.entity;
 
 import com.v_payment.pay.product.infra.kafka.dto.QuantityChangeMessage;
-import com.v_payment.pay.product.infra.kafka.dto.QuantityChangeResult;
+import com.v_payment.pay.product.infra.kafka.dto.QuantityChangeResultMessage;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,6 +13,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
@@ -33,6 +34,7 @@ import java.time.LocalDateTime;
                 )
         }
 )
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class QuantityChangeResultOutbox {
     @Id
@@ -128,52 +130,8 @@ public class QuantityChangeResultOutbox {
         this.updatedAt = validateUpdatedAt(updatedAt);
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getOrderCode() {
-        return orderCode;
-    }
-
-    public Long getProductId() {
-        return productId;
-    }
-
-    public Integer getChangeCount() {
-        return changeCount;
-    }
-
-    public ChangeStatus getChangeStatus() {
-        return changeStatus;
-    }
-
-    public String getFailReason() {
-        return failReason;
-    }
-
-    public QuantityChangeResultOutboxStatus getQuantityChangeResultOutboxStatus() {
-        return quantityChangeResultOutboxStatus;
-    }
-
-    public Integer getRetryCount() {
-        return retryCount;
-    }
-
-    public LocalDateTime getNextAttemptTime() {
-        return nextAttemptTime;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public QuantityChangeResult getQuantityChangeResult() {
-        return QuantityChangeResult.of(orderCode, productId, changeStatus);
+    public QuantityChangeResultMessage getQuantityChangeResult() {
+        return QuantityChangeResultMessage.of(orderCode, productId, changeStatus);
     }
 
     private static QuantityChangeMessage validateMessage(QuantityChangeMessage message) {
