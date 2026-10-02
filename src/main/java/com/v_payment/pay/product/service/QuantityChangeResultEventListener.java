@@ -23,12 +23,9 @@ public class QuantityChangeResultEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void listen(List<QuantityChangeResultOutbox> outboxes) {
-        CompletableFuture.runAsync(() -> completeSends(outboxes), quantityChangeResultEventExecutorService)
-                .whenComplete((unused, ex) -> {
-                    if (ex != null) {
-                        handleFail(outboxes, ex);
-                    }
-                });
+        CompletableFuture
+                .runAsync(() -> completeSends(outboxes), quantityChangeResultEventExecutorService)
+                .whenComplete((unused, ex) -> handleFail(outboxes, ex));
     }
 
     private void completeSends(List<QuantityChangeResultOutbox> outboxes) {
@@ -41,6 +38,7 @@ public class QuantityChangeResultEventListener {
     }
 
     private void handleFail(List<QuantityChangeResultOutbox> outboxes, Throwable ex) {
+        if (ex == null) return;
         log.error(ex.getMessage(), ex);
         //TODO: DLQ 추가
     }

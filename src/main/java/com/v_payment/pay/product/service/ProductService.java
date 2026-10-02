@@ -41,8 +41,7 @@ public class ProductService {
         QuantityChangePlan plan = QuantityChangePlan.create(quantityChangeMessages);
         List<Product> products = productRepository.findAllByIdInForUpdate(plan.getProductIds());
         plan.updateSuccessAndFail(products);
-        List<QuantityChangeResultOutbox> outboxes = createOutboxesByPlan(plan);
-        List<QuantityChangeResultOutbox> insertedOutboxes = quantityChangeResultOutboxRepository.createOutboxBatch(outboxes);
+        List<QuantityChangeResultOutbox> insertedOutboxes = createOutboxesByPlan(plan);
         productRepository.changeQuantityBatch(getSuccessChangeQuantities(insertedOutboxes));
         if (!insertedOutboxes.isEmpty()) applicationEventPublisher.publishEvent(insertedOutboxes);
     }
@@ -55,7 +54,7 @@ public class ProductService {
         for (QuantityChangeMessage message : plan.getFail()) {
             outboxes.add(QuantityChangeResultOutbox.fail(message, "OUT_OF_STOCK", LocalDateTime.now(clock)));
         }
-        return outboxes;
+        return quantityChangeResultOutboxRepository.createOutboxBatch(outboxes);
     }
 
     private Map<Long, Integer> getSuccessChangeQuantities(List<QuantityChangeResultOutbox> outboxes) {

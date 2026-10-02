@@ -21,6 +21,7 @@ import com.v_payment.pay.payment.service.PaymentManager;
 import com.v_payment.pay.product.domain.ProductBasicInfo;
 import com.v_payment.pay.product.service.ProductManager;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,7 +55,6 @@ public class OrderService {
 
     @Transactional
     public void finalizeOrderBatch(List<QuantityChangeResultMessage> quantityChangeResultMessages) {
-        if (quantityChangeResultMessages == null || quantityChangeResultMessages.isEmpty()) return;
         QuantityChangeResultPlan plan = QuantityChangeResultPlan.create(quantityChangeResultMessages);
         orderItemRepository.updateStatusByQuantityChangeResults(plan.getMessages(), OrderItemStatus.PROCESSING,
                 OrderItemStatus.CHANGED, OrderItemStatus.FAILED);
@@ -66,16 +66,18 @@ public class OrderService {
                 plan.getOrderCodes(), OrderStatus.CREATED, OrderItemStatus.CHANGED);
         List<String> completedOrderCodes = plan.getCompletedOrderCodes(paymentCreateSources);
         if (completedOrderCodes.isEmpty()) return;
-
         orderRepository.markStatusByOrderCodes(completedOrderCodes, OrderStatus.CREATED, OrderStatus.ORDER_SUCCESS);
-        paymentManager.createPendingPayments(paymentCreateSources.stream()
+        paymentManager.createPendingPayments(getList(paymentCreateSources));
+    }
+
+    private static @NonNull List<PaymentManager.PendingPaymentCreateRequest> getList(List<OrderPaymentCreateSource> paymentCreateSources) {
+        return paymentCreateSources.stream()
                 .map(source -> new PaymentManager.PendingPaymentCreateRequest(
                         source.orderCode(),
                         source.amount(),
                         source.paymentMethod()
                 ))
-                .toList());
-
+                .toList();
     }
 
     private void createOrder(String orderCode, PaymentMethod paymentMethod, ReqQuantities reqQuantities) {
