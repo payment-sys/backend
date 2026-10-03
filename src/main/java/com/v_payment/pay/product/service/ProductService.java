@@ -3,6 +3,7 @@ package com.v_payment.pay.product.service;
 import com.v_payment.pay.product.controller.dto.req.ProductCreateReq;
 import com.v_payment.pay.product.controller.dto.res.ProductCreateRes;
 import com.v_payment.pay.product.domain.QuantityChangePlan;
+import com.v_payment.pay.product.domain.event.QuantityChangeResultOutboxesEvent;
 import com.v_payment.pay.product.domain.entity.ChangeStatus;
 import com.v_payment.pay.product.domain.entity.Product;
 import com.v_payment.pay.product.domain.entity.QuantityChangeResultOutbox;
@@ -43,7 +44,9 @@ public class ProductService {
         plan.updateSuccessAndFail(products);
         List<QuantityChangeResultOutbox> insertedOutboxes = createOutboxesByPlan(plan);
         productRepository.changeQuantityBatch(getSuccessChangeQuantities(insertedOutboxes));
-        if (!insertedOutboxes.isEmpty()) applicationEventPublisher.publishEvent(insertedOutboxes);
+        if (!insertedOutboxes.isEmpty()) {
+            applicationEventPublisher.publishEvent(new QuantityChangeResultOutboxesEvent(insertedOutboxes));
+        }
     }
 
     private List<QuantityChangeResultOutbox> createOutboxesByPlan(QuantityChangePlan plan) {
