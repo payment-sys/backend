@@ -25,7 +25,7 @@ public class QuantityChangeResultOutboxPublishScheduler {
     private final ApplicationEventPublisher eventPublisher;
     private final QuantityChangeResultOutboxPublishProperties properties;
 
-    @Scheduled(fixedDelayString = "${product.quantity-change-results.outbox-publish.fixed-delay-ms:30000}")
+    @Scheduled(fixedDelayString = "${product.quantity-change-result-outbox-scheduler.fixed-delay-ms:30000}")
     @SchedulerLock(
             name = "quantityChangeResultOutbox.publishReady",
             lockAtMostFor = "10s",

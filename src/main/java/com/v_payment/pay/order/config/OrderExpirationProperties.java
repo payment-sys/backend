@@ -2,7 +2,7 @@ package com.v_payment.pay.order.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "order.expiration")
+@ConfigurationProperties(prefix = "order.expiration-scheduler")
 public record OrderExpirationProperties(
         Long fixedDelayMs,
         Long expireAfterSeconds,
@@ -23,13 +23,13 @@ public record OrderExpirationProperties(
             batchSize = DEFAULT_BATCH_SIZE;
         }
         if (fixedDelayMs < 1) {
-            throw new IllegalArgumentException("order.expiration.fixed-delay-ms는 0보다 커야 합니다.");
+            throw new IllegalArgumentException("order.expiration-scheduler.fixed-delay-ms는 0보다 커야 합니다.");
         }
         if (expireAfterSeconds < 1) {
-            throw new IllegalArgumentException("order.expiration.expire-after-seconds는 0보다 커야 합니다.");
+            throw new IllegalArgumentException("order.expiration-scheduler.expire-after-seconds는 0보다 커야 합니다.");
         }
         if (batchSize < 1) {
-            throw new IllegalArgumentException("order.expiration.batch-size는 0보다 커야 합니다.");
+            throw new IllegalArgumentException("order.expiration-scheduler.batch-size는 0보다 커야 합니다.");
         }
     }
 }

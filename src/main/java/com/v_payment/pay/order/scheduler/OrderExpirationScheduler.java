@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 public class OrderExpirationScheduler {
     private final OrderExpirationService orderExpirationService;
 
-    @Scheduled(fixedDelayString = "${order.expiration.fixed-delay-ms:30000}")
+    @Scheduled(fixedDelayString = "${order.expiration-scheduler.fixed-delay-ms:30000}")
     @SchedulerLock(
             name = "orderExpiration.expireCreatedOrders",
             lockAtMostFor = "10s",

@@ -16,8 +16,8 @@ public class QuantityChangeResultConsumer {
     private final OrderService orderService;
 
     @KafkaListener(
-            topics = "${product.kafka.consumers.quantity-change-result.topic}",
-            groupId = "${product.kafka.consumers.quantity-change-result.group-id}",
+            topics = "${order.quantity-change-result-consumer.topic}",
+            groupId = "${order.quantity-change-result-consumer.group-id}",
             containerFactory = "quantityChangeResultBatchKafkaListenerContainerFactory"
     )
     public void listen(List<String> message) {
