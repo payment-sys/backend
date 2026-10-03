@@ -16,40 +16,37 @@ spring:
         type:
           json_format_mapper: org.hibernate.type.format.jackson.JacksonJsonFormatMapper
 
-toss:
-  payment:
+payment:
+  recovery-scheduler:
+    fixed-delay-ms: 30000
+    stale-after-seconds: 60
+    batch-size: 100
+  toss:
     uri: https://api.tosspayments.com/v1/payments/confirm
     secret: test-secret
     content-type: application/json
     timeout: 60
 
-payment:
-  outbox:
-    recovery:
-      fixed-delay-ms: 30000
-      stale-after-seconds: 60
-      batch-size: 100
-
 product:
-  quantity-change-results:
-    outbox-publish:
-      fixed-delay-ms: 30000
-      batch-size: 100
-  kafka:
-    consumers:
-      quantity-change-result:
-        topic: quantity-change-results-test
-        group-id: payment-order-test
-  cache:
-    restore:
-      fixed-delay-ms: 30000
-    wal:
-      path: ${PRODUCT_RESERVATION_WAL_PATH:./build/test-data/product-reservation.wal}
+  quantity-change-consumer:
+    topic: command.product.quantity-change-test
+    group-id: payment-product-test
+  quantity-change-result-producer:
+    topic: event.product.quantity-change-result-test
+  quantity-change-result-outbox-scheduler:
+    fixed-delay-ms: 30000
+    batch-size: 100
 
 order:
-  quantity-changes:
-    producer:
-      topic: quantity-changes-test
-    outbox-publish:
-      fixed-delay-ms: 30000
-      batch-size: 100
+  expiration-scheduler:
+    fixed-delay-ms: 30000
+    expire-after-seconds: 600
+    batch-size: 100
+  quantity-change-producer:
+    topic: command.product.quantity-change-test
+  quantity-change-outbox-scheduler:
+    fixed-delay-ms: 30000
+    batch-size: 100
+  quantity-change-result-consumer:
+    topic: event.product.quantity-change-result-test
+    group-id: payment-order-test
