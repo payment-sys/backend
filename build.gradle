@@ -44,7 +44,7 @@ dependencies {
 	implementation 'io.micrometer:micrometer-registry-prometheus'
 	implementation 'io.micrometer:micrometer-java21'
 	implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.16.0'
-	implementation 'org.springframework.kafka:spring-kafka'
+	implementation 'org.springframework.boot:spring-boot-starter-kafka'
 
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.aspectj:aspectjweaver'
