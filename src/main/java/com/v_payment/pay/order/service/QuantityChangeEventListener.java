@@ -26,7 +26,11 @@ public class QuantityChangeEventListener {
     public void listen(QuantityChangeOutbox outbox) {
         CompletableFuture
                 .runAsync(() -> completeSendMessage(outbox), quantityChangeEventExecutorService)
-                .whenComplete((unused, ex) -> handleFailedSendMessage(outbox, ex));
+                .whenComplete((unused, ex) -> {
+                    if (ex != null) {
+                        handleFailedSendMessage(outbox, ex);
+                    }
+                });
     }
 
     private void completeSendMessage(QuantityChangeOutbox outbox) {

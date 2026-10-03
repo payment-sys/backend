@@ -1,5 +1,6 @@
 package com.v_payment.pay.product.service;
 
+import com.v_payment.pay.product.domain.event.QuantityChangeResultOutboxesEvent;
 import com.v_payment.pay.product.domain.entity.QuantityChangeResultOutbox;
 import com.v_payment.pay.product.infra.kafka.QuantityChangeResultProducer;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,8 @@ public class QuantityChangeResultEventListener {
     private final ExecutorService quantityChangeResultEventExecutorService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void listen(List<QuantityChangeResultOutbox> outboxes) {
+    public void listen(QuantityChangeResultOutboxesEvent event) {
+        List<QuantityChangeResultOutbox> outboxes = event.outboxes();
         CompletableFuture
                 .runAsync(() -> completeSends(outboxes), quantityChangeResultEventExecutorService)
                 .whenComplete((unused, ex) -> handleFail(outboxes, ex));

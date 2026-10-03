@@ -1,6 +1,7 @@
 package com.v_payment.pay.product.scheduler;
 
 import com.v_payment.pay.product.config.QuantityChangeResultOutboxPublishProperties;
+import com.v_payment.pay.product.domain.event.QuantityChangeResultOutboxesEvent;
 import com.v_payment.pay.product.domain.entity.QuantityChangeResultOutbox;
 import com.v_payment.pay.product.domain.entity.QuantityChangeResultOutboxStatus;
 import com.v_payment.pay.product.repository.QuantityChangeResultOutboxRepository;
@@ -40,7 +41,7 @@ public class QuantityChangeResultOutboxPublishScheduler {
         );
 
         if (!outboxes.isEmpty()) {
-            eventPublisher.publishEvent(outboxes);
+            eventPublisher.publishEvent(new QuantityChangeResultOutboxesEvent(outboxes));
         }
 
         log.info("quantity change result outbox publish scheduler completed. eventPublishedCount={}", outboxes.size());
