@@ -26,27 +26,32 @@ jobs:
       IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/payment-backend:sha-${{ github.event.workflow_run.head_sha }}
       DEPLOY_HOSTS: ${{ secrets.APP_HOSTS || secrets.SERVER_HOST }}
       DEPLOY_USER: ${{ secrets.SERVER_USER }}
+      SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
       COMPOSE_SERVICE: ${{ secrets.COMPOSE_SERVICE || 'app' }}
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
       ALB_TARGET_GROUP_ARN: ${{ secrets.ALB_TARGET_GROUP_ARN }}
       ALB_TARGET_PORT: ${{ secrets.ALB_TARGET_PORT }}
       HOST_INSTANCE_MAP: ${{ secrets.HOST_INSTANCE_MAP }}
+      KAFKA_BOOTSTRAP_SERVERS: ${{ secrets.KAFKA_BOOTSTRAP_SERVERS }}
+      MYSQL_URL: ${{ secrets.MYSQL_URL }}
+      MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
+      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+      TOSS_PAYMENT_SECRET: ${{ secrets.TOSS_PAYMENT_SECRET }}
 
     steps:
       # ALB target 등록/해제를 위해 GitHub OIDC로 AWS 권한을 얻는다.
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
 
       # 각 서버에 SSH로 접속하기 위한 배포 키를 runner에 준비한다.
       - name: Prepare SSH key
         run: |
           install -m 700 -d ~/.ssh
-          cat > ~/.ssh/deploy_key <<'EOF'
-          ${{ secrets.SERVER_SSH_KEY }}
-          EOF
+          printf '%s\n' "${SERVER_SSH_KEY}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
       - name: Rolling deploy app servers
@@ -65,6 +70,11 @@ jobs:
             exit 1
           fi
 
+          if [ -z "${AWS_ROLE_TO_ASSUME}" ]; then
+            echo "AWS_ROLE_TO_ASSUME secret is empty"
+            exit 1
+          fi
+
           if [ -z "${ALB_TARGET_GROUP_ARN}" ]; then
             echo "ALB_TARGET_GROUP_ARN secret is empty"
             exit 1
@@ -72,6 +82,31 @@ jobs:
 
           if [ -z "${HOST_INSTANCE_MAP}" ]; then
             echo "HOST_INSTANCE_MAP secret is empty"
+            exit 1
+          fi
+
+          if [ -z "${KAFKA_BOOTSTRAP_SERVERS}" ]; then
+            echo "KAFKA_BOOTSTRAP_SERVERS secret is empty"
+            exit 1
+          fi
+
+          if [ -z "${MYSQL_URL}" ]; then
+            echo "MYSQL_URL secret is empty"
+            exit 1
+          fi
+
+          if [ -z "${MYSQL_USERNAME}" ]; then
+            echo "MYSQL_USERNAME secret is empty"
+            exit 1
+          fi
+
+          if [ -z "${MYSQL_PASSWORD}" ]; then
+            echo "MYSQL_PASSWORD secret is empty"
+            exit 1
+          fi
+
+          if [ -z "${TOSS_PAYMENT_SECRET}" ]; then
+            echo "TOSS_PAYMENT_SECRET secret is empty"
             exit 1
           fi
 
@@ -132,6 +167,28 @@ jobs:
               --targets "${target}"
 
             # 대상 서버 안에서 app 서비스만 새 이미지로 교체한다.
+            tmp_env="$(mktemp)"
+            write_dotenv_var() {
+              local key="$1"
+              local value="$2"
+              value="${value//\'/\'\\\'\'}"
+              printf "%s='%s'\n" "${key}" "${value}" >> "${tmp_env}"
+            }
+
+            write_dotenv_var KAFKA_BOOTSTRAP_SERVERS "${KAFKA_BOOTSTRAP_SERVERS}"
+            write_dotenv_var MYSQL_URL "${MYSQL_URL}"
+            write_dotenv_var MYSQL_USERNAME "${MYSQL_USERNAME}"
+            write_dotenv_var MYSQL_PASSWORD "${MYSQL_PASSWORD}"
+            write_dotenv_var TOSS_PAYMENT_SECRET "${TOSS_PAYMENT_SECRET}"
+            write_dotenv_var IMAGE_NAME "${IMAGE_NAME}"
+
+            scp -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -o ConnectTimeout=10 \
+              "${tmp_env}" "${DEPLOY_USER}@${host}:~/payment-backend/.env"
+            rm -f "${tmp_env}"
+
             if ! ssh -i ~/.ssh/deploy_key \
               -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null \
@@ -142,6 +199,7 @@ jobs:
 
           cd ~/payment-backend
 
+          chmod 600 .env
           export IMAGE_NAME
           docker compose pull "${COMPOSE_SERVICE}"
           # app만 교체하고 alloy 같은 의존 서비스는 재시작하지 않는다.

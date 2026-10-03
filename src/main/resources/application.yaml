@@ -28,8 +28,8 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${MYSQL_URL}
-    username: ${USERNAME}
-    password: ${PASSWORD}
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD}
     hikari:
       auto-commit: false
       maximum-pool-size: 18
@@ -101,6 +101,10 @@ order:
 management:
   server:
     port: 8082
+  endpoint:
+    health:
+      probes:
+        enabled: true
   endpoints:
     web:
       exposure:
@@ -115,6 +119,6 @@ management:
 #env
 #KAFKA_BOOTSTRAP_SERVERS=
 #MYSQL_URL=
-#USERNAME=
-#PASSWORD=
+#MYSQL_USERNAME=
+#MYSQL_PASSWORD=
 #TOSS_PAYMENT_SECRET=
