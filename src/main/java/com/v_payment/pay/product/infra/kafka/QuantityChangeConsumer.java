@@ -16,8 +16,8 @@ public class QuantityChangeConsumer {
     private final ProductService productService;
 
     @KafkaListener(
-            topics = "${product.kafka.consumers.quantity-change.topic}",
-            groupId = "${product.kafka.consumers.quantity-change.group-id}"
+            topics = "${product.quantity-change-consumer.topic}",
+            groupId = "${product.quantity-change-consumer.group-id}"
     )
     public void listen(String message) {
         List<QuantityChangeMessage> quantityChangeMessages = parseMessage(message);

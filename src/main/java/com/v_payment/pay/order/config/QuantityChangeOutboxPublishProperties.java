@@ -2,7 +2,7 @@ package com.v_payment.pay.order.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "order.quantity-changes.outbox-publish")
+@ConfigurationProperties(prefix = "order.quantity-change-outbox-scheduler")
 public record QuantityChangeOutboxPublishProperties(
         Long fixedDelayMs,
         Integer batchSize
@@ -18,10 +18,10 @@ public record QuantityChangeOutboxPublishProperties(
             batchSize = DEFAULT_BATCH_SIZE;
         }
         if (fixedDelayMs < 1) {
-            throw new IllegalArgumentException("order.quantity-changes.outbox-publish.fixed-delay-ms must be greater than 0");
+            throw new IllegalArgumentException("order.quantity-change-outbox-scheduler.fixed-delay-ms must be greater than 0");
         }
         if (batchSize < 1) {
-            throw new IllegalArgumentException("order.quantity-changes.outbox-publish.batch-size must be greater than 0");
+            throw new IllegalArgumentException("order.quantity-change-outbox-scheduler.batch-size must be greater than 0");
         }
     }
 }

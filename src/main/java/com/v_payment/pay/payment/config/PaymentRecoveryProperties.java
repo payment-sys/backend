@@ -2,7 +2,7 @@ package com.v_payment.pay.payment.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "payment.recovery")
+@ConfigurationProperties(prefix = "payment.recovery-scheduler")
 public record PaymentRecoveryProperties(
         Long fixedDelayMs,
         Long staleAfterSeconds,
@@ -23,13 +23,13 @@ public record PaymentRecoveryProperties(
             batchSize = DEFAULT_BATCH_SIZE;
         }
         if (fixedDelayMs < 1) {
-            throw new IllegalArgumentException("payment.recovery.fixed-delay-ms must be greater than 0");
+            throw new IllegalArgumentException("payment.recovery-scheduler.fixed-delay-ms must be greater than 0");
         }
         if (staleAfterSeconds < 1) {
-            throw new IllegalArgumentException("payment.recovery.stale-after-seconds must be greater than 0");
+            throw new IllegalArgumentException("payment.recovery-scheduler.stale-after-seconds must be greater than 0");
         }
         if (batchSize < 1) {
-            throw new IllegalArgumentException("payment.recovery.batch-size must be greater than 0");
+            throw new IllegalArgumentException("payment.recovery-scheduler.batch-size must be greater than 0");
         }
     }
 }

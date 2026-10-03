@@ -2,7 +2,7 @@ package com.v_payment.pay.product.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "product.kafka.producers.quantity-change-result")
+@ConfigurationProperties(prefix = "product.quantity-change-result-producer")
 public record QuantityChangeResultProducerProperties(
         String topic
 ) {

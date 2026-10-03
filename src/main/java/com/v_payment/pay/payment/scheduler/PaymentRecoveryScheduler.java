@@ -19,7 +19,7 @@ public class PaymentRecoveryScheduler {
     private final PaymentRecoveryService paymentRecoveryService;
     private final TossPayment tossPayment;
 
-    @Scheduled(fixedDelayString = "${payment.recovery.fixed-delay-ms:30000}")
+    @Scheduled(fixedDelayString = "${payment.recovery-scheduler.fixed-delay-ms:30000}")
     public void recoverPayments() {
         List<PaymentPayload> recoveryPayments = paymentRecoveryService.findRecoveryTargets();
 
