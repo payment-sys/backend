@@ -80,6 +80,23 @@ public class MeterFilter implements io.micrometer.core.instrument.config.MeterFi
                     Duration.ofSeconds(15).toNanos()
             );
         }
+        if (name.equals("pay.kafka.consumer.process.duration")) {
+            return buckets(
+                    config,
+                    Duration.ofMillis(10).toNanos(),
+                    Duration.ofMillis(30).toNanos(),
+                    Duration.ofMillis(50).toNanos(),
+                    Duration.ofMillis(100).toNanos(),
+                    Duration.ofMillis(300).toNanos(),
+                    Duration.ofMillis(600).toNanos(),
+                    Duration.ofMillis(900).toNanos(),
+                    Duration.ofMillis(1200).toNanos(),
+                    Duration.ofSeconds(2).toNanos(),
+                    Duration.ofSeconds(3).toNanos(),
+                    Duration.ofSeconds(5).toNanos(),
+                    Duration.ofSeconds(10).toNanos()
+            );
+        }
         if (name.equals("virtual_thread_running")) {
             return buckets(config, 1, 10, 30, 50, 100, 200, 300);
         }
@@ -97,6 +114,9 @@ public class MeterFilter implements io.micrometer.core.instrument.config.MeterFi
                 || name.equals("pay.api.requests.duration")
                 || name.equals("pay.external.requests.duration")
                 || name.equals("pay.payment.approval.stage.duration")
+                || name.startsWith("pay.kafka.")
+                || name.startsWith("kafka.")
+                || name.startsWith("spring.kafka.")
                 || name.startsWith("pay.scheduler")
                 || name.startsWith("hikaricp.connections")
                 || name.startsWith("tomcat.threads")

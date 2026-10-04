@@ -1,5 +1,7 @@
 package com.v_payment.pay.order.infra.kafka;
 
+import com.v_payment.pay.global.meter.KafkaMetrics;
+import com.v_payment.pay.order.config.QuantityChangeResultConsumerProperties;
 import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeResultMessage;
 import com.v_payment.pay.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,8 @@ import java.util.List;
 public class QuantityChangeResultConsumer {
     private final ObjectMapper objectMapper;
     private final OrderService orderService;
+    private final QuantityChangeResultConsumerProperties properties;
+    private final KafkaMetrics kafkaMetrics;
 
     @KafkaListener(
             topics = "${order.quantity-change-result-consumer.topic}",
@@ -23,8 +27,10 @@ public class QuantityChangeResultConsumer {
             containerFactory = "quantityChangeResultBatchKafkaListenerContainerFactory"
     )
     public void listen(List<String> message) {
-        List<QuantityChangeResultMessage> quantityChangeResultMessages = parseMessage(message);
-        orderService.finalizeOrderBatch(quantityChangeResultMessages);
+        kafkaMetrics.recordConsumerProcess(properties.topic(), "order-quantity-change-result-consumer", () -> {
+            List<QuantityChangeResultMessage> quantityChangeResultMessages = parseMessage(message);
+            orderService.finalizeOrderBatch(quantityChangeResultMessages);
+        });
     }
 
     private List<QuantityChangeResultMessage> parseMessage(List<String> messages) {
