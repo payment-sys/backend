@@ -79,6 +79,7 @@ product:
   quantity-change-result-outbox-scheduler:
     fixed-delay-ms: 30000
     batch-size: 100
+    retry-delay-seconds: 30
 
 order:
   # 주문 만료 처리 스케줄러 설정
@@ -93,6 +94,7 @@ order:
   quantity-change-outbox-scheduler:
     fixed-delay-ms: 30000
     batch-size: 100
+    retry-delay-seconds: 30
   # Kafka 재고 차감 결과 이벤트 소비 설정
   quantity-change-result-consumer:
     topic: event.product.quantity-change-result

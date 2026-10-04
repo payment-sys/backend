@@ -15,6 +15,7 @@ public interface QuantityChangeResultOutboxRepository extends JpaRepository<Quan
                     FROM quantity_change_result_outbox
                     WHERE status = :status
                       AND (next_attempt_time IS NULL OR next_attempt_time <= :now)
+                      AND created_at <= :publishBefore
                     ORDER BY quantity_change_result_outbox_id ASC
                     LIMIT :limit
                     FOR UPDATE SKIP LOCKED
@@ -24,6 +25,7 @@ public interface QuantityChangeResultOutboxRepository extends JpaRepository<Quan
     List<QuantityChangeResultOutbox> findReadyForPublish(
             @Param("status") String status,
             @Param("now") LocalDateTime now,
+            @Param("publishBefore") LocalDateTime publishBefore,
             @Param("limit") int limit
     );
 }

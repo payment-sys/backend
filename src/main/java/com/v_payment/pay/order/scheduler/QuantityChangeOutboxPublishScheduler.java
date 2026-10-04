@@ -12,12 +12,15 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j(topic = "SCHEDULER_LOGGER")
 @Component
 @RequiredArgsConstructor
 public class QuantityChangeOutboxPublishScheduler {
+    private final Clock clock;
     private final QuantityChangeOutboxRepository quantityChangeOutboxRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final QuantityChangeOutboxPublishProperties properties;
@@ -30,8 +33,11 @@ public class QuantityChangeOutboxPublishScheduler {
     )
     @Transactional
     public void publishReady() {
+        LocalDateTime publishBefore = LocalDateTime.now(clock)
+                .minusSeconds(properties.retryDelaySeconds());
         List<QuantityChangeOutbox> outboxes = quantityChangeOutboxRepository.findReadyForPublish(
                 QuantityChangeOutboxStatus.READY.name(),
+                publishBefore,
                 properties.batchSize()
         );
 

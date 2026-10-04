@@ -34,9 +34,12 @@ public class QuantityChangeResultOutboxPublishScheduler {
     )
     @Transactional
     public void publishReady() {
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime publishBefore = now.minusSeconds(properties.retryDelaySeconds());
         List<QuantityChangeResultOutbox> outboxes = quantityChangeResultOutboxRepository.findReadyForPublish(
                 QuantityChangeResultOutboxStatus.READY.name(),
-                LocalDateTime.now(clock),
+                now,
+                publishBefore,
                 properties.batchSize()
         );
 
