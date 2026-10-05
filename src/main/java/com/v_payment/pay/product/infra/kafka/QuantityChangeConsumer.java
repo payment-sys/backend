@@ -23,16 +23,19 @@ public class QuantityChangeConsumer {
 
     @KafkaListener(
             topics = "${product.quantity-change-consumer.topic}",
-            groupId = "${product.quantity-change-consumer.group-id}"
+            groupId = "${product.quantity-change-consumer.group-id}",
+            containerFactory = "quantityChangeBatchKafkaListenerContainerFactory"
     )
-    public void listen(String message) {
+    public void listen(List<String> message) {
         kafkaMetrics.recordConsumerProcess(properties.topic(), "product-quantity-change-consumer", () -> {
-            List<QuantityChangeMessage> quantityChangeMessages = parseMessage(message);
+            List<QuantityChangeMessage> quantityChangeMessages = parseMessages(message);
             productService.changeQuantityBatch(quantityChangeMessages);
         });
     }
 
-    private List<QuantityChangeMessage> parseMessage(String message) {
-        return List.of(objectMapper.readValue(message, QuantityChangeMessage.class));
+    private List<QuantityChangeMessage> parseMessages(List<String> messages) {
+        return messages.stream()
+                .map(message -> objectMapper.readValue(message, QuantityChangeMessage.class))
+                .toList();
     }
 }
