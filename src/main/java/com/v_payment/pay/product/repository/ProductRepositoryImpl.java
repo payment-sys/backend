@@ -1,15 +1,18 @@
 package com.v_payment.pay.product.repository;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.Map;
 
 @Repository
-@RequiredArgsConstructor
 public class ProductRepositoryImpl implements ProductJdbcRepository {
     private final JdbcTemplate jdbcTemplate;
+
+    public ProductRepositoryImpl(@Qualifier("productJdbcTemplate") JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     @Override
     public void changeQuantityBatch(Map<Long, Integer> successChangeQuantities) {

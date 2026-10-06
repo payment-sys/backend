@@ -30,14 +30,14 @@ public class ProductService {
     private final QuantityChangeResultOutboxRepository quantityChangeResultOutboxRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    @Transactional
+    @Transactional("productTransactionManager")
     public ProductCreateRes create(ProductCreateReq req) {
         Product product = Product.create(req.name(), req.price(), req.stockQuantity());
         productRepository.save(product);
         return ProductCreateRes.from(product);
     }
 
-    @Transactional
+    @Transactional("productTransactionManager")
     public void changeQuantityBatch(List<QuantityChangeMessage> quantityChangeMessages) {
         QuantityChangePlan plan = QuantityChangePlan.create(quantityChangeMessages);
         List<Product> products = productRepository.findAllByIdInForUpdate(plan.getProductIds());

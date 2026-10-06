@@ -2,7 +2,7 @@ package com.v_payment.pay.product.repository;
 
 import com.v_payment.pay.product.domain.entity.QuantityChangeResultOutbox;
 import com.v_payment.pay.product.domain.entity.QuantityChangeResultOutboxStatus;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Repository
-@RequiredArgsConstructor
 public class QuantityChangeResultOutboxJdbcRepositoryImpl implements QuantityChangeResultOutboxJdbcRepository {
     private static final String OUTBOX_BATCH = """
                 insert ignore into quantity_change_result_outbox (
@@ -40,6 +39,12 @@ public class QuantityChangeResultOutboxJdbcRepositoryImpl implements QuantityCha
                 """;
 
     private final JdbcTemplate jdbcTemplate;
+
+    public QuantityChangeResultOutboxJdbcRepositoryImpl(
+            @Qualifier("productJdbcTemplate") JdbcTemplate jdbcTemplate
+    ) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     @Override
     public List<QuantityChangeResultOutbox> createOutboxBatch(List<QuantityChangeResultOutbox> outboxes) {

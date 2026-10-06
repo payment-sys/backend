@@ -17,7 +17,7 @@ public class QuantityChangeResultOutboxService {
     private final Clock clock;
     private final QuantityChangeResultOutboxRepository quantityChangeResultOutboxRepository;
 
-    @Transactional
+    @Transactional("productTransactionManager")
     public void markDoneBatch(List<QuantityChangeResultOutbox> outboxes) {
         if (outboxes == null || outboxes.isEmpty()) {
             return;

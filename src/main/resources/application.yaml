@@ -37,21 +37,6 @@ spring:
       properties:
         processing.guarantee: exactly_once_v2
         commit.interval.ms: 1000
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${MYSQL_URL}
-    username: ${MYSQL_USERNAME}
-    password: ${MYSQL_PASSWORD}
-    hikari:
-      auto-commit: false
-      maximum-pool-size: 18
-      minimum-idle: 18
-      connection-timeout: 1000
-      validation-timeout: 1000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-      keepalive-time: 120000
-      register-mbeans: true
   jpa:
     hibernate:
       ddl-auto: none
@@ -62,6 +47,39 @@ spring:
         connection:
           provider_disables_autocommit: true
     open-in-view: false
+
+app:
+  datasource:
+    order-payment:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: ${ORDER_PAYMENT_MYSQL_URL:${MYSQL_URL}}
+      username: ${ORDER_PAYMENT_MYSQL_USERNAME:${MYSQL_USERNAME}}
+      password: ${ORDER_PAYMENT_MYSQL_PASSWORD:${MYSQL_PASSWORD}}
+      hikari:
+        auto-commit: false
+        maximum-pool-size: 18
+        minimum-idle: 18
+        connection-timeout: 1000
+        validation-timeout: 1000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        keepalive-time: 120000
+        register-mbeans: true
+    product:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: ${PRODUCT_MYSQL_URL:${MYSQL_URL}}
+      username: ${PRODUCT_MYSQL_USERNAME:${MYSQL_USERNAME}}
+      password: ${PRODUCT_MYSQL_PASSWORD:${MYSQL_PASSWORD}}
+      hikari:
+        auto-commit: false
+        maximum-pool-size: 18
+        minimum-idle: 18
+        connection-timeout: 1000
+        validation-timeout: 1000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        keepalive-time: 120000
+        register-mbeans: true
 
 payment:
   # IN_PROGRESS, UNKNOWN 상태 결제 복구 스케줄러 설정
@@ -141,6 +159,8 @@ management:
 #env
 #KAFKA_BOOTSTRAP_SERVERS=
 #MYSQL_URL=
+#ORDER_PAYMENT_MYSQL_URL=
+#PRODUCT_MYSQL_URL=
 #MYSQL_USERNAME=
 #MYSQL_PASSWORD=
 #TOSS_PAYMENT_SECRET=

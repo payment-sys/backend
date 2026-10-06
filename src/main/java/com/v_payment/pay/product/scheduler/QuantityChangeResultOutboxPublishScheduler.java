@@ -32,7 +32,7 @@ public class QuantityChangeResultOutboxPublishScheduler {
             lockAtMostFor = "10s",
             lockAtLeastFor = "1s"
     )
-    @Transactional
+    @Transactional("productTransactionManager")
     public void publishReady() {
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime publishBefore = now.minusSeconds(properties.retryDelaySeconds());

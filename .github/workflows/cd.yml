@@ -34,7 +34,8 @@ jobs:
       ALB_TARGET_PORT: ${{ secrets.ALB_TARGET_PORT }}
       HOST_INSTANCE_MAP: ${{ secrets.HOST_INSTANCE_MAP }}
       KAFKA_BOOTSTRAP_SERVERS: ${{ secrets.KAFKA_BOOTSTRAP_SERVERS }}
-      MYSQL_URL: ${{ secrets.MYSQL_URL }}
+      ORDER_PAYMENT_MYSQL_URL: ${{ secrets.ORDER_PAYMENT_MYSQL_URL }}
+      PRODUCT_MYSQL_URL: ${{ secrets.PRODUCT_MYSQL_URL }}
       MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
       MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
       TOSS_PAYMENT_SECRET: ${{ secrets.TOSS_PAYMENT_SECRET }}
@@ -90,8 +91,13 @@ jobs:
             exit 1
           fi
 
-          if [ -z "${MYSQL_URL}" ]; then
-            echo "MYSQL_URL secret is empty"
+          if [ -z "${ORDER_PAYMENT_MYSQL_URL}" ]; then
+            echo "ORDER_PAYMENT_MYSQL_URL secret is empty"
+            exit 1
+          fi
+
+          if [ -z "${PRODUCT_MYSQL_URL}" ]; then
+            echo "PRODUCT_MYSQL_URL secret is empty"
             exit 1
           fi
 
@@ -176,7 +182,8 @@ jobs:
             }
 
             write_dotenv_var KAFKA_BOOTSTRAP_SERVERS "${KAFKA_BOOTSTRAP_SERVERS}"
-            write_dotenv_var MYSQL_URL "${MYSQL_URL}"
+            write_dotenv_var ORDER_PAYMENT_MYSQL_URL "${ORDER_PAYMENT_MYSQL_URL}"
+            write_dotenv_var PRODUCT_MYSQL_URL "${PRODUCT_MYSQL_URL}"
             write_dotenv_var MYSQL_USERNAME "${MYSQL_USERNAME}"
             write_dotenv_var MYSQL_PASSWORD "${MYSQL_PASSWORD}"
             write_dotenv_var TOSS_PAYMENT_SECRET "${TOSS_PAYMENT_SECRET}"
