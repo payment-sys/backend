@@ -8,7 +8,7 @@ import org.springframework.kafka.core.ConsumerFactory;
 @Configuration
 public class OrderKafkaListenerConfig {
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, String> quantityChangeResultBatchKafkaListenerContainerFactory(
+    public ConcurrentKafkaListenerContainerFactory<String, String> quantityChangeSummaryBatchKafkaListenerContainerFactory(
             ConsumerFactory<String, String> consumerFactory
     ) {
         ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
