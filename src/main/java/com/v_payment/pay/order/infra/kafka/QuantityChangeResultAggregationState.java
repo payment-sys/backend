@@ -1,5 +1,6 @@
 package com.v_payment.pay.order.infra.kafka;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeResultMessage;
 import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryStatus;
 import com.v_payment.pay.product.domain.entity.ChangeStatus;
@@ -7,6 +8,11 @@ import com.v_payment.pay.product.domain.entity.ChangeStatus;
 import java.util.HashSet;
 import java.util.Set;
 
+@JsonAutoDetect(
+        fieldVisibility = JsonAutoDetect.Visibility.ANY,
+        getterVisibility = JsonAutoDetect.Visibility.NONE,
+        isGetterVisibility = JsonAutoDetect.Visibility.NONE
+)
 public class QuantityChangeResultAggregationState {
     private String orderCode;
     private Integer productsCount;
