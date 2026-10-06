@@ -106,4 +106,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("createdStatus") OrderStatus createdStatus,
             @Param("successStatus") OrderItemStatus successStatus
     );
+
+    @Query("""
+            select new com.v_payment.pay.order.domain.OrderPaymentCreateSource(
+                o.orderCode,
+                o.totalAmount,
+                o.paymentMethod
+            )
+            from Order o
+            where o.orderCode in :orderCodes
+              and o.status = :status
+            """)
+    List<OrderPaymentCreateSource> findPaymentCreateSourcesByOrderCodes(
+            @Param("orderCodes") Collection<String> orderCodes,
+            @Param("status") OrderStatus status
+    );
 }

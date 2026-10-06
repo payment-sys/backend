@@ -1,6 +1,9 @@
 spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    streams:
+      application-id: order-quantity-result-aggregator-test
+      auto-startup: false
     listener:
       auto-startup: false
     producer:
@@ -57,3 +60,9 @@ order:
   quantity-change-result-consumer:
     topic: event.product.quantity-change-result-test
     group-id: payment-order-test
+  quantity-change-result-aggregation:
+    input-topic: event.product.quantity-change-result-test
+    output-topic: event.order.quantity-change-summary-test
+  quantity-change-summary-consumer:
+    topic: event.order.quantity-change-summary-test
+    group-id: payment-order-summary-test

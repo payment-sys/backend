@@ -5,6 +5,7 @@ import com.v_payment.pay.order.controller.dto.req.OrderCreateReq;
 import com.v_payment.pay.order.controller.dto.res.OrderCreateRes;
 import com.v_payment.pay.order.domain.OrderPaymentCreateSource;
 import com.v_payment.pay.order.domain.QuantityChangeResultPlan;
+import com.v_payment.pay.order.domain.QuantityChangeSummaries;
 import com.v_payment.pay.order.domain.orderitem.OrderItemSources;
 import com.v_payment.pay.order.domain.orderitem.OrderItemStatus;
 import com.v_payment.pay.order.domain.ReqQuantities;
@@ -13,6 +14,7 @@ import com.v_payment.pay.order.domain.order.OrderStatus;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;
 import com.v_payment.pay.order.exception.OrderException;
 import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeResultMessage;
+import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryMessage;
 import com.v_payment.pay.order.repository.OrderItemRepository;
 import com.v_payment.pay.order.repository.OrderRepository;
 import com.v_payment.pay.order.repository.QuantityChangeOutboxRepository;
@@ -69,6 +71,22 @@ public class OrderService {
         List<String> completedOrderCodes = plan.getCompletedOrderCodes(paymentCreateSources);
         if (completedOrderCodes.isEmpty()) return;
         orderRepository.markStatusByOrderCodes(completedOrderCodes, OrderStatus.CREATED, OrderStatus.ORDER_SUCCESS);
+        paymentManager.createPendingPayments(getList(paymentCreateSources));
+    }
+
+    @Transactional
+    public void finalizeOrderSummaryBatch(List<QuantityChangeSummaryMessage> quantityChangeSummaryMessages) {
+        QuantityChangeSummaries summaries = QuantityChangeSummaries.create(quantityChangeSummaryMessages);
+        if (summaries.isEmpty()) return;
+        if (summaries.hasFailedOrders()) orderRepository.markStatusByOrderCodes(summaries.getFailedOrderCodes(),
+                    OrderStatus.CREATED, OrderStatus.LACK_QUANTITY);
+        if (!summaries.hasSuccessOrders()) return;
+        List<OrderPaymentCreateSource> paymentCreateSources =
+                orderRepository.findPaymentCreateSourcesByOrderCodes(summaries.getSuccessOrderCodes(), OrderStatus.CREATED);
+        if (paymentCreateSources.isEmpty()) return;
+        List<String> paymentReadyOrderCodes = paymentCreateSources.stream().map(OrderPaymentCreateSource::orderCode)
+                .toList();
+        orderRepository.markStatusByOrderCodes(paymentReadyOrderCodes, OrderStatus.CREATED, OrderStatus.ORDER_SUCCESS);
         paymentManager.createPendingPayments(getList(paymentCreateSources));
     }
 
