@@ -31,6 +31,12 @@ spring:
         max.poll.records: 500
         fetch.min.bytes: 32768
         fetch.max.wait.ms: 1000
+    streams:
+      application-id: order-quantity-result-aggregator
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+      properties:
+        processing.guarantee: exactly_once_v2
+        commit.interval.ms: 1000
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${MYSQL_URL}
@@ -105,6 +111,14 @@ order:
   quantity-change-result-consumer:
     topic: event.product.quantity-change-result
     group-id: order-quantity-change-result-consumer
+  # Kafka streams 재고 변경 결과 집계 토픽
+  quantity-change-result-aggregation:
+    input-topic: event.product.quantity-change-result
+    output-topic: event.order.quantity-change-summary
+  # Kafka streams 재고 변경 결과 집계 소비자
+  quantity-change-summary-consumer:
+    topic: event.order.quantity-change-summary
+    group-id: order-quantity-change-summary-consumer
 
 management:
   server:
