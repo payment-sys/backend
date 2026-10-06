@@ -5,9 +5,10 @@ import com.v_payment.pay.product.domain.entity.ChangeStatus;
 public record QuantityChangeResultMessage(
         String orderCode,
         Long productId,
-        ChangeStatus changeStatus
+        ChangeStatus changeStatus,
+        Integer productsCount
 ) {
-    public static QuantityChangeResultMessage of(String orderCode, Long productId, ChangeStatus changeStatus) {
-        return new QuantityChangeResultMessage(orderCode, productId, changeStatus);
+    public static QuantityChangeResultMessage of(String orderCode, Long productId, ChangeStatus changeStatus, Integer productsCount) {
+        return new QuantityChangeResultMessage(orderCode, productId, changeStatus, productsCount);
     }
 }

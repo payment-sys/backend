@@ -51,6 +51,9 @@ public class QuantityChangeResultOutbox {
     @Column(name = "change_count", nullable = false)
     private Integer changeCount;
 
+    @Column(name = "products_count", nullable = false)
+    private Integer productsCount;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ChangeStatus changeStatus;
@@ -76,6 +79,7 @@ public class QuantityChangeResultOutbox {
             String orderCode,
             Long productId,
             Integer changeCount,
+            Integer productsCount,
             ChangeStatus changeStatus,
             String failReason,
             QuantityChangeResultOutboxStatus quantityChangeResultOutboxStatus,
@@ -87,6 +91,7 @@ public class QuantityChangeResultOutbox {
         this.orderCode = validateOrderCode(orderCode);
         this.productId = validateProductId(productId);
         this.changeCount = validateChangeCount(changeCount);
+        this.productsCount = validateProductsCount(productsCount);
         this.changeStatus = validateChangeStatus(changeStatus);
         this.failReason = failReason;
         this.quantityChangeResultOutboxStatus = validateStatus(quantityChangeResultOutboxStatus);
@@ -115,6 +120,7 @@ public class QuantityChangeResultOutbox {
                 validMessage.orderCode(),
                 validMessage.productId(),
                 validMessage.changeCount(),
+                validMessage.productsCount(),
                 changeStatus,
                 failReason,
                 QuantityChangeResultOutboxStatus.READY,
@@ -131,7 +137,7 @@ public class QuantityChangeResultOutbox {
     }
 
     public QuantityChangeResultMessage getQuantityChangeResult() {
-        return QuantityChangeResultMessage.of(orderCode, productId, changeStatus);
+        return QuantityChangeResultMessage.of(orderCode, productId, changeStatus, productsCount);
     }
 
     private static QuantityChangeMessage validateMessage(QuantityChangeMessage message) {
@@ -185,4 +191,9 @@ public class QuantityChangeResultOutbox {
         return updatedAt;
     }
 
+
+    private Integer validateProductsCount(Integer productsCount) {
+        if (productsCount == null) throw new IllegalArgumentException("productsCount is required.");
+        return productsCount;
+    }
 }

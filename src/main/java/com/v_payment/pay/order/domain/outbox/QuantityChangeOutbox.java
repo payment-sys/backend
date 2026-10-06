@@ -99,13 +99,15 @@ public class QuantityChangeOutbox {
     }
 
     public List<QuantityChangeMessage> getQuantityChangeMessages() {
+        int size = reqQuantities.getReqQuantities().size();
         return reqQuantities.getQuantityMap()
                 .entrySet()
                 .stream()
                 .map(entry -> new QuantityChangeMessage(
                         orderCode,
                         entry.getKey(),
-                        entry.getValue()
+                        entry.getValue(),
+                        size
                 ))
                 .toList();
     }
