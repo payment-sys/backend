@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +59,7 @@ public class QuantityChangeResultOutboxJdbcRepositoryImpl implements QuantityCha
         int outboxIndex = 0;
         for (int[] batchUpdateCounts : updateCounts) {
             for (int updateCount : batchUpdateCounts) {
-                if (updateCount > 0) {
+                if (updateCount > 0 || updateCount == Statement.SUCCESS_NO_INFO) {
                     insertedOutboxes.add(outboxes.get(outboxIndex));
                 }
                 outboxIndex++;
