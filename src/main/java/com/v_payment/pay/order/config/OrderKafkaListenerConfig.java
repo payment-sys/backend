@@ -14,7 +14,7 @@ public class OrderKafkaListenerConfig {
         ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
         factory.setBatchListener(true);
-        factory.setConcurrency(8);
+        factory.setConcurrency(4);
         return factory;
     }
 }
