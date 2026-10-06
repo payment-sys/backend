@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class ProductManager {
     private final ProductRepository productRepository;
 
-    @Transactional
+    @Transactional("productTransactionManager")
     public void restore(List<ProductRestoreReq> requests) {
         if (requests.isEmpty()) {
             return;
@@ -42,10 +42,12 @@ public class ProductManager {
     }
 
     @WithSpan("product.ProductManager.findProductBasicInfos")
+    @Transactional(value = "productTransactionManager", readOnly = true)
     public List<ProductBasicInfo> findProductBasicInfos(List<Long> productIds) {
         return productRepository.findProductBasicInfos(productIds);
     }
 
+    @Transactional("productTransactionManager")
     public Map<Long, Product> findProductsMapForUpdate(Collection<Long> productIds) {
         return productRepository.findAllByIdInForUpdate(productIds).stream()
                 .collect(Collectors.toMap(Product::getId, product -> product));
