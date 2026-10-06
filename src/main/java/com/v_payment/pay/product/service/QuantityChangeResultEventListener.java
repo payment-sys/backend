@@ -31,12 +31,13 @@ public class QuantityChangeResultEventListener {
     }
 
     private void completeSends(List<QuantityChangeResultOutbox> outboxes) {
-        log.debug("메시지 발행중");
+        log.debug("메시지 발행중 count={}", outboxes.size());
         List<CompletableFuture<?>> sendResults = new ArrayList<>();
         for (QuantityChangeResultOutbox outbox : outboxes) {
             sendResults.add(quantityChangeResultProducer.send(outbox.getQuantityChangeResult()));
         }
-        sendResults.forEach(CompletableFuture::join);
+        CompletableFuture.allOf(sendResults.toArray(new CompletableFuture[0])).join();
+        log.debug("아웃박스 DONE 체크중 count={}", sendResults.size());
         quantityChangeResultOutboxService.markDoneBatch(outboxes);
     }
 
