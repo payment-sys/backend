@@ -3,7 +3,6 @@ package com.v_payment.pay.order.repository;
 import com.v_payment.pay.order.domain.OrderPaymentCreateSource;
 import com.v_payment.pay.order.domain.order.Order;
 import com.v_payment.pay.order.domain.order.OrderStatus;
-import com.v_payment.pay.order.domain.orderitem.OrderItemStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -17,6 +16,8 @@ import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByOrderCode(String orderCode);
+
+    List<Order> findAllByOrderCodeInAndStatus(Collection<String> orderCodes, OrderStatus status);
 
     boolean existsByOrderCodeAndStatus(String orderCode, OrderStatus status);
 
@@ -83,28 +84,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("orderCodes") Collection<String> orderCodes,
             @Param("currentStatus") OrderStatus currentStatus,
             @Param("targetStatus") OrderStatus targetStatus
-    );
-
-    @Query("""
-            select new com.v_payment.pay.order.domain.OrderPaymentCreateSource(
-                o.orderCode,
-                o.totalAmount,
-                o.paymentMethod
-            )
-            from Order o
-            where o.orderCode in :orderCodes
-              and o.status = :createdStatus
-              and not exists (
-                  select 1
-                  from OrderItem oi
-                  where oi.order = o
-                    and oi.status <> :successStatus
-              )
-            """)
-    List<OrderPaymentCreateSource> findPaymentCreateSourcesForCompletedOrders(
-            @Param("orderCodes") Collection<String> orderCodes,
-            @Param("createdStatus") OrderStatus createdStatus,
-            @Param("successStatus") OrderItemStatus successStatus
     );
 
     @Query("""

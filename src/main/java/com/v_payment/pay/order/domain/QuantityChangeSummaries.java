@@ -44,6 +44,10 @@ public class QuantityChangeSummaries {
         return successOrderCodes;
     }
 
+    public List<QuantityChangeSummaryMessage> getMessages() {
+        return messages;
+    }
+
     private List<QuantityChangeSummaryMessage> validateMessages(List<QuantityChangeSummaryMessage> messages) {
         if (messages == null || messages.isEmpty()) {
             return List.of();
@@ -62,6 +66,12 @@ public class QuantityChangeSummaries {
         }
         if (message.status() == null) {
             throw new IllegalArgumentException("status is required.");
+        }
+        if (message.successProductIds() == null) {
+            throw new IllegalArgumentException("successProductIds is required.");
+        }
+        if (message.failedProductIds() == null) {
+            throw new IllegalArgumentException("failedProductIds is required.");
         }
     }
 

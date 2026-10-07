@@ -8,6 +8,7 @@ import com.v_payment.pay.product.domain.entity.ChangeStatus;
 import com.v_payment.pay.product.domain.entity.Product;
 import com.v_payment.pay.product.domain.entity.QuantityChangeResultOutbox;
 import com.v_payment.pay.product.infra.kafka.dto.QuantityChangeMessage;
+import com.v_payment.pay.product.infra.kafka.dto.QuantityChangeType;
 import com.v_payment.pay.product.repository.ProductRepository;
 import com.v_payment.pay.product.repository.QuantityChangeResultOutboxRepository;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +40,19 @@ public class ProductService {
 
     @Transactional("productTransactionManager")
     public void changeQuantityBatch(List<QuantityChangeMessage> quantityChangeMessages) {
-        QuantityChangePlan plan = QuantityChangePlan.create(quantityChangeMessages);
+        List<QuantityChangeMessage> decreaseMessages = quantityChangeMessages.stream()
+                .filter(message -> message.type() == QuantityChangeType.DECREASE)
+                .toList();
+        List<QuantityChangeMessage> compensateMessages = quantityChangeMessages.stream()
+                .filter(message -> message.type() == QuantityChangeType.COMPENSATE)
+                .toList();
+
+        compensate(compensateMessages);
+        if (decreaseMessages.isEmpty()) {
+            return;
+        }
+
+        QuantityChangePlan plan = QuantityChangePlan.create(decreaseMessages);
         List<Product> products = productRepository.findAllByIdInForUpdate(plan.getProductIds());
         plan.updateSuccessAndFail(products);
         List<QuantityChangeResultOutbox> insertedOutboxes = createOutboxesByPlan(plan);
@@ -47,6 +60,20 @@ public class ProductService {
         if (!insertedOutboxes.isEmpty()) {
             applicationEventPublisher.publishEvent(new QuantityChangeResultOutboxesEvent(insertedOutboxes));
         }
+    }
+
+    private void compensate(List<QuantityChangeMessage> compensateMessages) {
+        if (compensateMessages.isEmpty()) {
+            return;
+        }
+
+        Map<Long, Integer> compensateQuantities = compensateMessages.stream()
+                .collect(Collectors.toMap(
+                        QuantityChangeMessage::productId,
+                        QuantityChangeMessage::changeCount,
+                        Integer::sum
+                ));
+        productRepository.changeQuantityBatch(compensateQuantities);
     }
 
     private List<QuantityChangeResultOutbox> createOutboxesByPlan(QuantityChangePlan plan) {

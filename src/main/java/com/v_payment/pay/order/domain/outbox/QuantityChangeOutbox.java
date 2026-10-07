@@ -3,6 +3,7 @@ package com.v_payment.pay.order.domain.outbox;
 import com.v_payment.pay.order.domain.ReqQuantities;
 import com.v_payment.pay.order.domain.ReqQuantity;
 import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeMessage;
+import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,6 +13,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -21,6 +23,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Entity
@@ -29,6 +32,12 @@ import java.util.concurrent.CompletableFuture;
         indexes = {
                 @Index(name = "idx_quantity_change_outbox_status_next_attempt_id",
                         columnList = "status, next_attempt_time, quantity_change_outbox_id")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_quantity_change_outbox_order_type",
+                        columnNames = {"order_code", "outbox_type"}
+                )
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -46,6 +55,10 @@ public class QuantityChangeOutbox {
     private ReqQuantities reqQuantities;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "outbox_type", nullable = false)
+    private QuantityChangeOutboxType type;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private QuantityChangeOutboxStatus status;
 
@@ -61,6 +74,7 @@ public class QuantityChangeOutbox {
 
     public QuantityChangeOutbox(String orderCode,
                                 ReqQuantities reqQuantities,
+                                QuantityChangeOutboxType type,
                                 QuantityChangeOutboxStatus status,
                                 Integer retryCount,
                                 LocalDateTime nextAttemptTime,
@@ -68,6 +82,7 @@ public class QuantityChangeOutbox {
                                 LocalDateTime updatedAt) {
         this.orderCode = validateOrderCode(orderCode);
         this.reqQuantities = validateReqQuantities(reqQuantities);
+        this.type = validateType(type);
         this.status = validateStatus(status);
         this.retryCount = validateRetryCount(retryCount);
         this.nextAttemptTime = nextAttemptTime;
@@ -79,6 +94,20 @@ public class QuantityChangeOutbox {
         return new QuantityChangeOutbox(
                 reqQuantities.getOrderCode(),
                 reqQuantities,
+                QuantityChangeOutboxType.DECREASE,
+                QuantityChangeOutboxStatus.READY,
+                0,
+                null,
+                LocalDateTime.now(validateClock(clock)),
+                null
+        );
+    }
+
+    public static QuantityChangeOutbox compensate(String orderCode, Map<Long, Integer> quantitiesByProductId, Clock clock) {
+        return new QuantityChangeOutbox(
+                orderCode,
+                ReqQuantities.ofQuantities(orderCode, quantitiesByProductId),
+                QuantityChangeOutboxType.COMPENSATE,
                 QuantityChangeOutboxStatus.READY,
                 0,
                 null,
@@ -91,7 +120,7 @@ public class QuantityChangeOutbox {
         List<CompletableFuture<?>> results = new ArrayList<>();
         for (ReqQuantity reqQuantity : reqQuantities.getReqQuantities()) {
             CompletableFuture<?> publishResult = publisher.publish(orderCode, reqQuantity.getProductId(),
-                    reqQuantity.getQuantity());
+                    changeCount(reqQuantity.getQuantity()));
 
             results.add(publishResult);
         }
@@ -106,10 +135,25 @@ public class QuantityChangeOutbox {
                 .map(entry -> new QuantityChangeMessage(
                         orderCode,
                         entry.getKey(),
-                        entry.getValue(),
-                        size
+                        changeCount(entry.getValue()),
+                        size,
+                        messageType()
                 ))
                 .toList();
+    }
+
+    private QuantityChangeType messageType() {
+        if (type == QuantityChangeOutboxType.COMPENSATE) {
+            return QuantityChangeType.COMPENSATE;
+        }
+        return QuantityChangeType.DECREASE;
+    }
+
+    private Integer changeCount(Integer quantity) {
+        if (type == QuantityChangeOutboxType.DECREASE) {
+            return -quantity;
+        }
+        return quantity;
     }
 
     public void markDone(LocalDateTime updatedAt) {
@@ -131,6 +175,10 @@ public class QuantityChangeOutbox {
 
     public QuantityChangeOutboxStatus getStatus() {
         return status;
+    }
+
+    public QuantityChangeOutboxType getType() {
+        return type;
     }
 
     public Integer getRetryCount() {
@@ -162,6 +210,11 @@ public class QuantityChangeOutbox {
     private ReqQuantities validateReqQuantities(ReqQuantities reqQuantities) {
         if (reqQuantities == null) throw new IllegalArgumentException("quantityChanges는 필수입니다.");
         return reqQuantities;
+    }
+
+    private QuantityChangeOutboxType validateType(QuantityChangeOutboxType type) {
+        if (type == null) throw new IllegalArgumentException("type is required.");
+        return type;
     }
 
     private QuantityChangeOutboxStatus validateStatus(QuantityChangeOutboxStatus status) {

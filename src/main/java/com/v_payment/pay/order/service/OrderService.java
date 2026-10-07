@@ -4,18 +4,15 @@ import com.v_payment.pay.global.exception.BusinessException;
 import com.v_payment.pay.order.controller.dto.req.OrderCreateReq;
 import com.v_payment.pay.order.controller.dto.res.OrderCreateRes;
 import com.v_payment.pay.order.domain.OrderPaymentCreateSource;
-import com.v_payment.pay.order.domain.QuantityChangeResultPlan;
 import com.v_payment.pay.order.domain.QuantityChangeSummaries;
 import com.v_payment.pay.order.domain.orderitem.OrderItemSources;
-import com.v_payment.pay.order.domain.orderitem.OrderItemStatus;
 import com.v_payment.pay.order.domain.ReqQuantities;
 import com.v_payment.pay.order.domain.order.Order;
 import com.v_payment.pay.order.domain.order.OrderStatus;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;
 import com.v_payment.pay.order.exception.OrderException;
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeResultMessage;
 import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryMessage;
-import com.v_payment.pay.order.repository.OrderItemRepository;
+import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryStatus;
 import com.v_payment.pay.order.repository.OrderRepository;
 import com.v_payment.pay.order.repository.QuantityChangeOutboxRepository;
 import com.v_payment.pay.payment.domain.entity.PaymentMethod;
@@ -31,15 +28,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class OrderService {
     private final Clock clock;
     private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
     private final QuantityChangeOutboxRepository quantityChangeOutboxRepository;
     private final ProductManager productManager;
     private final PaymentManager paymentManager;
@@ -58,36 +55,74 @@ public class OrderService {
     }
 
     @Transactional
-    public void finalizeOrderBatch(List<QuantityChangeResultMessage> quantityChangeResultMessages) {
-        QuantityChangeResultPlan plan = QuantityChangeResultPlan.create(quantityChangeResultMessages);
-        orderItemRepository.updateStatusByQuantityChangeResults(plan.getMessages(), OrderItemStatus.PROCESSING,
-                OrderItemStatus.CHANGED, OrderItemStatus.FAILED);
-        List<String> failedOrderCodes = orderItemRepository.findOrderCodesByItemStatus(plan.getOrderCodes(),
-                OrderItemStatus.FAILED);
-        if (!failedOrderCodes.isEmpty()) orderRepository.markStatusByOrderCodes(failedOrderCodes, OrderStatus.CREATED,
-                OrderStatus.LACK_QUANTITY);
-        List<OrderPaymentCreateSource> paymentCreateSources = orderRepository.findPaymentCreateSourcesForCompletedOrders(
-                plan.getOrderCodes(), OrderStatus.CREATED, OrderItemStatus.CHANGED);
-        List<String> completedOrderCodes = plan.getCompletedOrderCodes(paymentCreateSources);
-        if (completedOrderCodes.isEmpty()) return;
-        orderRepository.markStatusByOrderCodes(completedOrderCodes, OrderStatus.CREATED, OrderStatus.ORDER_SUCCESS);
-        paymentManager.createPendingPayments(getList(paymentCreateSources));
-    }
-
-    @Transactional
     public void finalizeOrderSummaryBatch(List<QuantityChangeSummaryMessage> quantityChangeSummaryMessages) {
         QuantityChangeSummaries summaries = QuantityChangeSummaries.create(quantityChangeSummaryMessages);
         if (summaries.isEmpty()) return;
-        if (summaries.hasFailedOrders()) orderRepository.markStatusByOrderCodes(summaries.getFailedOrderCodes(),
-                    OrderStatus.CREATED, OrderStatus.LACK_QUANTITY);
-        if (!summaries.hasSuccessOrders()) return;
-        List<OrderPaymentCreateSource> paymentCreateSources =
-                orderRepository.findPaymentCreateSourcesByOrderCodes(summaries.getSuccessOrderCodes(), OrderStatus.CREATED);
-        if (paymentCreateSources.isEmpty()) return;
-        List<String> paymentReadyOrderCodes = paymentCreateSources.stream().map(OrderPaymentCreateSource::orderCode)
+
+        List<Order> orders = orderRepository.findAllByOrderCodeInAndStatus(
+                summaries.getMessages().stream()
+                        .map(QuantityChangeSummaryMessage::orderCode)
+                        .toList(),
+                OrderStatus.CREATED
+        );
+        Map<String, Order> ordersByCode = orders.stream()
+                .collect(Collectors.toMap(Order::getOrderCode, Function.identity()));
+
+        List<OrderPaymentCreateSource> paymentCreateSources = summaries.getMessages().stream()
+                .map(message -> applyQuantityChangeSummary(message, ordersByCode.get(message.orderCode())))
+                .filter(Objects::nonNull)
                 .toList();
-        orderRepository.markStatusByOrderCodes(paymentReadyOrderCodes, OrderStatus.CREATED, OrderStatus.ORDER_SUCCESS);
+
         paymentManager.createPendingPayments(getList(paymentCreateSources));
+    }
+
+    private OrderPaymentCreateSource applyQuantityChangeSummary(QuantityChangeSummaryMessage message, Order order) {
+        if (order == null || !order.isCreated()) {
+            return null;
+        }
+
+        if (message.status() == QuantityChangeSummaryStatus.FAILED) {
+            order.applyQuantityChangeResult(
+                    OrderStatus.LACK_QUANTITY,
+                    message.successProductIds(),
+                    message.failedProductIds()
+            );
+            publishCompensationOutbox(order, message.successProductIds());
+            return null;
+        }
+
+        order.applyQuantityChangeResult(
+                OrderStatus.ORDER_SUCCESS,
+                message.successProductIds(),
+                message.failedProductIds()
+        );
+        return new OrderPaymentCreateSource(order.getOrderCode(), order.getTotalAmount(), order.getPaymentMethod());
+    }
+
+    private void publishCompensationOutbox(Order order, List<Long> successProductIds) {
+        if (successProductIds == null || successProductIds.isEmpty()) {
+            return;
+        }
+
+        Set<Long> productIds = Set.copyOf(successProductIds);
+        Map<Long, Integer> quantitiesByProductId = order.getOrderItems().stream()
+                .filter(orderItem -> productIds.contains(orderItem.getOrderItemInfo().getProductId()))
+                .collect(Collectors.toMap(
+                        orderItem -> orderItem.getOrderItemInfo().getProductId(),
+                        orderItem -> orderItem.getOrderItemInfo().getQuantity(),
+                        Integer::sum
+                ));
+        if (quantitiesByProductId.isEmpty()) {
+            return;
+        }
+
+        QuantityChangeOutbox compensationOutbox = QuantityChangeOutbox.compensate(
+                order.getOrderCode(),
+                quantitiesByProductId,
+                clock
+        );
+        quantityChangeOutboxRepository.save(compensationOutbox);
+        eventPublisher.publishEvent(compensationOutbox);
     }
 
     private static @NonNull List<PaymentManager.PendingPaymentCreateRequest> getList(List<OrderPaymentCreateSource> paymentCreateSources) {

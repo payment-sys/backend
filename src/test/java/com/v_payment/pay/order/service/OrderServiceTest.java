@@ -8,6 +8,9 @@ import com.v_payment.pay.order.domain.order.Order;
 import com.v_payment.pay.order.domain.order.OrderStatus;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutboxStatus;
+import com.v_payment.pay.order.domain.outbox.QuantityChangeOutboxType;
+import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryMessage;
+import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryStatus;
 import com.v_payment.pay.order.repository.OrderRepository;
 import com.v_payment.pay.order.repository.QuantityChangeOutboxRepository;
 import com.v_payment.pay.payment.domain.entity.PaymentMethod;
@@ -67,10 +70,57 @@ class OrderServiceTest {
 
         QuantityChangeOutbox outbox = quantityChangeOutboxRepository.findAll().get(0);
         assertThat(outbox.getOrderCode()).isEqualTo(order.getOrderCode());
+        assertThat(outbox.getType()).isEqualTo(QuantityChangeOutboxType.DECREASE);
         assertThat(outbox.getStatus()).isEqualTo(QuantityChangeOutboxStatus.READY);
         assertThat(outbox.getReqQuantities().getQuantityMap())
                 .containsEntry(productA.getId(), 2)
                 .containsEntry(productB.getId(), 3);
+        assertThat(outbox.getQuantityChangeMessages())
+                .extracting("changeCount")
+                .containsExactlyInAnyOrder(-2, -3);
+    }
+
+    @DisplayName("재고 차감 집계가 실패하면 주문 실패 결과를 저장하고 성공 차감 상품 보상 아웃박스를 만든다.")
+    @Test
+    @Transactional
+    void finalizeOrderSummaryBatchWithCompensation() {
+        // given
+        Product productA = productRepository.save(Product.create("product-A", 10_000L, 10));
+        Product productB = productRepository.save(Product.create("product-B", 5_000L, 10));
+        OrderCreateRes res = orderService.create(new OrderCreateReq(
+                PaymentMethod.CARD,
+                List.of(
+                        new OrderItemCreateReq(productA.getId(), 2),
+                        new OrderItemCreateReq(productB.getId(), 3)
+                )
+        ));
+
+        // when
+        orderService.finalizeOrderSummaryBatch(List.of(new QuantityChangeSummaryMessage(
+                res.orderCode(),
+                QuantityChangeSummaryStatus.FAILED,
+                List.of(productA.getId()),
+                List.of(productB.getId())
+        )));
+
+        // then
+        Order order = orderRepository.findByOrderCode(res.orderCode()).orElseThrow();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.LACK_QUANTITY);
+        assertThat(order.getQuantityChangeSuccessProductIds()).containsExactly(productA.getId());
+        assertThat(order.getQuantityChangeFailedProductIds()).containsExactly(productB.getId());
+
+        List<QuantityChangeOutbox> outboxes = quantityChangeOutboxRepository.findAll();
+        assertThat(outboxes).hasSize(2);
+        QuantityChangeOutbox compensationOutbox = outboxes.stream()
+                .filter(outbox -> outbox.getType() == QuantityChangeOutboxType.COMPENSATE)
+                .findFirst()
+                .orElseThrow();
+        assertThat(compensationOutbox.getReqQuantities().getQuantityMap())
+                .containsEntry(productA.getId(), 2)
+                .doesNotContainKey(productB.getId());
+        assertThat(compensationOutbox.getQuantityChangeMessages())
+                .extracting("changeCount")
+                .containsExactly(2);
     }
 
     @DisplayName("존재하지 않는 상품이 포함될 시 주문 생성에 실패한다.")
