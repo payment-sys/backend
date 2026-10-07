@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -39,6 +41,14 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "json")
+    private List<Long> quantityChangeSuccessProductIds = new ArrayList<>();
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "json")
+    private List<Long> quantityChangeFailedProductIds = new ArrayList<>();
+
     private Order(String orderCode, OrderStatus status, Long totalAmount, PaymentMethod paymentMethod, LocalDateTime orderedAt) {
         this.orderCode = validateOrderCode(orderCode);
         this.status = validateStatus(status);
@@ -62,6 +72,27 @@ public class Order {
 
     public static Order create(String orderCode, LocalDateTime orderedAt) {
         return create(orderCode, PaymentMethod.CARD, orderedAt);
+    }
+
+    public void applyQuantityChangeResult(
+            OrderStatus targetStatus,
+            List<Long> successProductIds,
+            List<Long> failedProductIds
+    ) {
+        this.status = validateStatus(targetStatus);
+        this.quantityChangeSuccessProductIds = copyProductIds(successProductIds);
+        this.quantityChangeFailedProductIds = copyProductIds(failedProductIds);
+    }
+
+    public boolean isCreated() {
+        return status == OrderStatus.CREATED;
+    }
+
+    private List<Long> copyProductIds(List<Long> productIds) {
+        if (productIds == null) {
+            return List.of();
+        }
+        return List.copyOf(productIds);
     }
 
     private String validateOrderCode(String orderCode) {

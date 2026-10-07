@@ -6,6 +6,7 @@ import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryStatus;
 import com.v_payment.pay.product.domain.entity.ChangeStatus;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @JsonAutoDetect(
@@ -17,6 +18,8 @@ public class QuantityChangeResultAggregationState {
     private String orderCode;
     private Integer productsCount;
     private Set<Long> receivedProductIds = new HashSet<>();
+    private Set<Long> successProductIds = new HashSet<>();
+    private Set<Long> failedProductIds = new HashSet<>();
     private boolean hasFailure;
     private boolean emitted;
 
@@ -37,6 +40,14 @@ public class QuantityChangeResultAggregationState {
         return QuantityChangeSummaryStatus.SUCCESS;
     }
 
+    public List<Long> successProductIds() {
+        return successProductIds.stream().sorted().toList();
+    }
+
+    public List<Long> failedProductIds() {
+        return failedProductIds.stream().sorted().toList();
+    }
+
     public void markEmitted() {
         this.emitted = true;
     }
@@ -46,7 +57,12 @@ public class QuantityChangeResultAggregationState {
         if (orderCode == null) orderCode = message.orderCode();
         if (productsCount == null) productsCount = message.productsCount();
         receivedProductIds.add(message.productId());
-        if (message.changeStatus() == ChangeStatus.FAILED) hasFailure = true;
+        if (message.changeStatus() == ChangeStatus.FAILED) {
+            failedProductIds.add(message.productId());
+            hasFailure = true;
+        } else {
+            successProductIds.add(message.productId());
+        }
         return this;
     }
 }

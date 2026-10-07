@@ -71,6 +71,14 @@ public class ReqQuantities {
                 .toList());
     }
 
+    public static ReqQuantities ofQuantities(String orderCode, Map<Long, Integer> quantitiesByProductId) {
+        if (orderCode == null || orderCode.isBlank()) throw new IllegalArgumentException("orderCode is required.");
+        if (quantitiesByProductId == null) throw new IllegalArgumentException("quantities are required.");
+        return new ReqQuantities(orderCode, quantitiesByProductId.entrySet().stream()
+                .map(entry -> ReqQuantity.of(entry.getKey(), entry.getValue()))
+                .toList());
+    }
+
     public static ReqQuantities from(List<OrderItemCreateReq> reqs) {
         if (reqs == null) throw new IllegalArgumentException("주문 상품 목록은 필수입니다.");
         return new ReqQuantities(null, reqs.stream()

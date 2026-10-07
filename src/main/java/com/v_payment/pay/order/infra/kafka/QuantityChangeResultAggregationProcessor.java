@@ -36,7 +36,12 @@ public class QuantityChangeResultAggregationProcessor implements Processor<Strin
 
         if (state.isCompleted()) {
             QuantityChangeSummaryMessage summary =
-                    new QuantityChangeSummaryMessage(state.orderCode(), state.summaryStatus());
+                    new QuantityChangeSummaryMessage(
+                            state.orderCode(),
+                            state.summaryStatus(),
+                            state.successProductIds(),
+                            state.failedProductIds()
+                    );
 
             context.forward(record.withKey(orderCode).withValue(summary));
             store.delete(orderCode);
