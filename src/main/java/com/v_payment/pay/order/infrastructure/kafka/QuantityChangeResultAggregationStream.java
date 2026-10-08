@@ -1,8 +1,8 @@
-package com.v_payment.pay.order.infra.kafka;
+package com.v_payment.pay.order.infrastructure.kafka;
 
 import com.v_payment.pay.order.config.QuantityChangeResultAggregationProperties;
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeResultMessage;
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryMessage;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeResultMessage;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeSummaryMessage;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;

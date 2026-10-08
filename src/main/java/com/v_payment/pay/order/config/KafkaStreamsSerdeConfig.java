@@ -1,8 +1,8 @@
 package com.v_payment.pay.order.config;
 
-import com.v_payment.pay.order.infra.kafka.QuantityChangeResultAggregationState;
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeResultMessage;
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryMessage;
+import com.v_payment.pay.order.infrastructure.kafka.QuantityChangeResultAggregationState;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeResultMessage;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeSummaryMessage;
 import org.apache.kafka.common.serialization.Serde;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
