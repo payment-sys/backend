@@ -1,9 +1,9 @@
 package com.v_payment.pay.order.service;
 
 import com.v_payment.pay.global.exception.BusinessException;
-import com.v_payment.pay.order.controller.dto.req.OrderCreateReq;
-import com.v_payment.pay.order.controller.dto.req.OrderItemCreateReq;
-import com.v_payment.pay.order.controller.dto.res.OrderCreateRes;
+import com.v_payment.pay.order.entrypoint.dto.req.OrderCreateReq;
+import com.v_payment.pay.order.entrypoint.dto.req.OrderItemCreateReq;
+import com.v_payment.pay.order.entrypoint.dto.res.OrderCreateRes;
 import com.v_payment.pay.order.domain.order.Order;
 import com.v_payment.pay.order.domain.order.OrderStatus;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;

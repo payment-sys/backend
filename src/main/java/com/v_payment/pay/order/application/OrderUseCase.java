@@ -1,8 +1,8 @@
 package com.v_payment.pay.order.service;
 
 import com.v_payment.pay.global.exception.BusinessException;
-import com.v_payment.pay.order.controller.dto.req.OrderCreateReq;
-import com.v_payment.pay.order.controller.dto.res.OrderCreateRes;
+import com.v_payment.pay.order.entrypoint.dto.req.OrderCreateReq;
+import com.v_payment.pay.order.entrypoint.dto.res.OrderCreateRes;
 import com.v_payment.pay.order.domain.OrderPaymentCreateSource;
 import com.v_payment.pay.order.domain.QuantityChangeSummaries;
 import com.v_payment.pay.order.domain.orderitem.OrderItemSources;

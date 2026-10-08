@@ -1,4 +1,4 @@
-package com.v_payment.pay.order.scheduler;
+package com.v_payment.pay.order.entrypoint;
 
 import com.v_payment.pay.order.config.QuantityChangeOutboxPublishProperties;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;

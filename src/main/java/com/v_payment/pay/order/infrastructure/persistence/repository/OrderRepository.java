@@ -17,7 +17,13 @@ import java.util.Optional;
 public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByOrderCode(String orderCode);
 
-    List<Order> findAllByOrderCodeInAndStatus(Collection<String> orderCodes, OrderStatus status);
+    @Query("""
+    select o
+    from Order o
+    where o.orderCode in :orderCodes
+      and o.status = :status
+    """)
+    List<Order> findAllByOrderCodeCreated(Collection<String> orderCodes, OrderStatus status);
 
     boolean existsByOrderCodeAndStatus(String orderCode, OrderStatus status);
 

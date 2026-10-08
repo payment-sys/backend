@@ -1,6 +1,6 @@
 package com.v_payment.pay.order.domain;
 
-import com.v_payment.pay.order.controller.dto.req.OrderItemCreateReq;
+import com.v_payment.pay.order.entrypoint.dto.req.OrderItemCreateReq;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
