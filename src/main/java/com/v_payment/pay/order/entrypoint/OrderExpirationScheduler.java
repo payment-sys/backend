@@ -1,6 +1,6 @@
-package com.v_payment.pay.order.scheduler;
+package com.v_payment.pay.order.entrypoint;
 
-import com.v_payment.pay.order.service.OrderExpirationService;
+import com.v_payment.pay.order.application.OrderExpirationUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class OrderExpirationScheduler {
-    private final OrderExpirationService orderExpirationService;
+    private final OrderExpirationUseCase orderExpirationUseCase;
 
     @Scheduled(fixedDelayString = "${order.expiration-scheduler.fixed-delay-ms:30000}")
     @SchedulerLock(
@@ -20,7 +20,7 @@ public class OrderExpirationScheduler {
             lockAtLeastFor = "1s"
     )
     public void expireCreatedOrders() {
-        int expiredCount = orderExpirationService.expireCreatedOrders();
+        int expiredCount = orderExpirationUseCase.expireCreatedOrders();
         log.info("order 만료 스케쥴러가 완료되었습니다. expiredCount={}", expiredCount);
     }
 }
