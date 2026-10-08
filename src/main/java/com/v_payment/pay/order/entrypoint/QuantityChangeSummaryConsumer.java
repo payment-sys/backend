@@ -1,9 +1,9 @@
-package com.v_payment.pay.order.infra.kafka;
+package com.v_payment.pay.order.entrypoint;
 
 import com.v_payment.pay.global.meter.KafkaMetrics;
+import com.v_payment.pay.order.application.QuantityChangeSummaryUseCase;
 import com.v_payment.pay.order.config.QuantityChangeSummaryConsumerProperties;
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryMessage;
-import com.v_payment.pay.order.service.OrderService;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeSummaryMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -19,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class QuantityChangeSummaryConsumer {
     private final ObjectMapper objectMapper;
-    private final OrderService orderService;
+    private final QuantityChangeSummaryUseCase quantityChangeSummaryUseCase;
     private final QuantityChangeSummaryConsumerProperties properties;
     private final KafkaMetrics kafkaMetrics;
 
@@ -32,7 +32,7 @@ public class QuantityChangeSummaryConsumer {
         kafkaMetrics.recordConsumerProcess(properties.topic(), "order-quantity-change-summary-consumer", () -> {
             List<QuantityChangeSummaryMessage> quantityChangeSummaryMessages = parseMessages(messages);
             log.debug("메시지 소비중 count={}", quantityChangeSummaryMessages.size());
-            orderService.finalizeOrderSummaryBatch(quantityChangeSummaryMessages);
+            quantityChangeSummaryUseCase.finalizeOrderSummaryBatch(quantityChangeSummaryMessages);
         });
     }
 
