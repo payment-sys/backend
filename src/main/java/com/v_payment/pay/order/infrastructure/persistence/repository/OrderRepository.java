@@ -1,6 +1,6 @@
-package com.v_payment.pay.order.repository;
+package com.v_payment.pay.order.infrastructure.persistence.repository;
 
-import com.v_payment.pay.order.domain.OrderPaymentCreateSource;
+import com.v_payment.pay.order.domain.PaymentCreateSource;
 import com.v_payment.pay.order.domain.order.Order;
 import com.v_payment.pay.order.domain.order.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -93,7 +93,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     );
 
     @Query("""
-            select new com.v_payment.pay.order.domain.OrderPaymentCreateSource(
+            select new com.v_payment.pay.order.domain.PaymentCreateSource(
                 o.orderCode,
                 o.totalAmount,
                 o.paymentMethod
@@ -102,7 +102,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             where o.orderCode in :orderCodes
               and o.status = :status
             """)
-    List<OrderPaymentCreateSource> findPaymentCreateSourcesByOrderCodes(
+    List<PaymentCreateSource> findPaymentCreateSourcesByOrderCodes(
             @Param("orderCodes") Collection<String> orderCodes,
             @Param("status") OrderStatus status
     );

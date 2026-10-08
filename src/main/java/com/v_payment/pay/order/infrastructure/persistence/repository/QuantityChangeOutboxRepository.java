@@ -1,4 +1,4 @@
-package com.v_payment.pay.order.repository;
+package com.v_payment.pay.order.infrastructure.persistence.repository;
 
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutboxStatus;
