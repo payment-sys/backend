@@ -1,4 +1,4 @@
-package com.v_payment.pay.order.controller.dto.res;
+package com.v_payment.pay.order.entrypoint.dto.res;
 
 public record OrderCreateRes(
         String orderCode

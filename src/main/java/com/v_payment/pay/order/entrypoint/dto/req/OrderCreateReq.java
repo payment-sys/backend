@@ -1,4 +1,4 @@
-package com.v_payment.pay.order.controller.dto.req;
+package com.v_payment.pay.order.entrypoint.dto.req;
 
 import com.v_payment.pay.payment.domain.entity.PaymentMethod;
 import jakarta.validation.Valid;
