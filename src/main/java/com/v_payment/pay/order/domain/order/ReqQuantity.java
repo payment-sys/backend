@@ -1,4 +1,4 @@
-package com.v_payment.pay.order.domain;
+package com.v_payment.pay.order.domain.order;
 
 import com.v_payment.pay.order.entrypoint.dto.req.OrderItemCreateReq;
 import lombok.NoArgsConstructor;
