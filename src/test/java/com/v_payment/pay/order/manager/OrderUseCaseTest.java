@@ -1,6 +1,8 @@
-package com.v_payment.pay.order.service;
+package com.v_payment.pay.order.manager;
 
 import com.v_payment.pay.global.exception.BusinessException;
+import com.v_payment.pay.order.application.OrderUseCase;
+import com.v_payment.pay.order.application.QuantityChangeSummaryUseCase;
 import com.v_payment.pay.order.entrypoint.dto.req.OrderCreateReq;
 import com.v_payment.pay.order.entrypoint.dto.req.OrderItemCreateReq;
 import com.v_payment.pay.order.entrypoint.dto.res.OrderCreateRes;
@@ -9,10 +11,10 @@ import com.v_payment.pay.order.domain.order.OrderStatus;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutboxStatus;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutboxType;
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryMessage;
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryStatus;
-import com.v_payment.pay.order.repository.OrderRepository;
-import com.v_payment.pay.order.repository.QuantityChangeOutboxRepository;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeSummaryMessage;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeSummaryStatus;
+import com.v_payment.pay.order.infrastructure.persistence.repository.OrderRepository;
+import com.v_payment.pay.order.infrastructure.persistence.repository.QuantityChangeOutboxRepository;
 import com.v_payment.pay.payment.domain.entity.PaymentMethod;
 import com.v_payment.pay.product.domain.entity.Product;
 import com.v_payment.pay.product.repository.ProductRepository;
@@ -23,14 +25,18 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
-class OrderServiceTest {
+class OrderUseCaseTest {
     @Autowired
-    OrderService orderService;
+    OrderUseCase orderUsecase;
+
+    @Autowired
+    QuantityChangeSummaryUseCase quantityChangeSummaryUseCase;
 
     @Autowired
     ProductRepository productRepository;
@@ -58,7 +64,7 @@ class OrderServiceTest {
         );
 
         // when
-        OrderCreateRes res = orderService.create(req);
+        OrderCreateRes res = orderUsecase.create(req);
 
         // then
         Order order = orderRepository.findAll().get(0);
@@ -72,7 +78,7 @@ class OrderServiceTest {
         assertThat(outbox.getOrderCode()).isEqualTo(order.getOrderCode());
         assertThat(outbox.getType()).isEqualTo(QuantityChangeOutboxType.DECREASE);
         assertThat(outbox.getStatus()).isEqualTo(QuantityChangeOutboxStatus.READY);
-        assertThat(outbox.getReqQuantities().getQuantityMap())
+        assertThat(outbox.getRequestedOrder().getQuantityMap())
                 .containsEntry(productA.getId(), 2)
                 .containsEntry(productB.getId(), 3);
         assertThat(outbox.getQuantityChangeMessages())
@@ -87,7 +93,7 @@ class OrderServiceTest {
         // given
         Product productA = productRepository.save(Product.create("product-A", 10_000L, 10));
         Product productB = productRepository.save(Product.create("product-B", 5_000L, 10));
-        OrderCreateRes res = orderService.create(new OrderCreateReq(
+        OrderCreateRes res = orderUsecase.create(new OrderCreateReq(
                 PaymentMethod.CARD,
                 List.of(
                         new OrderItemCreateReq(productA.getId(), 2),
@@ -96,11 +102,13 @@ class OrderServiceTest {
         ));
 
         // when
-        orderService.finalizeOrderSummaryBatch(List.of(new QuantityChangeSummaryMessage(
+        quantityChangeSummaryUseCase.finalizeOrderSummaryBatch(List.of(new QuantityChangeSummaryMessage(
                 res.orderCode(),
                 QuantityChangeSummaryStatus.FAILED,
                 List.of(productA.getId()),
-                List.of(productB.getId())
+                List.of(productB.getId()),
+                Map.of(productA.getId(), 2),
+                Map.of(productB.getId(), 3)
         )));
 
         // then
@@ -115,7 +123,7 @@ class OrderServiceTest {
                 .filter(outbox -> outbox.getType() == QuantityChangeOutboxType.COMPENSATE)
                 .findFirst()
                 .orElseThrow();
-        assertThat(compensationOutbox.getReqQuantities().getQuantityMap())
+        assertThat(compensationOutbox.getRequestedOrder().getQuantityMap())
                 .containsEntry(productA.getId(), 2)
                 .doesNotContainKey(productB.getId());
         assertThat(compensationOutbox.getQuantityChangeMessages())
@@ -133,7 +141,7 @@ class OrderServiceTest {
         );
 
         // when & then
-        assertThatThrownBy(() -> orderService.create(req)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> orderUsecase.create(req)).isInstanceOf(BusinessException.class);
 
         assertThat(orderRepository.findAll()).isEmpty();
         assertThat(quantityChangeOutboxRepository.findAll()).isEmpty();
