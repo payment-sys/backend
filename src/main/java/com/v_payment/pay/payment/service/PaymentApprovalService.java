@@ -1,7 +1,7 @@
 package com.v_payment.pay.payment.service;
 
 import com.v_payment.pay.global.exception.BusinessException;
-import com.v_payment.pay.order.service.OrderManager;
+import com.v_payment.pay.order.manager.OrderManager;
 import com.v_payment.pay.payment.controller.dto.req.ApprovalReq;
 import com.v_payment.pay.payment.controller.dto.res.ApprovalRes;
 import com.v_payment.pay.payment.domain.entity.Payment;
