@@ -137,7 +137,7 @@ public class QuantityChangeResultOutbox {
     }
 
     public QuantityChangeResultMessage getQuantityChangeResult() {
-        return QuantityChangeResultMessage.of(orderCode, productId, changeStatus, productsCount);
+        return QuantityChangeResultMessage.of(orderCode, productId, changeCount, changeStatus, productsCount);
     }
 
     private static QuantityChangeMessage validateMessage(QuantityChangeMessage message) {
