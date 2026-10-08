@@ -1,7 +1,7 @@
 package com.v_payment.pay.order.domain;
 
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryMessage;
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryStatus;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeSummaryMessage;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeSummaryStatus;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -10,18 +10,18 @@ import java.util.stream.Collectors;
 
 public class QuantityChangeSummaries {
     private final List<QuantityChangeSummaryMessage> messages;
+    private final List<QuantityChangeSummaryMessage> failedMessages;
+    private final List<QuantityChangeSummaryMessage> successMessages;
     private final Set<String> failedOrderCodes;
     private final Set<String> successOrderCodes;
 
     private QuantityChangeSummaries(List<QuantityChangeSummaryMessage> messages) {
         this.messages = validateMessages(messages);
-        this.failedOrderCodes = extractOrderCodesByStatus(this.messages, QuantityChangeSummaryStatus.FAILED);
-        this.successOrderCodes = extractOrderCodesByStatus(this.messages, QuantityChangeSummaryStatus.SUCCESS);
-        this.successOrderCodes.removeAll(failedOrderCodes);
-    }
+        this.failedMessages = extractMessagesByStatus(this.messages, QuantityChangeSummaryStatus.FAILED);
+        this.successMessages = extractSuccessMessagesExcludingFailedOrders(this.messages, this.failedMessages);
 
-    public static QuantityChangeSummaries create(List<QuantityChangeSummaryMessage> messages) {
-        return new QuantityChangeSummaries(messages);
+        this.failedOrderCodes = extractOrderCodes(this.failedMessages);
+        this.successOrderCodes = extractOrderCodes(this.successMessages);
     }
 
     public boolean isEmpty() {
@@ -29,11 +29,19 @@ public class QuantityChangeSummaries {
     }
 
     public boolean hasFailedOrders() {
-        return !failedOrderCodes.isEmpty();
+        return !failedMessages.isEmpty();
     }
 
     public boolean hasSuccessOrders() {
-        return !successOrderCodes.isEmpty();
+        return !successMessages.isEmpty();
+    }
+
+    public List<QuantityChangeSummaryMessage> getFailedMessages() {
+        return failedMessages;
+    }
+
+    public List<QuantityChangeSummaryMessage> getSuccessMessages() {
+        return successMessages;
     }
 
     public Set<String> getFailedOrderCodes() {
@@ -44,8 +52,18 @@ public class QuantityChangeSummaries {
         return successOrderCodes;
     }
 
+    public List<String> getOrderCodes() {
+        return messages.stream()
+                .map(QuantityChangeSummaryMessage::orderCode)
+                .toList();
+    }
+
     public List<QuantityChangeSummaryMessage> getMessages() {
         return messages;
+    }
+
+    public static QuantityChangeSummaries create(List<QuantityChangeSummaryMessage> messages) {
+        return new QuantityChangeSummaries(messages);
     }
 
     private List<QuantityChangeSummaryMessage> validateMessages(List<QuantityChangeSummaryMessage> messages) {
@@ -73,14 +91,37 @@ public class QuantityChangeSummaries {
         if (message.failedProductIds() == null) {
             throw new IllegalArgumentException("failedProductIds is required.");
         }
+        if (message.successQuantities() == null) {
+            throw new IllegalArgumentException("successQuantities is required.");
+        }
+        if (message.failedQuantities() == null) {
+            throw new IllegalArgumentException("failedQuantities is required.");
+        }
     }
 
-    private Set<String> extractOrderCodesByStatus(
+    private List<QuantityChangeSummaryMessage> extractMessagesByStatus(
             List<QuantityChangeSummaryMessage> messages,
             QuantityChangeSummaryStatus status
     ) {
         return messages.stream()
                 .filter(message -> message.status() == status)
+                .toList();
+    }
+
+    private List<QuantityChangeSummaryMessage> extractSuccessMessagesExcludingFailedOrders(
+            List<QuantityChangeSummaryMessage> messages,
+            List<QuantityChangeSummaryMessage> failedMessages
+    ) {
+        Set<String> failedOrderCodes = extractOrderCodes(failedMessages);
+
+        return messages.stream()
+                .filter(message -> message.status() == QuantityChangeSummaryStatus.SUCCESS)
+                .filter(message -> !failedOrderCodes.contains(message.orderCode()))
+                .toList();
+    }
+
+    private Set<String> extractOrderCodes(List<QuantityChangeSummaryMessage> messages) {
+        return messages.stream()
                 .map(QuantityChangeSummaryMessage::orderCode)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
