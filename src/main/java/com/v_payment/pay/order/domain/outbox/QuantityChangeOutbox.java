@@ -1,9 +1,8 @@
 package com.v_payment.pay.order.domain.outbox;
 
-import com.v_payment.pay.order.domain.ReqQuantities;
-import com.v_payment.pay.order.domain.ReqQuantity;
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeMessage;
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeType;
+import com.v_payment.pay.order.domain.order.RequestedOrder;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeMessage;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,17 +14,17 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
+@Getter
 @Entity
 @Table(
         name = "quantity_change_outbox",
@@ -52,7 +51,7 @@ public class QuantityChangeOutbox {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "json", nullable = false)
-    private ReqQuantities reqQuantities;
+    private RequestedOrder requestedOrder;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "outbox_type", nullable = false)
@@ -73,7 +72,7 @@ public class QuantityChangeOutbox {
     private LocalDateTime updatedAt;
 
     public QuantityChangeOutbox(String orderCode,
-                                ReqQuantities reqQuantities,
+                                RequestedOrder requestedOrder,
                                 QuantityChangeOutboxType type,
                                 QuantityChangeOutboxStatus status,
                                 Integer retryCount,
@@ -81,7 +80,7 @@ public class QuantityChangeOutbox {
                                 LocalDateTime createdAt,
                                 LocalDateTime updatedAt) {
         this.orderCode = validateOrderCode(orderCode);
-        this.reqQuantities = validateReqQuantities(reqQuantities);
+        this.requestedOrder = validateReqQuantities(requestedOrder);
         this.type = validateType(type);
         this.status = validateStatus(status);
         this.retryCount = validateRetryCount(retryCount);
@@ -90,10 +89,10 @@ public class QuantityChangeOutbox {
         this.updatedAt = updatedAt;
     }
 
-    public static QuantityChangeOutbox of(ReqQuantities reqQuantities, Clock clock) {
+    public static QuantityChangeOutbox create(RequestedOrder requestedOrder, Clock clock) {
         return new QuantityChangeOutbox(
-                reqQuantities.getOrderCode(),
-                reqQuantities,
+                requestedOrder.getOrderCode(),
+                requestedOrder,
                 QuantityChangeOutboxType.DECREASE,
                 QuantityChangeOutboxStatus.READY,
                 0,
@@ -106,7 +105,7 @@ public class QuantityChangeOutbox {
     public static QuantityChangeOutbox compensate(String orderCode, Map<Long, Integer> quantitiesByProductId, Clock clock) {
         return new QuantityChangeOutbox(
                 orderCode,
-                ReqQuantities.ofQuantities(orderCode, quantitiesByProductId),
+                RequestedOrder.ofQuantities(orderCode, quantitiesByProductId),
                 QuantityChangeOutboxType.COMPENSATE,
                 QuantityChangeOutboxStatus.READY,
                 0,
@@ -116,29 +115,13 @@ public class QuantityChangeOutbox {
         );
     }
 
-    public List<CompletableFuture<?>> publishEach(QuantityChangeMessagePublisher publisher) {
-        List<CompletableFuture<?>> results = new ArrayList<>();
-        for (ReqQuantity reqQuantity : reqQuantities.getReqQuantities()) {
-            CompletableFuture<?> publishResult = publisher.publish(orderCode, reqQuantity.getProductId(),
-                    changeCount(reqQuantity.getQuantity()));
-
-            results.add(publishResult);
-        }
-        return results;
-    }
-
     public List<QuantityChangeMessage> getQuantityChangeMessages() {
-        int size = reqQuantities.getReqQuantities().size();
-        return reqQuantities.getQuantityMap()
+        int size = requestedOrder.getReqQuantities().size();
+        return requestedOrder.getQuantityMap()
                 .entrySet()
                 .stream()
-                .map(entry -> new QuantityChangeMessage(
-                        orderCode,
-                        entry.getKey(),
-                        changeCount(entry.getValue()),
-                        size,
-                        messageType()
-                ))
+                .map(entry -> new QuantityChangeMessage(orderCode, entry.getKey(),
+                        changeCount(entry.getValue()), size, messageType()))
                 .toList();
     }
 
@@ -156,60 +139,14 @@ public class QuantityChangeOutbox {
         return quantity;
     }
 
-    public void markDone(LocalDateTime updatedAt) {
-        this.status = QuantityChangeOutboxStatus.DONE;
-        this.updatedAt = validateUpdatedAt(updatedAt);
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getOrderCode() {
-        return orderCode;
-    }
-
-    public ReqQuantities getReqQuantities() {
-        return reqQuantities;
-    }
-
-    public QuantityChangeOutboxStatus getStatus() {
-        return status;
-    }
-
-    public QuantityChangeOutboxType getType() {
-        return type;
-    }
-
-    public Integer getRetryCount() {
-        return retryCount;
-    }
-
-    public LocalDateTime getNextAttemptTime() {
-        return nextAttemptTime;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    @FunctionalInterface
-    public interface QuantityChangeMessagePublisher {
-        CompletableFuture<?> publish(String orderCode, Long productId, Integer changeCount);
-    }
-
     private String validateOrderCode(String orderCode) {
         if (orderCode == null || orderCode.isBlank()) throw new IllegalArgumentException("orderCode는 필수입니다.");
         return orderCode;
     }
 
-    private ReqQuantities validateReqQuantities(ReqQuantities reqQuantities) {
-        if (reqQuantities == null) throw new IllegalArgumentException("quantityChanges는 필수입니다.");
-        return reqQuantities;
+    private RequestedOrder validateReqQuantities(RequestedOrder requestedOrder) {
+        if (requestedOrder == null) throw new IllegalArgumentException("quantityChanges는 필수입니다.");
+        return requestedOrder;
     }
 
     private QuantityChangeOutboxType validateType(QuantityChangeOutboxType type) {
