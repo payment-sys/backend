@@ -1,4 +1,4 @@
-package com.v_payment.pay.order.domain;
+package com.v_payment.pay.order.domain.order;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -13,13 +13,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ReqQuantities {
+public class RequestedOrder {
     private final String orderCode;
     private final List<ReqQuantity> reqQuantities;
     private final Map<Long, ReqQuantity> valuesByProductId;
 
     @JsonCreator
-    private ReqQuantities(
+    private RequestedOrder(
             @JsonProperty("orderCode") String orderCode,
             @JsonProperty("reqQuantities") List<ReqQuantity> reqQuantities
     ) {
@@ -59,29 +59,29 @@ public class ReqQuantities {
                 .collect(Collectors.toMap(ReqQuantity::getProductId, ReqQuantity::getQuantity)));
     }
 
-    public static ReqQuantities of(List<OrderItemCreateReq> reqs) {
+    public static RequestedOrder of(List<OrderItemCreateReq> reqs) {
         return from(reqs);
     }
 
-    public static ReqQuantities of(String orderCode, List<OrderItemCreateReq> reqs) {
+    public static RequestedOrder of(String orderCode, List<OrderItemCreateReq> reqs) {
         if (orderCode == null || orderCode.isBlank()) throw new IllegalArgumentException("orderCode is required.");
         if (reqs == null) throw new IllegalArgumentException("order items are required.");
-        return new ReqQuantities(orderCode, reqs.stream()
+        return new RequestedOrder(orderCode, reqs.stream()
                 .map(ReqQuantity::from)
                 .toList());
     }
 
-    public static ReqQuantities ofQuantities(String orderCode, Map<Long, Integer> quantitiesByProductId) {
+    public static RequestedOrder ofQuantities(String orderCode, Map<Long, Integer> quantitiesByProductId) {
         if (orderCode == null || orderCode.isBlank()) throw new IllegalArgumentException("orderCode is required.");
         if (quantitiesByProductId == null) throw new IllegalArgumentException("quantities are required.");
-        return new ReqQuantities(orderCode, quantitiesByProductId.entrySet().stream()
+        return new RequestedOrder(orderCode, quantitiesByProductId.entrySet().stream()
                 .map(entry -> ReqQuantity.of(entry.getKey(), entry.getValue()))
                 .toList());
     }
 
-    public static ReqQuantities from(List<OrderItemCreateReq> reqs) {
+    public static RequestedOrder from(List<OrderItemCreateReq> reqs) {
         if (reqs == null) throw new IllegalArgumentException("주문 상품 목록은 필수입니다.");
-        return new ReqQuantities(null, reqs.stream()
+        return new RequestedOrder(null, reqs.stream()
                 .map(ReqQuantity::from)
                 .toList());
     }
