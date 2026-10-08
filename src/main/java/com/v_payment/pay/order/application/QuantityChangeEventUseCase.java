@@ -1,7 +1,7 @@
-package com.v_payment.pay.order.service;
+package com.v_payment.pay.order.application;
 
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutboxStatus;
-import com.v_payment.pay.order.repository.QuantityChangeOutboxRepository;
+import com.v_payment.pay.order.infrastructure.persistence.repository.QuantityChangeOutboxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class QuantityChangesEventService {
+public class QuantityChangeEventUseCase {
     private final Clock clock;
     private final QuantityChangeOutboxRepository quantityChangeOutboxRepository;
 
