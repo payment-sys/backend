@@ -1,8 +1,9 @@
-package com.v_payment.pay.order.service;
+package com.v_payment.pay.order.manager;
 
+import com.v_payment.pay.order.application.OrderExpirationUseCase;
 import com.v_payment.pay.order.domain.order.Order;
 import com.v_payment.pay.order.domain.order.OrderStatus;
-import com.v_payment.pay.order.repository.OrderRepository;
+import com.v_payment.pay.order.infrastructure.persistence.repository.OrderRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,9 +18,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(properties = "spring.task.scheduling.enabled=false")
 @Transactional
-class OrderExpirationServiceTest {
+class OrderExpirationUseCaseTest {
     @Autowired
-    OrderExpirationService orderExpirationService;
+    OrderExpirationUseCase orderExpirationUseCase;
 
     @Autowired
     OrderRepository orderRepository;
@@ -42,7 +43,7 @@ class OrderExpirationServiceTest {
                 LocalDateTime.now(clock)
         ));
 
-        int expiredCount = orderExpirationService.expireCreatedOrders();
+        int expiredCount = orderExpirationUseCase.expireCreatedOrders();
         entityManager.flush();
         entityManager.clear();
 

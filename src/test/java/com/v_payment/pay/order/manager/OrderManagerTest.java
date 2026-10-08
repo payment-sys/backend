@@ -1,8 +1,8 @@
-package com.v_payment.pay.order.service;
+package com.v_payment.pay.order.manager;
 
 import com.v_payment.pay.order.domain.order.Order;
 import com.v_payment.pay.order.domain.order.OrderStatus;
-import com.v_payment.pay.order.repository.OrderRepository;
+import com.v_payment.pay.order.infrastructure.persistence.repository.OrderRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
