@@ -1,7 +1,7 @@
-package com.v_payment.pay.order.infra.kafka;
+package com.v_payment.pay.order.infrastructure.kafka;
 
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeResultMessage;
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeSummaryMessage;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeResultMessage;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeSummaryMessage;
 import org.apache.kafka.streams.processor.api.Processor;
 import org.apache.kafka.streams.processor.api.ProcessorContext;
 import org.apache.kafka.streams.processor.api.Record;
@@ -40,7 +40,9 @@ public class QuantityChangeResultAggregationProcessor implements Processor<Strin
                             state.orderCode(),
                             state.summaryStatus(),
                             state.successProductIds(),
-                            state.failedProductIds()
+                            state.failedProductIds(),
+                            state.successQuantities(),
+                            state.failedQuantities()
                     );
 
             context.forward(record.withKey(orderCode).withValue(summary));
