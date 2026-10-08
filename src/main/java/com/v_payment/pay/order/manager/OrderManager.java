@@ -1,10 +1,10 @@
-package com.v_payment.pay.order.service;
+package com.v_payment.pay.order.manager;
 
 import com.v_payment.pay.order.domain.orderitem.OrderItem;
 import com.v_payment.pay.order.domain.orderitem.OrderItemInfo;
 import com.v_payment.pay.order.domain.order.OrderStatus;
-import com.v_payment.pay.order.repository.OrderItemRepository;
-import com.v_payment.pay.order.repository.OrderRepository;
+import com.v_payment.pay.order.infrastructure.persistence.repository.OrderItemRepository;
+import com.v_payment.pay.order.infrastructure.persistence.repository.OrderRepository;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
