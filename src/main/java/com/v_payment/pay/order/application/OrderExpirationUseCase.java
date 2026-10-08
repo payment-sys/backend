@@ -1,8 +1,9 @@
-package com.v_payment.pay.order.service;
+package com.v_payment.pay.order.application;
 
 import com.v_payment.pay.order.config.OrderExpirationProperties;
 import com.v_payment.pay.order.domain.order.OrderStatus;
-import com.v_payment.pay.order.repository.OrderRepository;
+import com.v_payment.pay.order.infrastructure.persistence.repository.OrderRepository;
+import com.v_payment.pay.order.manager.OrderManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -16,7 +17,7 @@ import java.util.List;
 @Slf4j(topic = "SCHEDULER_LOGGER")
 @Service
 @RequiredArgsConstructor
-public class OrderExpirationService {
+public class OrderExpirationUseCase {
     private final Clock clock;
     private final OrderExpirationProperties orderExpirationProperties;
     private final OrderRepository orderRepository;
@@ -24,13 +25,9 @@ public class OrderExpirationService {
 
     @Transactional
     public int expireCreatedOrders() {
-        LocalDateTime orderedBefore = LocalDateTime.now(clock)
-                .minusSeconds(orderExpirationProperties.expireAfterSeconds());
-        List<String> orderCodes = orderRepository.findExpirableCreatedOrderCodes(
-                OrderStatus.CREATED,
-                orderedBefore,
-                PageRequest.of(0, orderExpirationProperties.batchSize())
-        );
+        LocalDateTime orderedBefore = LocalDateTime.now(clock).minusSeconds(orderExpirationProperties.expireAfterSeconds());
+        List<String> orderCodes = orderRepository.findExpirableCreatedOrderCodes(OrderStatus.CREATED, orderedBefore,
+                PageRequest.of(0, orderExpirationProperties.batchSize()));
 
         if (orderCodes.isEmpty()) return 0;
 
