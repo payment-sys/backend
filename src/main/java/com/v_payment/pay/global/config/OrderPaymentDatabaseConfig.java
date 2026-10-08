@@ -23,7 +23,7 @@ import java.util.Map;
 @Configuration
 @EnableJpaRepositories(
         basePackages = {
-                "com.v_payment.pay.order.repository",
+                "com.v_payment.pay.order.infrastructure.persistence.repository",
                 "com.v_payment.pay.payment.repository"
         },
         entityManagerFactoryRef = "orderPaymentEntityManagerFactory",
