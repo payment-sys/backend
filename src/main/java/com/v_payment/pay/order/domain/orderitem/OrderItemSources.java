@@ -1,6 +1,6 @@
 package com.v_payment.pay.order.domain.orderitem;
 
-import com.v_payment.pay.order.domain.ReqQuantities;
+import com.v_payment.pay.order.domain.order.RequestedOrder;
 import com.v_payment.pay.product.domain.ProductBasicInfo;
 
 import java.util.List;
@@ -21,9 +21,9 @@ public class OrderItemSources {
         orderItemSources.forEach(consumer);
     }
 
-    public static OrderItemSources of(List<ProductBasicInfo> productBasicInfos, ReqQuantities reqQuantities) {
+    public static OrderItemSources of(List<ProductBasicInfo> productBasicInfos, RequestedOrder requestedOrder) {
         return new OrderItemSources(productBasicInfos.stream()
-                .map(p -> OrderItemSource.create(p.productId(), p.name(), p.price(), reqQuantities.getQuantityByProductId(p.productId())))
+                .map(p -> OrderItemSource.create(p.productId(), p.name(), p.price(), requestedOrder.getQuantityByProductId(p.productId())))
                 .toList()
         );
     }
