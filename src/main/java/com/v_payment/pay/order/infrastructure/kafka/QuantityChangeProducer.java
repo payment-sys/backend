@@ -1,8 +1,8 @@
-package com.v_payment.pay.order.infra.kafka;
+package com.v_payment.pay.order.infrastructure.kafka;
 
 import com.v_payment.pay.global.meter.KafkaMetrics;
 import com.v_payment.pay.order.config.QuantityChangeProducerProperties;
-import com.v_payment.pay.order.infra.kafka.dto.QuantityChangeMessage;
+import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
