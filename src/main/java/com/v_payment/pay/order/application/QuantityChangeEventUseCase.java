@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -19,14 +20,11 @@ public class QuantityChangeEventUseCase {
     private final QuantityChangeOutboxRepository quantityChangeOutboxRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markDone(Long outboxId) {
-        int doneCount = quantityChangeOutboxRepository.markDone(
-                outboxId,
-                QuantityChangeOutboxStatus.READY,
-                QuantityChangeOutboxStatus.DONE,
-                LocalDateTime.now(clock)
-        );
-
-        if(doneCount != 1) log.warn("아웃박스 발행 성공 상태 변경 실패하였습니다. outboxId={}", outboxId);
+    public void markDoneBatch(List<Long> outboxIds) {
+        if (outboxIds == null || outboxIds.isEmpty()) return;
+        int doneCount = quantityChangeOutboxRepository.markDoneBatch(outboxIds, LocalDateTime.now(clock));
+        if (doneCount != outboxIds.size()) {
+            log.warn("outbox DONE batch update 가 실패했습니다. requested={}, updated={}", outboxIds.size(), doneCount);
+        }
     }
 }

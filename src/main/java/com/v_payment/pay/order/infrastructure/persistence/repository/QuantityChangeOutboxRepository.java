@@ -32,15 +32,13 @@ public interface QuantityChangeOutboxRepository extends JpaRepository<QuantityCh
     @Modifying
     @Query("""
             update QuantityChangeOutbox o
-            set o.status = :doneStatus,
+            set o.status = com.v_payment.pay.order.domain.outbox.QuantityChangeOutboxStatus.DONE,
                 o.updatedAt = :updatedAt
-            where o.id = :id
-              and o.status = :readyStatus
+            where o.id in :ids
+              and o.status = com.v_payment.pay.order.domain.outbox.QuantityChangeOutboxStatus.READY
             """)
-    int markDone(
-            @Param("id") Long id,
-            @Param("readyStatus") QuantityChangeOutboxStatus readyStatus,
-            @Param("doneStatus") QuantityChangeOutboxStatus doneStatus,
+    int markDoneBatch(
+            @Param("ids") List<Long> ids,
             @Param("updatedAt") LocalDateTime updatedAt
     );
 }

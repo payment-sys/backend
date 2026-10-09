@@ -3,7 +3,6 @@ package com.v_payment.pay.order.entrypoint;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;
 import com.v_payment.pay.order.infrastructure.kafka.QuantityChangeProducer;
 import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeMessage;
-import com.v_payment.pay.order.application.QuantityChangeEventUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -20,7 +19,7 @@ import java.util.concurrent.ExecutorService;
 @RequiredArgsConstructor
 public class QuantityChangeEventListener {
     private final QuantityChangeProducer quantityChangeProducer;
-    private final QuantityChangeEventUseCase quantityChangeEventUseCase;
+    private final OutboxBatchDoneScheduler outboxBatchDoneScheduler;
     private final ExecutorService quantityChangeEventExecutorService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -41,7 +40,7 @@ public class QuantityChangeEventListener {
             sendResults.add(quantityChangeProducer.send(message));
         }
         CompletableFuture.allOf(sendResults.toArray(new CompletableFuture[0])).join();
-        quantityChangeEventUseCase.markDone(outbox.getId());
+        outboxBatchDoneScheduler.enqueue(outbox.getId());
     }
 
     private void handleFailedSendMessage(QuantityChangeOutbox outbox, Throwable ex) {
