@@ -1,7 +1,7 @@
 package com.v_payment.pay.payment.service;
 
 import com.v_payment.pay.order.domain.order.Order;
-import com.v_payment.pay.order.repository.OrderRepository;
+import com.v_payment.pay.order.infrastructure.persistence.repository.OrderRepository;
 import com.v_payment.pay.payment.controller.dto.req.PaymentRegenerateReq;
 import com.v_payment.pay.payment.controller.dto.res.PaymentRegenerateRes;
 import com.v_payment.pay.payment.domain.entity.Payment;

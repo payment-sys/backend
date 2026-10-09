@@ -1,8 +1,9 @@
 package com.v_payment.pay.order.controller;
 
-import com.v_payment.pay.order.controller.dto.req.OrderCreateReq;
-import com.v_payment.pay.order.controller.dto.res.OrderCreateRes;
-import com.v_payment.pay.order.service.OrderService;
+import com.v_payment.pay.order.application.OrderUseCase;
+import com.v_payment.pay.order.entrypoint.dto.req.OrderCreateReq;
+import com.v_payment.pay.order.entrypoint.dto.res.OrderCreateRes;
+import com.v_payment.pay.order.entrypoint.OrderController;
 import com.v_payment.pay.global.meter.ApiRequestConcurrencyFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,11 +35,11 @@ class OrderControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private OrderService orderService;
+    private OrderUseCase orderUsecase;
 
     @DisplayName("주문 생성 요청이 유효하면 주문 코드를 응답한다")
     @Test
-    void createOrder() throws Exception {
+    void create() throws Exception {
         // given
         String req = """
                 {
@@ -51,7 +52,7 @@ class OrderControllerTest {
                     ]
                 }
                 """;
-        given(orderService.create(any(OrderCreateReq.class)))
+        given(orderUsecase.create(any(OrderCreateReq.class)))
                 .willReturn(new OrderCreateRes("ORDER-001"));
 
         // when & then
@@ -61,12 +62,12 @@ class OrderControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orderCode").value("ORDER-001"));
 
-        verify(orderService).create(any(OrderCreateReq.class));
+        verify(orderUsecase).create(any(OrderCreateReq.class));
     }
 
     @DisplayName("결제 수단이 없으면 주문 생성 요청이 실패한다")
     @Test
-    void createOrderWithoutPaymentMethod() throws Exception {
+    void createWithoutPaymentMethod() throws Exception {
         // given
         String req = """
                 {
@@ -88,7 +89,7 @@ class OrderControllerTest {
 
     @DisplayName("주문 상품 목록이 비어 있으면 주문 생성 요청이 실패한다")
     @Test
-    void createOrderWithEmptyItems() throws Exception {
+    void createWithEmptyItems() throws Exception {
         // given
         String req = """
                 {
@@ -106,7 +107,7 @@ class OrderControllerTest {
 
     @DisplayName("주문 상품 수량이 양수가 아니면 주문 생성 요청이 실패한다")
     @Test
-    void createOrderWithInvalidQuantity() throws Exception {
+    void createWithInvalidQuantity() throws Exception {
         // given
         String req = """
                 {

@@ -6,6 +6,7 @@ import com.v_payment.pay.payment.infra.toss.TossPayment;
 import com.v_payment.pay.payment.service.PaymentRecoveryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,11 @@ public class PaymentRecoveryScheduler {
     private final TossPayment tossPayment;
 
     @Scheduled(fixedDelayString = "${payment.recovery-scheduler.fixed-delay-ms:30000}")
+    @SchedulerLock(
+            name = "payment.recoverPayments",
+            lockAtMostFor = "30s",
+            lockAtLeastFor = "1s"
+    )
     public void recoverPayments() {
         List<PaymentPayload> recoveryPayments = paymentRecoveryService.findRecoveryTargets();
 

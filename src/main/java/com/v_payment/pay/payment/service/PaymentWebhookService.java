@@ -1,6 +1,6 @@
 package com.v_payment.pay.payment.service;
 
-import com.v_payment.pay.order.service.OrderManager;
+import com.v_payment.pay.order.manager.OrderManager;
 import com.v_payment.pay.payment.controller.dto.req.TossPaymentWebhookReq;
 import com.v_payment.pay.payment.domain.entity.Payment;
 import com.v_payment.pay.payment.domain.entity.PaymentStatus;

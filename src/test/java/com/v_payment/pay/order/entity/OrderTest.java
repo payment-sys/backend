@@ -1,8 +1,8 @@
 package com.v_payment.pay.order.entity;
 
-import com.v_payment.pay.order.controller.dto.req.OrderItemCreateReq;
+import com.v_payment.pay.order.entrypoint.dto.req.OrderItemCreateReq;
 import com.v_payment.pay.order.domain.orderitem.OrderItemSources;
-import com.v_payment.pay.order.domain.ReqQuantities;
+import com.v_payment.pay.order.domain.order.RequestedOrder;
 import com.v_payment.pay.order.domain.order.Order;
 import com.v_payment.pay.order.domain.orderitem.OrderItem;
 import com.v_payment.pay.order.domain.order.OrderStatus;
@@ -92,6 +92,6 @@ class OrderTest {
             List<ProductBasicInfo> productBasicInfos,
             List<OrderItemCreateReq> reqs
     ) {
-        return OrderItemSources.of(productBasicInfos, ReqQuantities.of(reqs));
+        return OrderItemSources.of(productBasicInfos, RequestedOrder.of(reqs));
     }
 }

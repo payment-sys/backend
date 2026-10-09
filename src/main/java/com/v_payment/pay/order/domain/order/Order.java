@@ -74,7 +74,7 @@ public class Order {
         return create(orderCode, PaymentMethod.CARD, orderedAt);
     }
 
-    public void applyQuantityChangeResult(
+    public void applySummary(
             OrderStatus targetStatus,
             List<Long> successProductIds,
             List<Long> failedProductIds
@@ -94,6 +94,8 @@ public class Order {
         }
         return List.copyOf(productIds);
     }
+
+    //불변식===============================================================================================
 
     private String validateOrderCode(String orderCode) {
         if (orderCode == null || orderCode.isBlank()) throw new IllegalArgumentException("orderCode는 필수입니다.");

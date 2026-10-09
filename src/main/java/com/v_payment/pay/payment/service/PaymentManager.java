@@ -1,5 +1,6 @@
 package com.v_payment.pay.payment.service;
 
+import com.v_payment.pay.order.domain.PaymentCreateSource;
 import com.v_payment.pay.payment.domain.entity.Payment;
 import com.v_payment.pay.payment.domain.entity.PaymentMethod;
 import com.v_payment.pay.payment.repository.PaymentRepository;
@@ -18,21 +19,14 @@ public class PaymentManager {
     private final PaymentRepository paymentRepository;
 
     @WithSpan("payment.PaymentManager.createPendingPayments")
-    public void createPendingPayments(Collection<PendingPaymentCreateRequest> requests) {
-        if (requests.isEmpty()) return;
+    public void createPendingPayments(Collection<PaymentCreateSource> paymentCreateSources) {
+        if (paymentCreateSources.isEmpty()) return;
 
-        List<Payment> payments = requests.stream()
+        List<Payment> payments = paymentCreateSources.stream()
                 .map(r -> Payment.createPendingPayment(r.orderCode(), r.amount(),
                         r.paymentMethod(), clock))
                 .toList();
 
         paymentRepository.saveReadyPayments(payments);
-    }
-
-    public record PendingPaymentCreateRequest(
-            String orderCode,
-            Long amount,
-            PaymentMethod paymentMethod
-    ) {
     }
 }
