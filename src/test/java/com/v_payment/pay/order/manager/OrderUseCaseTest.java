@@ -1,12 +1,13 @@
 package com.v_payment.pay.order.manager;
 
-import com.v_payment.pay.global.exception.BusinessException;
 import com.v_payment.pay.order.application.OrderUseCase;
 import com.v_payment.pay.order.application.QuantityChangeSummaryUseCase;
 import com.v_payment.pay.order.entrypoint.dto.req.OrderCreateReq;
 import com.v_payment.pay.order.entrypoint.dto.req.OrderItemCreateReq;
 import com.v_payment.pay.order.entrypoint.dto.res.OrderCreateRes;
 import com.v_payment.pay.order.domain.order.Order;
+import com.v_payment.pay.order.domain.order.OrderItemInfo;
+import com.v_payment.pay.order.domain.order.OrderItemStatus;
 import com.v_payment.pay.order.domain.order.OrderStatus;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutboxStatus;
@@ -28,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 class OrderUseCaseTest {
@@ -70,8 +70,8 @@ class OrderUseCaseTest {
         Order order = orderRepository.findAll().get(0);
 
         assertThat(res.orderCode()).isEqualTo(order.getOrderCode());
-        assertThat(order.getOrderItems()).hasSize(2);
-        assertThat(order.getTotalAmount()).isEqualTo(35_000L);
+        assertThat(order.getOrderItemInfos()).isEmpty();
+        assertThat(order.getTotalAmount()).isEqualTo(0L);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CREATED);
 
         QuantityChangeOutbox outbox = quantityChangeOutboxRepository.findAll().get(0);
@@ -105,17 +105,17 @@ class OrderUseCaseTest {
         quantityChangeSummaryUseCase.finalizeOrderSummaryBatch(List.of(new QuantityChangeSummaryMessage(
                 res.orderCode(),
                 QuantityChangeSummaryStatus.FAILED,
-                List.of(productA.getId()),
-                List.of(productB.getId()),
-                Map.of(productA.getId(), 2),
-                Map.of(productB.getId(), 3)
+                List.of(
+                        OrderItemInfo.create(productA.getId(), productA.getName(), productA.getPrice(), 2, OrderItemStatus.CHANGED),
+                        OrderItemInfo.create(productB.getId(), productB.getName(), productB.getPrice(), 3, OrderItemStatus.FAILED)
+                )
         )));
 
         // then
         Order order = orderRepository.findByOrderCode(res.orderCode()).orElseThrow();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.LACK_QUANTITY);
-        assertThat(order.getQuantityChangeSuccessProductIds()).containsExactly(productA.getId());
-        assertThat(order.getQuantityChangeFailedProductIds()).containsExactly(productB.getId());
+        assertThat(order.getOrderItemInfos()).hasSize(2);
+        assertThat(order.getTotalAmount()).isEqualTo(35_000L);
 
         List<QuantityChangeOutbox> outboxes = quantityChangeOutboxRepository.findAll();
         assertThat(outboxes).hasSize(2);
@@ -140,10 +140,9 @@ class OrderUseCaseTest {
                 List.of(new OrderItemCreateReq(999L, 1))
         );
 
-        // when & then
-        assertThatThrownBy(() -> orderUsecase.create(req)).isInstanceOf(BusinessException.class);
+        OrderCreateRes res = orderUsecase.create(req);
 
-        assertThat(orderRepository.findAll()).isEmpty();
-        assertThat(quantityChangeOutboxRepository.findAll()).isEmpty();
+        assertThat(orderRepository.findByOrderCode(res.orderCode())).isPresent();
+        assertThat(quantityChangeOutboxRepository.findAll()).hasSize(1);
     }
 }
