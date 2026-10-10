@@ -1,7 +1,5 @@
 package com.v_payment.pay.order.domain.order;
 
-import com.v_payment.pay.order.domain.orderitem.OrderItemSources;
-import com.v_payment.pay.order.domain.orderitem.OrderItem;
 import com.v_payment.pay.payment.domain.entity.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -38,16 +36,9 @@ public class Order {
 
     private LocalDateTime orderedAt;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderItem> orderItems = new ArrayList<>();
-
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "json")
-    private List<Long> quantityChangeSuccessProductIds = new ArrayList<>();
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "json")
-    private List<Long> quantityChangeFailedProductIds = new ArrayList<>();
+    @Column(name = "order_items", columnDefinition = "json")
+    private List<OrderItemInfo> orderItemInfos = new ArrayList<>();
 
     private Order(String orderCode, OrderStatus status, Long totalAmount, PaymentMethod paymentMethod, LocalDateTime orderedAt) {
         this.orderCode = validateOrderCode(orderCode);
@@ -55,15 +46,6 @@ public class Order {
         this.totalAmount = validateTotalAmount(totalAmount);
         this.paymentMethod = validatePaymentMethod(paymentMethod);
         this.orderedAt = validateOrderedAt(orderedAt);
-    }
-
-    public void addItems(OrderItemSources orderItemSources) {
-        orderItemSources.forEach(ois -> {
-            OrderItem orderItem = OrderItem.create(this, ois.getProductId(), ois.getName(), ois.getPrice(),
-                    ois.getQuantity());
-            orderItems.add(orderItem);
-            totalAmount += orderItem.getOrderAmount();
-        });
     }
 
     public static Order create(String orderCode, PaymentMethod paymentMethod, LocalDateTime orderedAt) {
@@ -74,29 +56,12 @@ public class Order {
         return create(orderCode, PaymentMethod.CARD, orderedAt);
     }
 
-    public void applySummary(
-            OrderStatus targetStatus,
-            List<Long> successProductIds,
-            List<Long> failedProductIds
-    ) {
-        this.status = validateStatus(targetStatus);
-        this.quantityChangeSuccessProductIds = copyProductIds(successProductIds);
-        this.quantityChangeFailedProductIds = copyProductIds(failedProductIds);
-    }
-
     public boolean isCreated() {
         return status == OrderStatus.CREATED;
     }
 
-    private List<Long> copyProductIds(List<Long> productIds) {
-        if (productIds == null) {
-            return List.of();
-        }
-        return List.copyOf(productIds);
-    }
 
     //불변식===============================================================================================
-
     private String validateOrderCode(String orderCode) {
         if (orderCode == null || orderCode.isBlank()) throw new IllegalArgumentException("orderCode는 필수입니다.");
         return orderCode;
