@@ -1,9 +1,8 @@
 package com.v_payment.pay.order.manager;
 
-import com.v_payment.pay.order.domain.orderitem.OrderItem;
-import com.v_payment.pay.order.domain.orderitem.OrderItemInfo;
+import com.v_payment.pay.order.domain.order.Order;
+import com.v_payment.pay.order.domain.order.OrderItemInfo;
 import com.v_payment.pay.order.domain.order.OrderStatus;
-import com.v_payment.pay.order.infrastructure.persistence.repository.OrderItemRepository;
 import com.v_payment.pay.order.infrastructure.persistence.repository.OrderRepository;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +15,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderManager {
     private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
 
     public boolean markCreated(String orderCode) {
         return markStatus(orderCode, OrderStatus.CREATED, OrderStatus.CREATED);
@@ -64,9 +62,9 @@ public class OrderManager {
     }
 
     public List<OrderItemInfo> findOrderItems(String orderCode) {
-        return orderItemRepository.findAllByOrderCode(orderCode).stream()
-                .map(OrderItem::getOrderItemInfo)
-                .toList();
+        return orderRepository.findByOrderCode(orderCode)
+                .map(Order::getOrderItemInfos)
+                .orElseGet(List::of);
     }
 
     private boolean markStatus(String orderCode, OrderStatus currentStatus, OrderStatus targetStatus) {
