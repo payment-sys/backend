@@ -2,6 +2,8 @@ package com.v_payment.pay.order.application;
 
 import com.v_payment.pay.order.domain.PaymentCreateSource;
 import com.v_payment.pay.order.domain.QuantityChangeSummaries;
+import com.v_payment.pay.order.domain.order.OrderItemInfo;
+import com.v_payment.pay.order.domain.order.OrderItemStatus;
 import com.v_payment.pay.order.domain.order.Order;
 import com.v_payment.pay.order.domain.order.OrderStatus;
 import com.v_payment.pay.order.domain.outbox.QuantityChangeOutbox;
@@ -44,13 +46,13 @@ public class QuantityChangeSummaryUseCase {
         List<QuantityChangeSummaryMessage> successMessages = filterProcessableMessages(summaries.getSuccessMessages(), orders);
         List<QuantityChangeSummaryMessage> failedMessages = filterProcessableMessages(summaries.getFailedMessages(), orders);
 
+        clearPersistenceContext();
+
         orderJdbcRepository.updateSummaryBatch(toSummaryUpdates(successMessages, OrderStatus.ORDER_SUCCESS));
         List<PaymentCreateSource> paymentCreateSources = createPaymentSources(successMessages, orders);
 
         orderJdbcRepository.updateSummaryBatch(toSummaryUpdates(failedMessages, OrderStatus.LACK_QUANTITY));
         List<QuantityChangeOutbox> compensationOutboxes = createCompensationOutboxes(failedMessages, orders);
-
-        clearPersistenceContext();
 
         createPayments(paymentCreateSources);
         sendCompensation(compensationOutboxes);
@@ -67,15 +69,17 @@ public class QuantityChangeSummaryUseCase {
 
     private List<PaymentCreateSource> createPaymentSources(List<QuantityChangeSummaryMessage> successMessages, Map<String, Order> orders) {
         return successMessages.stream()
-                .map(msg -> orders.get(msg.orderCode()))
-                .map(order -> PaymentCreateSource.create(order.getOrderCode(), order.getTotalAmount(),
-                        order.getPaymentMethod()))
+                .map(msg -> {
+                    Order order = orders.get(msg.orderCode());
+                    return PaymentCreateSource.create(order.getOrderCode(), calculateTotalAmount(msg.orderItems()),
+                            order.getPaymentMethod());
+                })
                 .toList();
     }
 
     private List<QuantityChangeOutbox> createCompensationOutboxes(List<QuantityChangeSummaryMessage> failedMsgs, Map<String, Order> orders) {
         return failedMsgs.stream()
-                .map(msg -> createCompensationOutbox(orders.get(msg.orderCode()), msg.successQuantities()))
+                .map(msg -> createCompensationOutbox(orders.get(msg.orderCode()), successQuantities(msg.orderItems())))
                 .filter(Objects::nonNull)
                 .toList();
     }
@@ -84,8 +88,26 @@ public class QuantityChangeSummaryUseCase {
                                                                           OrderStatus targetStatus) {
         return messages.stream()
                 .map(msg -> OrderJdbcRepository.OrderSummaryUpdate.of(msg.orderCode(),
-                        targetStatus, msg.successProductIds(), msg.failedProductIds()))
+                        targetStatus, msg.orderItems(), calculateTotalAmount(msg.orderItems())))
                 .toList();
+    }
+
+    private Long calculateTotalAmount(List<OrderItemInfo> orderItems) {
+        if (orderItems == null || orderItems.isEmpty()) return 0L;
+        return orderItems.stream()
+                .mapToLong(OrderItemInfo::calculateOrderAmount)
+                .sum();
+    }
+
+    private Map<Long, Integer> successQuantities(List<OrderItemInfo> orderItems) {
+        if (orderItems == null || orderItems.isEmpty()) return Map.of();
+        return orderItems.stream()
+                .filter(orderItem -> orderItem.getStatus() == OrderItemStatus.CHANGED)
+                .collect(Collectors.toMap(
+                        OrderItemInfo::getProductId,
+                        OrderItemInfo::getQuantity,
+                        Integer::sum
+                ));
     }
 
     private void createPayments(List<PaymentCreateSource> paymentCreateSources) {
