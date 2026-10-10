@@ -17,8 +17,8 @@ public class OrderJdbcRepositoryImpl implements OrderJdbcRepository {
     private static final String UPDATE_SUMMARY_BATCH = """
             update orders
             set status = ?,
-                quantity_change_success_product_ids = ?,
-                quantity_change_failed_product_ids = ?
+                total_amount = ?,
+                order_items = ?
             where order_code = ?
               and status = ?
             """;
@@ -26,8 +26,8 @@ public class OrderJdbcRepositoryImpl implements OrderJdbcRepository {
     private static final String UPDATE_SUMMARY_BATCH_H2 = """
             update orders
             set status = ?,
-                quantity_change_success_product_ids = ? format json,
-                quantity_change_failed_product_ids = ? format json
+                total_amount = ?,
+                order_items = ? format json
             where order_code = ?
               and status = ?
             """;
@@ -53,8 +53,8 @@ public class OrderJdbcRepositoryImpl implements OrderJdbcRepository {
 
         jdbcTemplate.batchUpdate(updateSummaryBatchSql, updates, 100, (ps, update) -> {
             ps.setString(1, update.targetStatus().name());
-            ps.setString(2, objectMapper.writeValueAsString(update.successProductIds()));
-            ps.setString(3, objectMapper.writeValueAsString(update.failedProductIds()));
+            ps.setLong(2, update.totalAmount());
+            ps.setString(3, objectMapper.writeValueAsString(update.orderItems()));
             ps.setString(4, update.orderCode());
             ps.setString(5, OrderStatus.CREATED.name());
         });
