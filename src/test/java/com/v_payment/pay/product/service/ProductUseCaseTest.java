@@ -1,7 +1,7 @@
 package com.v_payment.pay.product.service;
 
-import com.v_payment.pay.product.controller.dto.req.ProductCreateReq;
-import com.v_payment.pay.product.controller.dto.res.ProductCreateRes;
+import com.v_payment.pay.product.entrypoint.dto.req.ProductCreateReq;
+import com.v_payment.pay.product.entrypoint.dto.res.ProductCreateRes;
 import com.v_payment.pay.product.domain.entity.Product;
 import com.v_payment.pay.product.repository.ProductRepository;
 import org.junit.jupiter.api.DisplayName;

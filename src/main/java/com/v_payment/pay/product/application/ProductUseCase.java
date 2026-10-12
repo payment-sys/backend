@@ -1,14 +1,14 @@
 package com.v_payment.pay.product.service;
 
-import com.v_payment.pay.product.controller.dto.req.ProductCreateReq;
-import com.v_payment.pay.product.controller.dto.res.ProductCreateRes;
+import com.v_payment.pay.product.entrypoint.dto.req.ProductCreateReq;
+import com.v_payment.pay.product.entrypoint.dto.res.ProductCreateRes;
 import com.v_payment.pay.product.domain.QuantityChangePlan;
 import com.v_payment.pay.product.domain.event.QuantityChangeResultOutboxesEvent;
 import com.v_payment.pay.product.domain.entity.ChangeStatus;
 import com.v_payment.pay.product.domain.entity.Product;
 import com.v_payment.pay.product.domain.entity.QuantityChangeResultOutbox;
-import com.v_payment.pay.product.infra.kafka.dto.QuantityChangeMessage;
-import com.v_payment.pay.product.infra.kafka.dto.QuantityChangeType;
+import com.v_payment.pay.product.entrypoint.dto.msg.QuantityChangeMessage;
+import com.v_payment.pay.product.entrypoint.dto.msg.QuantityChangeType;
 import com.v_payment.pay.product.repository.ProductRepository;
 import com.v_payment.pay.product.repository.QuantityChangeResultOutboxRepository;
 import lombok.RequiredArgsConstructor;
