@@ -6,6 +6,7 @@ import com.v_payment.pay.order.domain.order.OrderItemStatus;
 import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeResultMessage;
 import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeSummaryStatus;
 import com.v_payment.pay.product.domain.entity.ChangeStatus;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@Slf4j
 @JsonAutoDetect(
         fieldVisibility = JsonAutoDetect.Visibility.ANY,
         getterVisibility = JsonAutoDetect.Visibility.NONE,
@@ -73,7 +75,8 @@ public class QuantityChangeResultAggregationState {
 
     private void addOrderItem(QuantityChangeResultMessage message, OrderItemStatus status) {
         if (message.productName() == null || message.unitPrice() == null) {
-            return;
+            log.error("Product name and unit은 null일 수 없습니다. orderCode={}", orderCode);
+            throw new IllegalArgumentException("Product name and unit은 null일 수 없습니다.");
         }
         orderItems.put(message.productId(), OrderItemInfo.create(
                 message.productId(),
