@@ -1,4 +1,4 @@
-package com.v_payment.pay.product.infra.kafka.dto;
+package com.v_payment.pay.product.entrypoint.dto.msg;
 
 public enum QuantityChangeType {
     DECREASE, COMPENSATE
