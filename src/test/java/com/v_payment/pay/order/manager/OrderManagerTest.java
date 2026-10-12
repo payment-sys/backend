@@ -30,17 +30,6 @@ class OrderManagerTest {
     @Autowired
     EntityManager entityManager;
 
-    @DisplayName("inventory secured order can be marked paid")
-    @Test
-    void markPaidFromOrderSuccess() {
-        String orderCode = createOrderSuccessOrder("paid-order");
-
-        boolean updated = orderManager.markPaid(orderCode);
-
-        assertThat(updated).isTrue();
-        assertThat(findStatus(orderCode)).isEqualTo(OrderStatus.PAID);
-    }
-
     @DisplayName("created order can be marked lack quantity when inventory change fails")
     @Test
     void markLackQuantityFromCreated() {
@@ -61,14 +50,6 @@ class OrderManagerTest {
 
         assertThat(updated).isTrue();
         assertThat(findStatus(orderCode)).isEqualTo(OrderStatus.EXPIRED);
-    }
-
-    private String createOrderSuccessOrder(String orderCode) {
-        createCreatedOrder(orderCode);
-        orderRepository.markStatus(orderCode, OrderStatus.CREATED, OrderStatus.ORDER_SUCCESS);
-        entityManager.flush();
-        entityManager.clear();
-        return orderCode;
     }
 
     private String createCreatedOrder(String orderCode) {

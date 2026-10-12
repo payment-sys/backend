@@ -23,6 +23,17 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, Payment
     List<Payment> findAllByOrderCode(String orderCode);
 
     @Query("""
+    SELECT DISTINCT p.orderCode
+    FROM Payment p
+    WHERE p.orderCode IN :orderCodes
+      AND p.paymentStatus IN :paymentStatuses
+    """)
+    List<String> findOrderCodesByPaymentStatuses(
+            @Param("orderCodes") List<String> orderCodes,
+            @Param("paymentStatuses") List<PaymentStatus> paymentStatuses
+    );
+
+    @Query("""
     SELECT p
     FROM Payment p
     WHERE p.paymentStatus IN :paymentStatuses

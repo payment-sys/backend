@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class RegeneratePolicyTest {
 
-    @DisplayName("can regenerate when order is created and all payments are regeneratable")
+    @DisplayName("can regenerate when order is successful and all payments are regeneratable")
     @Test
     void canRegenerate() {
         RegeneratePolicy policy = RegeneratePolicy.of(
@@ -31,9 +31,9 @@ class RegeneratePolicyTest {
                 .containsExactlyInAnyOrder(PaymentStatus.READY, PaymentStatus.ABORTED, PaymentStatus.EXPIRED);
     }
 
-    @DisplayName("cannot regenerate when order is not created")
+    @DisplayName("cannot regenerate when order is not successful")
     @Test
-    void cannotRegenerateWhenOrderIsNotCreated() {
+    void cannotRegenerateWhenOrderIsNotSuccessful() {
         RegeneratePolicy policy = RegeneratePolicy.of(false, List.of(payment(PaymentStatus.ABORTED)));
 
         assertThat(policy.canRegenerate()).isFalse();

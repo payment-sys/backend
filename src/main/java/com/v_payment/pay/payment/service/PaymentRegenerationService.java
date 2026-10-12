@@ -31,7 +31,7 @@ public class PaymentRegenerationService {
         List<Payment> payments = paymentRepository.findAllByOrderCode(req.orderCode());
         if (payments.isEmpty()) throw new BusinessException(PAYMENT_NOT_FOUND);
 
-        RegeneratePolicy regeneratePolicy = RegeneratePolicy.of(orderManager.isCreatedStatus(req.orderCode()), payments);
+        RegeneratePolicy regeneratePolicy = RegeneratePolicy.of(orderManager.isOrderSuccess(req.orderCode()), payments);
         if (!regeneratePolicy.canRegenerate()) throw new BusinessException(PAYMENT_REGENERATION_NOT_ALLOWED);
 
         Payment source = payments.stream()
