@@ -1,5 +1,7 @@
-package com.v_payment.pay.product.service;
+package com.v_payment.pay.product.application;
 
+import com.v_payment.pay.product.domain.ProductSnapShot;
+import com.v_payment.pay.product.domain.QuantityChangeMessages;
 import com.v_payment.pay.product.entrypoint.dto.req.ProductCreateReq;
 import com.v_payment.pay.product.entrypoint.dto.res.ProductCreateRes;
 import com.v_payment.pay.product.domain.QuantityChangePlan;
@@ -25,7 +27,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class ProductService {
+public class ProductUseCase {
     private final Clock clock;
     private final ProductRepository productRepository;
     private final QuantityChangeResultOutboxRepository quantityChangeResultOutboxRepository;
@@ -52,9 +54,11 @@ public class ProductService {
             return;
         }
 
-        QuantityChangePlan plan = QuantityChangePlan.create(decreaseMessages);
-        List<Product> products = productRepository.findAllByIdInForUpdate(plan.getProductIds());
-        plan.updateSuccessAndFail(products);
+        QuantityChangeMessages messages = QuantityChangeMessages.from(decreaseMessages);
+        List<Product> products = productRepository.findAllByIdInForUpdate(messages.getAllProductIds());
+        Map<Long, ProductSnapShot> productSnapShots = products.stream()
+                .collect(Collectors.toMap(Product::getId, ProductSnapShot::from));
+        QuantityChangePlan plan = QuantityChangePlan.calculate(productSnapShots, messages);
         List<QuantityChangeResultOutbox> insertedOutboxes = createOutboxesByPlan(plan);
         productRepository.changeQuantityBatch(getSuccessChangeQuantities(insertedOutboxes));
         if (!insertedOutboxes.isEmpty()) {
@@ -82,7 +86,7 @@ public class ProductService {
             outboxes.add(QuantityChangeResultOutbox.success(message, LocalDateTime.now(clock)));
         }
         for (QuantityChangeMessage message : plan.getFail()) {
-            outboxes.add(QuantityChangeResultOutbox.fail(message, "OUT_OF_STOCK", LocalDateTime.now(clock)));
+            outboxes.add(QuantityChangeResultOutbox.fail(message, LocalDateTime.now(clock)));
         }
         return quantityChangeResultOutboxRepository.createOutboxBatch(outboxes);
     }
