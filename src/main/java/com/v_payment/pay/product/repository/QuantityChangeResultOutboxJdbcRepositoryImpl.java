@@ -20,13 +20,12 @@ public class QuantityChangeResultOutboxJdbcRepositoryImpl implements QuantityCha
                     change_count,
                     products_count,
                     change_status,
-                    fail_reason,
                     status,
                     retry_count,
                     next_attempt_time,
                     created_at,
                     updated_at
-                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
     private static final String MARK_DONE_BATCH = """
@@ -54,12 +53,11 @@ public class QuantityChangeResultOutboxJdbcRepositoryImpl implements QuantityCha
             ps.setInt(3, outbox.getChangeCount());
             ps.setInt(4, outbox.getProductsCount());
             ps.setString(5, outbox.getChangeStatus().name());
-            ps.setString(6, outbox.getFailReason());
-            ps.setString(7, outbox.getQuantityChangeResultOutboxStatus().name());
-            ps.setInt(8, outbox.getRetryCount());
-            ps.setObject(9, outbox.getNextAttemptTime());
-            ps.setObject(10, outbox.getCreatedAt());
-            ps.setObject(11, outbox.getUpdatedAt());
+            ps.setString(6, outbox.getQuantityChangeResultOutboxStatus().name());
+            ps.setInt(7, outbox.getRetryCount());
+            ps.setObject(8, outbox.getNextAttemptTime());
+            ps.setObject(9, outbox.getCreatedAt());
+            ps.setObject(10, outbox.getUpdatedAt());
         });
 
         List<QuantityChangeResultOutbox> insertedOutboxes = new ArrayList<>();
