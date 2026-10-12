@@ -17,6 +17,8 @@ public class QuantityChangeResultOutboxJdbcRepositoryImpl implements QuantityCha
                 insert ignore into quantity_change_result_outbox (
                     order_code,
                     product_id,
+                    product_name,
+                    unit_price,
                     change_count,
                     products_count,
                     change_status,
@@ -25,7 +27,7 @@ public class QuantityChangeResultOutboxJdbcRepositoryImpl implements QuantityCha
                     next_attempt_time,
                     created_at,
                     updated_at
-                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
     private static final String MARK_DONE_BATCH = """
@@ -50,14 +52,16 @@ public class QuantityChangeResultOutboxJdbcRepositoryImpl implements QuantityCha
         int[][] updateCounts = jdbcTemplate.batchUpdate(OUTBOX_BATCH, outboxes, 100, (ps, outbox) -> {
             ps.setString(1, outbox.getOrderCode());
             ps.setLong(2, outbox.getProductId());
-            ps.setInt(3, outbox.getChangeCount());
-            ps.setInt(4, outbox.getProductsCount());
-            ps.setString(5, outbox.getChangeStatus().name());
-            ps.setString(6, outbox.getQuantityChangeResultOutboxStatus().name());
-            ps.setInt(7, outbox.getRetryCount());
-            ps.setObject(8, outbox.getNextAttemptTime());
-            ps.setObject(9, outbox.getCreatedAt());
-            ps.setObject(10, outbox.getUpdatedAt());
+            ps.setString(3, outbox.getProductName());
+            ps.setObject(4, outbox.getUnitPrice());
+            ps.setInt(5, outbox.getChangeCount());
+            ps.setInt(6, outbox.getProductsCount());
+            ps.setString(7, outbox.getChangeStatus().name());
+            ps.setString(8, outbox.getQuantityChangeResultOutboxStatus().name());
+            ps.setInt(9, outbox.getRetryCount());
+            ps.setObject(10, outbox.getNextAttemptTime());
+            ps.setObject(11, outbox.getCreatedAt());
+            ps.setObject(12, outbox.getUpdatedAt());
         });
 
         List<QuantityChangeResultOutbox> insertedOutboxes = new ArrayList<>();

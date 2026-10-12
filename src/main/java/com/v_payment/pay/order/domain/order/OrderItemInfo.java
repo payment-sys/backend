@@ -1,12 +1,10 @@
-package com.v_payment.pay.order.domain.orderitem;
+package com.v_payment.pay.order.domain.order;
 
-import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
-@Embeddable
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OrderItemInfo {
     private Long productId;
@@ -17,11 +15,14 @@ public class OrderItemInfo {
 
     private Integer quantity;
 
-    private OrderItemInfo(Long productId, String productName, Long unitPrice, Integer quantity) {
+    private OrderItemStatus status;
+
+    private OrderItemInfo(Long productId, String productName, Long unitPrice, Integer quantity, OrderItemStatus status) {
         this.productId = validateProductId(productId);
         this.productName = validateProductName(productName);
         this.unitPrice = validateUnitPrice(unitPrice);
         this.quantity = validateQuantity(quantity);
+        this.status = validateStatus(status);
     }
 
     public Long calculateOrderAmount() {
@@ -29,7 +30,11 @@ public class OrderItemInfo {
     }
 
     public static OrderItemInfo create(Long productId, String productName, Long unitPrice, Integer quantity) {
-        return new OrderItemInfo(productId, productName, unitPrice, quantity);
+        return new OrderItemInfo(productId, productName, unitPrice, quantity, OrderItemStatus.PROCESSING);
+    }
+
+    public static OrderItemInfo create(Long productId, String productName, Long unitPrice, Integer quantity, OrderItemStatus status) {
+        return new OrderItemInfo(productId, productName, unitPrice, quantity, status);
     }
 
     private Long validateProductId(Long productId) {
@@ -52,5 +57,9 @@ public class OrderItemInfo {
         if (quantity == null) throw new IllegalArgumentException("quantity는 필수입니다.");
         if (quantity <= 0) throw new IllegalArgumentException("quantity는 0보다 커야 합니다.");
         return quantity;
+    }
+    private OrderItemStatus validateStatus(OrderItemStatus status) {
+        if (status == null) throw new IllegalArgumentException("status is required.");
+        return status;
     }
 }

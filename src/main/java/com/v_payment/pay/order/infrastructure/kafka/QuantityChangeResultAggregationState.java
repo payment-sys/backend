@@ -1,6 +1,8 @@
 package com.v_payment.pay.order.infrastructure.kafka;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.v_payment.pay.order.domain.order.OrderItemInfo;
+import com.v_payment.pay.order.domain.order.OrderItemStatus;
 import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeResultMessage;
 import com.v_payment.pay.order.infrastructure.kafka.dto.QuantityChangeSummaryStatus;
 import com.v_payment.pay.product.domain.entity.ChangeStatus;
@@ -10,7 +12,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @JsonAutoDetect(
         fieldVisibility = JsonAutoDetect.Visibility.ANY,
@@ -21,10 +22,7 @@ public class QuantityChangeResultAggregationState {
     private String orderCode;
     private Integer productsCount;
     private Set<Long> receivedProductIds = new HashSet<>();
-    private Set<Long> successProductIds = new HashSet<>();
-    private Set<Long> failedProductIds = new HashSet<>();
-    private Map<Long, Integer> successQuantities = new HashMap<>();
-    private Map<Long, Integer> failedQuantities = new HashMap<>();
+    private Map<Long, OrderItemInfo> orderItems = new HashMap<>();
     private boolean hasFailure;
     private boolean emitted;
 
@@ -45,20 +43,12 @@ public class QuantityChangeResultAggregationState {
         return QuantityChangeSummaryStatus.SUCCESS;
     }
 
-    public List<Long> successProductIds() {
-        return successProductIds.stream().sorted().toList();
-    }
-
-    public List<Long> failedProductIds() {
-        return failedProductIds.stream().sorted().toList();
-    }
-
-    public Map<Long, Integer> successQuantities() {
-        return sortedQuantities(successQuantities);
-    }
-
-    public Map<Long, Integer> failedQuantities() {
-        return sortedQuantities(failedQuantities);
+    public List<OrderItemInfo> orderItems() {
+        return orderItems.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(Map.Entry::getValue)
+                .toList();
     }
 
     public void markEmitted() {
@@ -73,14 +63,25 @@ public class QuantityChangeResultAggregationState {
             return this;
         }
         if (message.changeStatus() == ChangeStatus.FAILED) {
-            failedProductIds.add(message.productId());
-            failedQuantities.merge(message.productId(), positiveQuantity(message.changeCount()), Integer::sum);
+            addOrderItem(message, OrderItemStatus.FAILED);
             hasFailure = true;
         } else {
-            successProductIds.add(message.productId());
-            successQuantities.merge(message.productId(), positiveQuantity(message.changeCount()), Integer::sum);
+            addOrderItem(message, OrderItemStatus.CHANGED);
         }
         return this;
+    }
+
+    private void addOrderItem(QuantityChangeResultMessage message, OrderItemStatus status) {
+        if (message.productName() == null || message.unitPrice() == null) {
+            return;
+        }
+        orderItems.put(message.productId(), OrderItemInfo.create(
+                message.productId(),
+                message.productName(),
+                message.unitPrice(),
+                positiveQuantity(message.changeCount()),
+                status
+        ));
     }
 
     private Integer positiveQuantity(Integer changeCount) {
@@ -88,15 +89,4 @@ public class QuantityChangeResultAggregationState {
         return Math.abs(changeCount);
     }
 
-    private Map<Long, Integer> sortedQuantities(Map<Long, Integer> quantities) {
-        return quantities.entrySet()
-                .stream()
-                .sorted(Map.Entry.comparingByKey())
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        Integer::sum,
-                        java.util.LinkedHashMap::new
-                ));
-    }
 }

@@ -1,13 +1,13 @@
 package com.v_payment.pay.order.entity;
 
-import com.v_payment.pay.order.domain.orderitem.OrderItemInfo;
+import com.v_payment.pay.order.domain.order.OrderItemInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class OrderItemInfoTest {
+class OrderItemsInfoTest {
 
     @DisplayName("주문 상품 정보는 상품 스냅샷 값으로 생성된다")
     @Test

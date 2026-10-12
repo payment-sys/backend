@@ -1,6 +1,7 @@
 package com.v_payment.pay.order.infrastructure.persistence.repository;
 
 import com.v_payment.pay.order.domain.order.OrderStatus;
+import com.v_payment.pay.order.domain.order.OrderItemInfo;
 
 import java.util.List;
 
@@ -10,11 +11,16 @@ public interface OrderJdbcRepository {
     record OrderSummaryUpdate(
             String orderCode,
             OrderStatus targetStatus,
-            List<Long> successProductIds,
-            List<Long> failedProductIds
+            List<OrderItemInfo> orderItems,
+            Long totalAmount
     ) {
-        public static OrderSummaryUpdate of(String orderCode, OrderStatus targetStatus, List<Long> successProductIds, List<Long> failedProductIds) {
-            return new OrderSummaryUpdate(orderCode, targetStatus, successProductIds, failedProductIds);
+        public static OrderSummaryUpdate of(
+                String orderCode,
+                OrderStatus targetStatus,
+                List<OrderItemInfo> orderItems,
+                Long totalAmount
+        ) {
+            return new OrderSummaryUpdate(orderCode, targetStatus, orderItems, totalAmount);
         }
     }
 }

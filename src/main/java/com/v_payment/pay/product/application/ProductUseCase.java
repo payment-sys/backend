@@ -59,7 +59,7 @@ public class ProductUseCase {
         Map<Long, ProductSnapShot> productSnapShots = products.stream()
                 .collect(Collectors.toMap(Product::getId, ProductSnapShot::from));
         QuantityChangePlan plan = QuantityChangePlan.calculate(productSnapShots, messages);
-        List<QuantityChangeResultOutbox> insertedOutboxes = createOutboxesByPlan(plan);
+        List<QuantityChangeResultOutbox> insertedOutboxes = createOutboxesByPlan(plan, products);
         productRepository.changeQuantityBatch(getSuccessChangeQuantities(insertedOutboxes));
         if (!insertedOutboxes.isEmpty()) {
             applicationEventPublisher.publishEvent(new QuantityChangeResultOutboxesEvent(insertedOutboxes));
@@ -80,13 +80,15 @@ public class ProductUseCase {
         productRepository.changeQuantityBatch(compensateQuantities);
     }
 
-    private List<QuantityChangeResultOutbox> createOutboxesByPlan(QuantityChangePlan plan) {
+    private List<QuantityChangeResultOutbox> createOutboxesByPlan(QuantityChangePlan plan, List<Product> products) {
+        Map<Long, Product> productMap = products.stream()
+                .collect(Collectors.toMap(Product::getId, product -> product));
         List<QuantityChangeResultOutbox> outboxes = new ArrayList<>();
         for (QuantityChangeMessage message : plan.getSuccess()) {
-            outboxes.add(QuantityChangeResultOutbox.success(message, LocalDateTime.now(clock)));
+            outboxes.add(QuantityChangeResultOutbox.success(message, productMap.get(message.productId()), LocalDateTime.now(clock)));
         }
         for (QuantityChangeMessage message : plan.getFail()) {
-            outboxes.add(QuantityChangeResultOutbox.fail(message, LocalDateTime.now(clock)));
+            outboxes.add(QuantityChangeResultOutbox.fail(message, productMap.get(message.productId()), LocalDateTime.now(clock)));
         }
         return quantityChangeResultOutboxRepository.createOutboxBatch(outboxes);
     }
