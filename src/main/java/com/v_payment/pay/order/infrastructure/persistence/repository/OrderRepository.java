@@ -3,7 +3,9 @@ package com.v_payment.pay.order.infrastructure.persistence.repository;
 import com.v_payment.pay.order.domain.PaymentCreateSource;
 import com.v_payment.pay.order.domain.order.Order;
 import com.v_payment.pay.order.domain.order.OrderStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,11 +19,13 @@ import java.util.Optional;
 public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByOrderCode(String orderCode);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
     select o
     from Order o
     where o.orderCode in :orderCodes
       and o.status = :status
+    order by o.orderCode asc
     """)
     List<Order> findAllByOrderCodeCreated(Collection<String> orderCodes, OrderStatus status);
 
@@ -36,6 +40,20 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             """)
     List<String> findExpirableCreatedOrderCodes(
             @Param("createdStatus") OrderStatus createdStatus,
+            @Param("orderedBefore") LocalDateTime orderedBefore,
+            Pageable pageable
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select o
+            from Order o
+            where o.status = :status
+              and o.orderedAt <= :orderedBefore
+            order by o.orderedAt asc, o.orderCode asc
+            """)
+    List<Order> findExpirableOrdersForUpdate(
+            @Param("status") OrderStatus status,
             @Param("orderedBefore") LocalDateTime orderedBefore,
             Pageable pageable
     );
