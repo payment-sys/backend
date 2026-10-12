@@ -85,17 +85,8 @@ public class QuantityChangeSummaries {
         if (message.status() == null) {
             throw new IllegalArgumentException("status is required.");
         }
-        if (message.successProductIds() == null) {
-            throw new IllegalArgumentException("successProductIds is required.");
-        }
-        if (message.failedProductIds() == null) {
-            throw new IllegalArgumentException("failedProductIds is required.");
-        }
-        if (message.successQuantities() == null) {
-            throw new IllegalArgumentException("successQuantities is required.");
-        }
-        if (message.failedQuantities() == null) {
-            throw new IllegalArgumentException("failedQuantities is required.");
+        if (message.orderItems() == null) {
+            throw new IllegalArgumentException("orderItems is required.");
         }
     }
 

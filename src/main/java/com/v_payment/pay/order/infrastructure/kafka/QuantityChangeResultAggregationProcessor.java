@@ -39,10 +39,7 @@ public class QuantityChangeResultAggregationProcessor implements Processor<Strin
                     new QuantityChangeSummaryMessage(
                             state.orderCode(),
                             state.summaryStatus(),
-                            state.successProductIds(),
-                            state.failedProductIds(),
-                            state.successQuantities(),
-                            state.failedQuantities()
+                            state.orderItems()
                     );
 
             context.forward(record.withKey(orderCode).withValue(summary));

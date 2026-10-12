@@ -48,6 +48,12 @@ public class QuantityChangeResultOutbox {
     @Column(name = "product_id", nullable = false)
     private Long productId;
 
+    @Column(name = "product_name")
+    private String productName;
+
+    @Column(name = "unit_price")
+    private Long unitPrice;
+
     @Column(name = "change_count", nullable = false)
     private Integer changeCount;
 
@@ -78,6 +84,8 @@ public class QuantityChangeResultOutbox {
     private QuantityChangeResultOutbox(
             String orderCode,
             Long productId,
+            String productName,
+            Long unitPrice,
             Integer changeCount,
             Integer productsCount,
             ChangeStatus changeStatus,
@@ -90,6 +98,8 @@ public class QuantityChangeResultOutbox {
     ) {
         this.orderCode = validateOrderCode(orderCode);
         this.productId = validateProductId(productId);
+        this.productName = productName;
+        this.unitPrice = unitPrice;
         this.changeCount = validateChangeCount(changeCount);
         this.productsCount = validateProductsCount(productsCount);
         this.changeStatus = validateChangeStatus(changeStatus);
@@ -101,16 +111,25 @@ public class QuantityChangeResultOutbox {
         this.updatedAt = updatedAt;
     }
 
+    public static QuantityChangeResultOutbox success(QuantityChangeMessage message, Product product, LocalDateTime now) {
+        return from(message, product, ChangeStatus.SUCCESS, null, now);
+    }
+
     public static QuantityChangeResultOutbox success(QuantityChangeMessage message, LocalDateTime now) {
-        return from(message, ChangeStatus.SUCCESS, null, now);
+        return success(message, null, now);
+    }
+
+    public static QuantityChangeResultOutbox fail(QuantityChangeMessage message, Product product, String failReason, LocalDateTime now) {
+        return from(message, product, ChangeStatus.FAILED, validateFailReason(failReason), now);
     }
 
     public static QuantityChangeResultOutbox fail(QuantityChangeMessage message, String failReason, LocalDateTime now) {
-        return from(message, ChangeStatus.FAILED, validateFailReason(failReason), now);
+        return fail(message, null, failReason, now);
     }
 
     private static QuantityChangeResultOutbox from(
             QuantityChangeMessage message,
+            Product product,
             ChangeStatus changeStatus,
             String failReason,
             LocalDateTime now
@@ -119,6 +138,8 @@ public class QuantityChangeResultOutbox {
         return new QuantityChangeResultOutbox(
                 validMessage.orderCode(),
                 validMessage.productId(),
+                product == null ? null : product.getName(),
+                product == null ? null : product.getPrice(),
                 validMessage.changeCount(),
                 validMessage.productsCount(),
                 changeStatus,
@@ -137,7 +158,7 @@ public class QuantityChangeResultOutbox {
     }
 
     public QuantityChangeResultMessage getQuantityChangeResult() {
-        return QuantityChangeResultMessage.of(orderCode, productId, changeCount, changeStatus, productsCount);
+        return QuantityChangeResultMessage.of(orderCode, productId, productName, unitPrice, changeCount, changeStatus, productsCount);
     }
 
     private static QuantityChangeMessage validateMessage(QuantityChangeMessage message) {
