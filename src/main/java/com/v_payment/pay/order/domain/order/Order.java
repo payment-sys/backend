@@ -41,14 +41,6 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "json")
-    private List<Long> quantityChangeSuccessProductIds = new ArrayList<>();
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "json")
-    private List<Long> quantityChangeFailedProductIds = new ArrayList<>();
-
     private Order(String orderCode, OrderStatus status, Long totalAmount, PaymentMethod paymentMethod, LocalDateTime orderedAt) {
         this.orderCode = validateOrderCode(orderCode);
         this.status = validateStatus(status);
@@ -72,16 +64,6 @@ public class Order {
 
     public static Order create(String orderCode, LocalDateTime orderedAt) {
         return create(orderCode, PaymentMethod.CARD, orderedAt);
-    }
-
-    public void applySummary(
-            OrderStatus targetStatus,
-            List<Long> successProductIds,
-            List<Long> failedProductIds
-    ) {
-        this.status = validateStatus(targetStatus);
-        this.quantityChangeSuccessProductIds = copyProductIds(successProductIds);
-        this.quantityChangeFailedProductIds = copyProductIds(failedProductIds);
     }
 
     public boolean isCreated() {
