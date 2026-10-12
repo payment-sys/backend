@@ -1,5 +1,6 @@
 package com.v_payment.pay.product.service;
 
+import com.v_payment.pay.product.application.ProductUseCase;
 import com.v_payment.pay.product.entrypoint.dto.req.ProductCreateReq;
 import com.v_payment.pay.product.entrypoint.dto.res.ProductCreateRes;
 import com.v_payment.pay.product.domain.entity.Product;
@@ -14,10 +15,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Transactional
-class ProductServiceTest {
+class ProductUseCaseTest {
 
     @Autowired
-    ProductService productService;
+    ProductUseCase productUseCase;
 
     @Autowired
     ProductRepository productRepository;
@@ -29,7 +30,7 @@ class ProductServiceTest {
         ProductCreateReq req = new ProductCreateReq("product-A", 10_000L, 100);
 
         // when
-        ProductCreateRes res = productService.create(req);
+        ProductCreateRes res = productUseCase.create(req);
 
         // then
         Product product = productRepository.findById(res.productId()).orElseThrow();

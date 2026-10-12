@@ -1,4 +1,4 @@
-package com.v_payment.pay.product.scheduler;
+package com.v_payment.pay.product.entrypoint;
 
 import com.v_payment.pay.product.config.QuantityChangeResultOutboxPublishProperties;
 import com.v_payment.pay.product.domain.event.QuantityChangeResultOutboxesEvent;
@@ -20,7 +20,7 @@ import java.util.List;
 @Slf4j(topic = "SCHEDULER_LOGGER")
 @Component
 @RequiredArgsConstructor
-public class QuantityChangeResultOutboxPublishScheduler {
+public class QuantityChangeResultRecoverScheduler {
     private final Clock clock;
     private final QuantityChangeResultOutboxRepository quantityChangeResultOutboxRepository;
     private final ApplicationEventPublisher eventPublisher;
