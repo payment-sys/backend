@@ -46,7 +46,7 @@ public class QuantityChangeBatchConsumeUseCase {
         //성공한 메시지만 원장 생성 batch insert
         createQuantityChangeLedger(quantityChangePlan.getSuccess());
         //보상이 아닐 시 아웃박스 생성(성공, 실패 모두 가능)
-        List<QuantityChangeResultOutbox> outboxes = createOutboxesBySuccessPlan(quantityChangePlan);
+        List<QuantityChangeResultOutbox> outboxes = createOutboxesBySuccessPlan(quantityChangePlan, products);
         //성공 변경만 재고 차감
         productRepository.changeQuantityBatch(quantityChangePlan.getSuccessChangeQuantities());
         if(!outboxes.isEmpty()) {
@@ -72,13 +72,15 @@ public class QuantityChangeBatchConsumeUseCase {
         quantityChangeLedgerRepository.createLedgerBatch(ledgers);
     }
 
-    private List<QuantityChangeResultOutbox> createOutboxesBySuccessPlan(QuantityChangePlan plan) {
+    private List<QuantityChangeResultOutbox> createOutboxesBySuccessPlan(QuantityChangePlan plan, List<Product> products) {
+        Map<Long, Product> productMap = products.stream()
+                .collect(Collectors.toMap(Product::getId, product -> product));
         List<QuantityChangeResultOutbox> outboxes = new ArrayList<>();
         for (QuantityChangeMessage message : plan.getSuccess()) {
-            outboxes.add(QuantityChangeResultOutbox.success(message, LocalDateTime.now(clock)));
+            outboxes.add(QuantityChangeResultOutbox.success(message, productMap.get(message.productId()), LocalDateTime.now(clock)));
         }
         for (QuantityChangeMessage message : plan.getFail()) {
-            outboxes.add(QuantityChangeResultOutbox.fail(message, LocalDateTime.now(clock)));
+            outboxes.add(QuantityChangeResultOutbox.fail(message, productMap.get(message.productId()), LocalDateTime.now(clock)));
         }
         return quantityChangeResultOutboxRepository.createOutboxBatch(outboxes);
     }
