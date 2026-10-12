@@ -32,20 +32,16 @@ public class OrderManager {
         return markStatus(orderCodes, OrderStatus.CREATED, OrderStatus.LACK_QUANTITY);
     }
 
-    public boolean markPaid(String orderCode) {
-        return markStatus(orderCode, OrderStatus.ORDER_SUCCESS, OrderStatus.PAID);
-    }
-
-    public boolean markPaid(Collection<String> orderCodes) {
-        return markStatus(orderCodes, OrderStatus.ORDER_SUCCESS, OrderStatus.PAID);
-    }
-
     public boolean markExpired(String orderCode) {
         return markStatus(orderCode, OrderStatus.CREATED, OrderStatus.EXPIRED);
     }
 
     public boolean markExpired(Collection<String> orderCodes) {
         return markStatus(orderCodes, OrderStatus.CREATED, OrderStatus.EXPIRED);
+    }
+
+    public boolean markOrderSuccessExpired(Collection<String> orderCodes) {
+        return markStatus(orderCodes, OrderStatus.ORDER_SUCCESS, OrderStatus.EXPIRED);
     }
 
     public boolean markLackQuantities(String orderCode) {
@@ -57,8 +53,8 @@ public class OrderManager {
         return markLackQuantity(orderCodes);
     }
 
-    public boolean isCreatedStatus(String orderCode) {
-        return orderRepository.existsByOrderCodeAndStatus(orderCode, OrderStatus.CREATED);
+    public boolean isOrderSuccess(String orderCode) {
+        return orderRepository.existsByOrderCodeAndStatus(orderCode, OrderStatus.ORDER_SUCCESS);
     }
 
     public List<OrderItemInfo> findOrderItems(String orderCode) {
