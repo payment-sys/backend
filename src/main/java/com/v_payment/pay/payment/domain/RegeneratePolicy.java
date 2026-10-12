@@ -14,16 +14,16 @@ public class RegeneratePolicy {
             PaymentStatus.EXPIRED
     );
 
-    private final boolean orderCreated;
+    private final boolean orderSuccess;
     private final List<Payment> payments;
 
-    private RegeneratePolicy(boolean orderCreated, Collection<Payment> payments) {
-        this.orderCreated = orderCreated;
+    private RegeneratePolicy(boolean orderSuccess, Collection<Payment> payments) {
+        this.orderSuccess = orderSuccess;
         this.payments = List.copyOf(validatePayments(payments));
     }
 
     public boolean canRegenerate() {
-        return orderCreated && hasPayments() && payments.stream()
+        return orderSuccess && hasPayments() && payments.stream()
                 .allMatch(payment -> REGENERATABLE_STATUSES.contains(payment.getPaymentStatus()));
     }
 
@@ -35,8 +35,8 @@ public class RegeneratePolicy {
         return !payments.isEmpty();
     }
 
-    public static RegeneratePolicy of(boolean orderCreated, Collection<Payment> payments) {
-        return new RegeneratePolicy(orderCreated, payments);
+    public static RegeneratePolicy of(boolean orderSuccess, Collection<Payment> payments) {
+        return new RegeneratePolicy(orderSuccess, payments);
     }
 
     private Collection<Payment> validatePayments(Collection<Payment> payments) {
