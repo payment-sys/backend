@@ -1,8 +1,9 @@
-package com.v_payment.pay.product.service;
+package com.v_payment.pay.product.entrypoint;
 
 import com.v_payment.pay.product.domain.event.QuantityChangeResultOutboxesEvent;
 import com.v_payment.pay.product.domain.entity.QuantityChangeResultOutbox;
 import com.v_payment.pay.product.infra.kafka.QuantityChangeResultProducer;
+import com.v_payment.pay.product.application.QuantityChangeResultOutboxService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

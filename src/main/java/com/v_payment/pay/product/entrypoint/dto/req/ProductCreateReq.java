@@ -1,4 +1,4 @@
-package com.v_payment.pay.product.controller.dto.req;
+package com.v_payment.pay.product.entrypoint.dto.req;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

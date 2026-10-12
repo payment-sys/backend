@@ -1,8 +1,8 @@
-package com.v_payment.pay.product.controller;
+package com.v_payment.pay.product.entrypoint;
 
-import com.v_payment.pay.product.controller.dto.req.ProductCreateReq;
-import com.v_payment.pay.product.controller.dto.res.ProductCreateRes;
-import com.v_payment.pay.product.service.ProductService;
+import com.v_payment.pay.product.entrypoint.dto.req.ProductCreateReq;
+import com.v_payment.pay.product.entrypoint.dto.res.ProductCreateRes;
+import com.v_payment.pay.product.application.ProductUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/products")
 @RequiredArgsConstructor
 public class ProductController {
-    private final ProductService productService;
+    private final ProductUseCase productUseCase;
 
     @PostMapping
     public ProductCreateRes createProduct(@Valid @RequestBody ProductCreateReq req) {
-        return productService.create(req);
+        return productUseCase.create(req);
     }
 }

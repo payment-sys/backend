@@ -1,4 +1,4 @@
-package com.v_payment.pay.product.controller.dto.res;
+package com.v_payment.pay.product.entrypoint.dto.res;
 
 public record ReservedProduct(
         Long productId,

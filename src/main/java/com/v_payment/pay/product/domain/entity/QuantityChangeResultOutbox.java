@@ -1,6 +1,6 @@
 package com.v_payment.pay.product.domain.entity;
 
-import com.v_payment.pay.product.infra.kafka.dto.QuantityChangeMessage;
+import com.v_payment.pay.product.entrypoint.dto.msg.QuantityChangeMessage;
 import com.v_payment.pay.product.infra.kafka.dto.QuantityChangeResultMessage;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -64,9 +64,6 @@ public class QuantityChangeResultOutbox {
     @Column(nullable = false)
     private ChangeStatus changeStatus;
 
-    @Column(name = "fail_reason")
-    private String failReason;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private QuantityChangeResultOutboxStatus quantityChangeResultOutboxStatus;
@@ -89,7 +86,6 @@ public class QuantityChangeResultOutbox {
             Integer changeCount,
             Integer productsCount,
             ChangeStatus changeStatus,
-            String failReason,
             QuantityChangeResultOutboxStatus quantityChangeResultOutboxStatus,
             Integer retryCount,
             LocalDateTime nextAttemptTime,
@@ -103,7 +99,6 @@ public class QuantityChangeResultOutbox {
         this.changeCount = validateChangeCount(changeCount);
         this.productsCount = validateProductsCount(productsCount);
         this.changeStatus = validateChangeStatus(changeStatus);
-        this.failReason = failReason;
         this.quantityChangeResultOutboxStatus = validateStatus(quantityChangeResultOutboxStatus);
         this.retryCount = validateRetryCount(retryCount);
         this.nextAttemptTime = nextAttemptTime;
@@ -112,26 +107,25 @@ public class QuantityChangeResultOutbox {
     }
 
     public static QuantityChangeResultOutbox success(QuantityChangeMessage message, Product product, LocalDateTime now) {
-        return from(message, product, ChangeStatus.SUCCESS, null, now);
+        return from(message, product, ChangeStatus.SUCCESS, now);
     }
 
     public static QuantityChangeResultOutbox success(QuantityChangeMessage message, LocalDateTime now) {
         return success(message, null, now);
     }
 
-    public static QuantityChangeResultOutbox fail(QuantityChangeMessage message, Product product, String failReason, LocalDateTime now) {
-        return from(message, product, ChangeStatus.FAILED, validateFailReason(failReason), now);
+    public static QuantityChangeResultOutbox fail(QuantityChangeMessage message, Product product, LocalDateTime now) {
+        return from(message, product, ChangeStatus.FAILED, now);
     }
 
-    public static QuantityChangeResultOutbox fail(QuantityChangeMessage message, String failReason, LocalDateTime now) {
-        return fail(message, null, failReason, now);
+    public static QuantityChangeResultOutbox fail(QuantityChangeMessage message, LocalDateTime now) {
+        return fail(message, null, now);
     }
 
     private static QuantityChangeResultOutbox from(
             QuantityChangeMessage message,
             Product product,
             ChangeStatus changeStatus,
-            String failReason,
             LocalDateTime now
     ) {
         QuantityChangeMessage validMessage = validateMessage(message);
@@ -143,7 +137,6 @@ public class QuantityChangeResultOutbox {
                 validMessage.changeCount(),
                 validMessage.productsCount(),
                 changeStatus,
-                failReason,
                 QuantityChangeResultOutboxStatus.READY,
                 0,
                 null,
@@ -162,59 +155,54 @@ public class QuantityChangeResultOutbox {
     }
 
     private static QuantityChangeMessage validateMessage(QuantityChangeMessage message) {
-        if (message == null) throw new IllegalArgumentException("message is required.");
+        if (message == null) throw new IllegalArgumentException("재고 변경 메시지는 필수입니다.");
         return message;
     }
 
     private String validateOrderCode(String orderCode) {
-        if (orderCode == null || orderCode.isBlank()) throw new IllegalArgumentException("orderCode is required.");
+        if (orderCode == null || orderCode.isBlank()) throw new IllegalArgumentException("주문 코드는 필수입니다.");
         return orderCode;
     }
 
     private Long validateProductId(Long productId) {
-        if (productId == null) throw new IllegalArgumentException("productId is required.");
+        if (productId == null) throw new IllegalArgumentException("상품 ID는 필수입니다.");
         return productId;
     }
 
     private Integer validateChangeCount(Integer changeCount) {
-        if (changeCount == null) throw new IllegalArgumentException("changeCount is required.");
+        if (changeCount == null) throw new IllegalArgumentException("재고 변경 수량은 필수입니다.");
         return changeCount;
     }
 
     private ChangeStatus validateChangeStatus(ChangeStatus changeStatus) {
-        if (changeStatus == null) throw new IllegalArgumentException("changeStatus is required.");
+        if (changeStatus == null) throw new IllegalArgumentException("재고 변경 상태는 필수입니다.");
         return changeStatus;
     }
 
-    private static String validateFailReason(String failReason) {
-        if (failReason == null || failReason.isBlank()) throw new IllegalArgumentException("failReason is required.");
-        return failReason;
-    }
-
     private QuantityChangeResultOutboxStatus validateStatus(QuantityChangeResultOutboxStatus status) {
-        if (status == null) throw new IllegalArgumentException("quantityChangeResultOutboxStatus is required.");
+        if (status == null) throw new IllegalArgumentException("결과 아웃박스 상태는 필수입니다.");
         return status;
     }
 
     private Integer validateRetryCount(Integer retryCount) {
-        if (retryCount == null) throw new IllegalArgumentException("retryCount is required.");
-        if (retryCount < 0) throw new IllegalArgumentException("retryCount must not be negative.");
+        if (retryCount == null) throw new IllegalArgumentException("재시도 횟수는 필수입니다.");
+        if (retryCount < 0) throw new IllegalArgumentException("재시도 횟수는 음수일 수 없습니다.");
         return retryCount;
     }
 
     private LocalDateTime validateCreatedAt(LocalDateTime createdAt) {
-        if (createdAt == null) throw new IllegalArgumentException("createdAt is required.");
+        if (createdAt == null) throw new IllegalArgumentException("생성 시간은 필수입니다.");
         return createdAt;
     }
 
     private LocalDateTime validateUpdatedAt(LocalDateTime updatedAt) {
-        if (updatedAt == null) throw new IllegalArgumentException("updatedAt is required.");
+        if (updatedAt == null) throw new IllegalArgumentException("수정 시간은 필수입니다.");
         return updatedAt;
     }
 
 
     private Integer validateProductsCount(Integer productsCount) {
-        if (productsCount == null) throw new IllegalArgumentException("productsCount is required.");
+        if (productsCount == null) throw new IllegalArgumentException("주문 상품 개수는 필수입니다.");
         return productsCount;
     }
 }

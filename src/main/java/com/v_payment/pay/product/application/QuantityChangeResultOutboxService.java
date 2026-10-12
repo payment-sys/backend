@@ -1,4 +1,4 @@
-package com.v_payment.pay.product.service;
+package com.v_payment.pay.product.application;
 
 import com.v_payment.pay.product.domain.entity.QuantityChangeResultOutbox;
 import com.v_payment.pay.product.domain.entity.QuantityChangeResultOutboxStatus;
