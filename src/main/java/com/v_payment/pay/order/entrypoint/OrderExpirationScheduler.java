@@ -15,12 +15,12 @@ public class OrderExpirationScheduler {
 
     @Scheduled(fixedDelayString = "${order.expiration-scheduler.fixed-delay-ms:30000}")
     @SchedulerLock(
-            name = "orderExpiration.expireCreatedOrders",
+            name = "orderExpiration.expireOrders",
             lockAtMostFor = "10s",
             lockAtLeastFor = "1s"
     )
-    public void expireCreatedOrders() {
-        int expiredCount = orderExpirationUseCase.expireCreatedOrders();
+    public void expireOrders() {
+        int expiredCount = orderExpirationUseCase.expireOrders();
         log.info("order 만료 스케쥴러가 완료되었습니다. expiredCount={}", expiredCount);
     }
 }
