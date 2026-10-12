@@ -1,7 +1,6 @@
 package com.v_payment.pay.product.domain;
 
-import com.v_payment.pay.product.domain.entity.Product;
-import com.v_payment.pay.product.infra.kafka.dto.QuantityChangeMessage;
+import com.v_payment.pay.product.entrypoint.dto.msg.QuantityChangeMessage;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,42 +24,36 @@ public class QuantityChangePlan {
                 ));
     }
 
-    public Collection<Long> getProductIds() {
-        return messageMap.keySet();
-    }
-
-    public void updateSuccessAndFail(List<Product> products) {
-        Map<Long, Integer> remainQuantities = products.stream()
-                .collect(Collectors.toMap(Product::getId, Product::getStockQuantity));
-
-        for (Map.Entry<Long, List<QuantityChangeMessage>> entry : messageMap.entrySet()) {
+    public static QuantityChangePlan calculate(
+            Map<Long, ProductSnapShot> productSnapShots,
+            QuantityChangeMessages messages
+    ) {
+        QuantityChangePlan plan = new QuantityChangePlan(messages.getAllMessages());
+        for (Map.Entry<Long, List<QuantityChangeMessage>> entry : plan.messageMap.entrySet()) {
             Long productId = entry.getKey();
-            List<QuantityChangeMessage> messages = entry.getValue();
-            Integer remainQuantity = remainQuantities.get(productId);
+            List<QuantityChangeMessage> productMessages = entry.getValue();
+            ProductSnapShot productSnapShot = productSnapShots.get(productId);
 
-            if (remainQuantity == null) {
-                fail.addAll(messages);
+            if (productSnapShot == null) {
+                plan.fail.addAll(productMessages);
                 continue;
             }
 
-            for (QuantityChangeMessage message : messages) {
-                int nextQuantity = remainQuantity + message.changeCount();
-                if (nextQuantity < 0) {
-                    fail.add(message);
+            for (QuantityChangeMessage message : productMessages) {
+                if (!productSnapShot.canChange(message.changeCount())) {
+                    plan.fail.add(message);
                     continue;
                 }
-                success.add(message);
-                remainQuantity = nextQuantity;
+                plan.success.add(message);
+                productSnapShot.change(message.changeCount());
             }
         }
-    }
 
-    public static QuantityChangePlan create(List<QuantityChangeMessage> messages) {
-        return new QuantityChangePlan(messages);
+        return plan;
     }
 
     private List<QuantityChangeMessage> validateOriginMessages(List<QuantityChangeMessage> messages) {
-        if(messages == null || messages.size() == 0) throw new IllegalStateException("messages는 없을 수 없습니다.");
+        if(messages == null) throw new IllegalStateException("messages는 없을 수 없습니다.");
         return messages;
     }
 
