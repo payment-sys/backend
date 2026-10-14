@@ -88,19 +88,7 @@
 
 <img width="586" height="499" alt="{984A6B48-AF54-48E4-8A6D-54BAE2EFA963}" src="https://github.com/user-attachments/assets/f685d7ae-ca5a-463f-9dcf-c1ac745dae57" />
 
-1. ALB: 여러 Spring Boot 인스턴스로 들어오는 요청을 라운드 로빈 방식으로 분산하기 위해 AWS Application Load Balancer를 사용했습니다.
-    - ALB는 여러 AZ에 Active-Active로 구성되어, 특정 AZ 장애 시에도 다른 AZ를 통해 요청을 받을 수 있도록 했습니다.
-2. AZ 1, 2, 3: 애플리케이션 인스턴스를 여러 가용 영역에 분산 배치하여, 한 AZ에 장애가 발생해도 전체 서비스가 중단되지 않도록 했습니다.
-3. Public Subnet: 비용 절감을 위해 애플리케이션 인스턴스를 Public Subnet에 배치하되, 보안 그룹에서 ALB의 요청만 허용하도록 제한했습니다.
-    - 운영 환경에서는 Private Subnet + NAT Gateway 구성이 더 안전하지만, 실험 환경에서는 비용을 고려해 Public Subnet을 선택했습니다.
-4. Alloy / Grafana / Loki / Tempo: Grafana Alloy를 통해 서버 지표, 애플리케이션 지표, 로그, 트레이스를 수집하고 Grafana 서버로 전송하도록 구성했습니다.
-    - Prometheus: Node, Process, Actuator 지표 수집
-    - Loki: 애플리케이션 로그 수집
-    - Tempo: OpenTelemetry 기반 Trace 수집
-    - Grafana: 지표, 로그, 트레이스 통합 시각화
-5. MySQL RDS: MySQL RDS를 Multi-AZ Active-Standby 구조로 구성하여 Primary 장애 시 Standby가 자동 승격되도록 했습니다.
-6. Spring Boot: 주문, 재고 차감 이벤트, 결제 대기 생성 등 핵심 비즈니스 로직을 처리하는 애플리케이션 서버입니다.
-7. Git / GitHub Actions: GitHub Actions를 통해 빌드, 테스트, 이미지 생성, 배포 과정을 자동화하고, 여러 인스턴스에 순차적으로 배포하는 Rolling 방식을 사용했습니다.
+<a href=https://github.com/payment-sys/backend/wiki/%EC%9D%B8%ED%94%84%EB%9D%BC-%EA%B5%AC%EC%84%B1-%EB%AC%B8%EC%84%9C> 인프라 구성 문서 </a>
 
 # 6. 핵심 구현 내용과 플로우 차트
 
