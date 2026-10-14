@@ -86,9 +86,18 @@
 
 # 5. Architecture
 
+### 5-1. 구성도
 <img width="586" height="499" alt="{984A6B48-AF54-48E4-8A6D-54BAE2EFA963}" src="https://github.com/user-attachments/assets/f685d7ae-ca5a-463f-9dcf-c1ac745dae57" />
 
+### 5-2. 구성 문서
 <a href=https://github.com/payment-sys/backend/wiki/%EC%9D%B8%ED%94%84%EB%9D%BC-%EA%B5%AC%EC%84%B1-%EB%AC%B8%EC%84%9C> 인프라 구성 문서 </a>
+
+### 5-3. wiki
+
+|제목|wiki|
+|---|----|
+|NAT Gateway를 사용한 Private Subnet 배포|https://github.com/payment-sys/backend/wiki/NAT-Gateway%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-private-%EC%84%9C%EB%B8%8C%EB%84%B7-%EB%B0%B0%ED%8F%AC|
+|||
 
 # 6. 핵심 구현 내용과 플로우 차트
 
